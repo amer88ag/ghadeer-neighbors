@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جيران الغدير - المحالة</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <header class="app-header">
+        <h1>🏘️ جيران الغدير</h1>
+        <div class="header-controls">
+            <button id="admin-btn" onclick="openAdminLogin()" title="لوحة المدير">🔐</button>
+            <div id="weather-temp" onclick="showWeatherDetails()" style="cursor: pointer;" title="الطقس">--°C</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>📰 أخبار الحي والحدث</h2>
+            <div id="news-ticker">جاري تحديث الأخبار...</div>
+        </section>
+
+        <section class="card">
+            <h2>☕ سرى القهوة والطلعات</h2>
+            <div id="trips-schedule-container">
+            </div>
+        </section>
+
+        <section class="grid-menu">
+            <div class="menu-item">🤝 جار لجاره</div>
+            <div class="menu-item">🛍️ سوق الجيران</div>
+            <div class="menu-item">💬 مجلس الجيران</div>
+            <div class="menu-item">🕌 جامع ابن ذعار</div>
+            <div class="menu-item">⚽ الرياضة</div>
+            <div class="menu-item">🕰️ مواقيت الصلاة</div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
