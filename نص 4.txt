@@ -1,0 +1,23 @@
+-- 1. جدول الأعضاء
+CREATE TABLE members (
+    id SERIAL PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    pin_code TEXT NOT NULL DEFAULT '1234',
+    role TEXT CHECK (role IN ('admin', 'supervisor', 'member')) DEFAULT 'member',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- إدخال المدير الأساسي
+INSERT INTO members (full_name, phone, pin_code, role) 
+VALUES ('عامر معيض القحطاني', '0500000000', '202020', 'admin');
+
+-- 2. جدول سرى القهوة والطلعات
+CREATE TABLE schedules (
+    id SERIAL PRIMARY KEY,
+    type TEXT CHECK (type IN ('coffee', 'trip')) NOT NULL,
+    member_id INT REFERENCES members(id) ON DELETE CASCADE,
+    hijri_date TEXT NOT NULL,
+    gregorian_date DATE NOT NULL,
+    status TEXT DEFAULT 'مؤكد'
+);

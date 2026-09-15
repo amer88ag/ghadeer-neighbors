@@ -1,0 +1,84 @@
+// التهيئة والاتصال بقاعدة بيانات Supabase (يتم وضع المفاتيح الخاصة بك)
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+// const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// الحالة العامة للبرنامج
+let currentUser = null;
+let currentRole = null; // 'admin', 'supervisor', 'member'
+
+// --- 1. نظام دخول المدير ---
+function openAdminLogin() {
+    // إظهار قائمة منسدلة بأسماء الأعضاء واختيار "عامر معيض القحطاني" تلقائياً أو يدوياً
+    const selectedName = "عامر معيض القحطاني";
+    const password = prompt(`أدخل الرقم السري للـمدير (${selectedName}):`);
+    
+    if (password === "202020") {
+        currentUser = selectedName;
+        currentRole = 'admin';
+        alert("مرحباً بك يا عميد. تم تسجيل الدخول لصلاحيات المدير بنجاح.");
+        loadAdminDashboard();
+    } else {
+        alert("الرقم السري غير صحيح.");
+    }
+}
+
+// --- 2. إصلاح وعرض سرى الطلعات (المشكلة السابقة) ---
+async function fetchTripSchedule() {
+    try {
+        // محاكاة جلب البيانات من Supabase (أو استبدالها بالاستعلام الفعلي)
+        const tripsContainer = document.getElementById('trips-schedule-container');
+        if (!tripsContainer) return;
+
+        // بيانات تجريبية تأكيداً لعمل الواجهة
+        const tripsData = [
+            { person: "باسل أبو سيف", dateH: "1447/04/10", dateG: "2026/10/12", status: "مؤكد" },
+            { person: "مشبب الشهري", dateH: "1447/04/24", dateG: "2026/10/26", status: "اعتذار" }
+        ];
+
+        let html = '<ul class="trip-list">';
+        tripsData.forEach(trip => {
+            html += `
+                <li class="trip-card">
+                    <strong>المسؤول:</strong> ${trip.person} <br>
+                    <strong>التاريخ:</strong> ${trip.dateH} هـ (${trip.dateG} م) <br>
+                    <strong>الحالة:</strong> <span class="${trip.status === 'مؤكد' ? 'text-success' : 'text-danger'}">${trip.status}</span>
+                </li>
+            `;
+        });
+        html += '</ul>';
+        tripsContainer.innerHTML = html;
+    } catch (error) {
+        console.error("خطأ في جلب سرى الطلعات:", error);
+    }
+}
+
+// --- 3. جلب الطقس وتغيير اللون حسب الحرارة ---
+async function updateWeatherWidget() {
+    const tempElement = document.getElementById('weather-temp');
+    if (!tempElement) return;
+    
+    // افتراض الحرارة في المحالة، أبها (مثلاً 24 مئوية)
+    let temp = 24; 
+    tempElement.innerText = `${temp}°C`;
+    
+    if (temp < 20) {
+        tempElement.style.color = '#3498db'; // بارد (أزرق)
+    } else if (temp <= 30) {
+        tempElement.style.color = '#2ecc71'; // معتدل (أخضر)
+    } else {
+        tempElement.style.color = '#e74c3c'; // حار (أحمر)
+    }
+}
+
+// --- 4. لوحة التحكم للمدير ---
+function loadAdminDashboard() {
+    console.log("تم تحميل لوحة المدير بنجاح. الصلاحيات متاحة.");
+    // فتح واجهة الإدارة وتفعيل صلاحيات التعديل والحذف
+}
+
+// تشغيل الوظائف عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    fetchTripSchedule();
+    updateWeatherWidget();
+});
