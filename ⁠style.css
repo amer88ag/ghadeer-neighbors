@@ -7,31 +7,39 @@
 
 body {
     background-color: #f4f7f6;
-    color: #333;
+    color: #222;
     direction: rtl;
-    padding-bottom: 20px;
+    padding-bottom: 30px;
 }
 
 .app-header {
     background-color: #1b4d3e;
     color: white;
-    padding: 15px 20px;
+    padding: 18px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.app-header h1 {
+    font-size: 22px;
 }
 
 .header-controls {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     align-items: center;
 }
 
 #admin-btn {
-    background: none;
+    background: #ffffff;
+    color: #1b4d3e;
     border: none;
-    font-size: 22px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
     cursor: pointer;
 }
 
@@ -41,43 +49,123 @@ body {
     margin: 0 auto;
 }
 
-.card {
-    background: white;
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 15px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
 .grid-menu {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 12px;
 }
 
 .menu-item {
     background: white;
-    padding: 20px;
+    padding: 22px;
     text-align: center;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
     font-weight: bold;
+    font-size: 16px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s;
+    border: 1px solid #e0e0e0;
+}
+
+.menu-item:active {
+    transform: scale(0.98);
 }
 
 .menu-item:hover {
-    background: #e2ede8;
+    background: #e9f5f0;
+}
+
+.card {
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.08);
 }
 
 .trip-card {
     background: #fafafa;
-    border-right: 4px solid #1b4d3e;
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 6px;
-    font-size: 14px;
+    border-right: 5px solid #1b4d3e;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    font-size: 15px;
+    border-top: 1px solid #eee;
+    border-left: 1px solid #eee;
+    border-bottom: 1px solid #eee;
 }
 
 .text-success { color: #27ae60; font-weight: bold; }
 .text-danger { color: #c0392b; font-weight: bold; }
+
+/* Modal نافذة المدير */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 22px;
+    border-radius: 14px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.modal-content select, .modal-content input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+}
+
+.btn-primary {
+    background: #1b4d3e;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    width: 100%;
+    margin-top: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    width: 100%;
+    margin-top: 8px;
+    cursor: pointer;
+}
+
+.admin-actions button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    background: #f1f8f6;
+    border: 1px solid #1b4d3e;
+    color: #1b4d3e;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: right;
+}
