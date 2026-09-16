@@ -100,7 +100,7 @@ function renderMessages(){
 }
 function fillMemberSelects(){
   const active=activeMemberList();
-  ["entryMember","managerMember"].forEach(id=>{
+  ["entryMember","managerMember","authMember"].forEach(id=>{
     const el=$(id); if(!el) return;
     const current=el.value;
     el.innerHTML=active.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
@@ -126,20 +126,38 @@ function focusCoffee(id){ openPage("coffee"); $("coffeeApologyId").value=id; }
 function normalizeDigits(value){
   return String(value ?? "").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim();
 }
-async function memberLogin(){
-  const id=Number($("entryMember").value), pin=normalizeDigits($("entryPin").value);
-  if(!id||!pin){setStatus("entryStatus","أدخل الاسم والرقم السري.",false);return;}
-  const {data,error}=await rpc("member_login",{p_member_id:id,p_pin:pin});
-  const result=normalizeRpcData(data);
-  if(error || result.success !== true){setStatus("entryStatus",result.message||error?.message||"الرقم السري غير صحيح.",false);return;}
-  state.member=state.members.find(m=>Number(m.id)===id)||{id,name:result.name||memberName(id)};
-  state.pin=pin; state.manager=false; state.supervisor=['super_admin','supervisor'].includes(result.role);
-  $("entryScreen").classList.add("hidden"); $("app").classList.remove("hidden");
-  $("whoami").textContent="— "+state.member.name+(state.supervisor?" (مشرف)":"");
-  $("managerNav").classList.toggle("hidden",!state.supervisor);
-  await ensureAcceptance();
-  await loadData();
+function showMemberAuth(){
+  fillMemberSelects();
+  const m=$('memberAuthModal'); if(m)m.classList.remove('hidden');
+  const st=$('authStatus'); if(st){st.textContent='';st.className='status';}
+  const pin=$('authPin'); if(pin){pin.value='';setTimeout(()=>pin.focus(),50);}
 }
+function closeMemberAuth(){const m=$('memberAuthModal');if(m)m.classList.add('hidden');}
+async function requireMemberAuth(){
+  if(state.member && state.pin) return true;
+  showMemberAuth();
+  return false;
+}
+async function authenticateMemberFromModal(){
+  const id=Number($('authMember').value), pin=normalizeDigits($('authPin').value);
+  if(!id||!pin){setStatus('authStatus','اختر اسمك وأدخل الرقم السري.',false);return false;}
+  setStatus('authStatus','جارٍ التحقق...',true);
+  try{
+    const {data,error}=await rpc('member_login',{p_member_id:id,p_pin:pin});
+    const result=normalizeRpcData(data);
+    if(error || result.success!==true){setStatus('authStatus',result.message||error?.message||'الرقم السري غير صحيح.',false);return false;}
+    state.member=state.members.find(m=>Number(m.id)===id)||{id,name:result.name||memberName(id)};
+    state.pin=pin; state.manager=false; state.supervisor=['super_admin','supervisor'].includes(result.role);
+    $('whoami').textContent='— '+state.member.name+(state.supervisor?' (مشرف)':'');
+    $('managerNav').classList.toggle('hidden',!state.supervisor);
+    closeMemberAuth();
+    await ensureAcceptance();
+    await loadData();
+    toast('تم تسجيل الدخول.');
+    return true;
+  }catch(e){setStatus('authStatus','حدث خطأ أثناء تسجيل الدخول: '+(e?.message||e),false);return false;}
+}
+async function memberLogin(){ return authenticateMemberFromModal(); }
 async function ensureAcceptance(){
   // Acceptance is recorded after login. We do not store the PIN or acceptance locally.
   const {data,error}=await table("program_acceptances",{eq:{member_id:state.member.id},order:"accepted_at",ascending:false,limit:1});
@@ -159,6 +177,14 @@ function normalizeRpcData(data){
 function rpcResult(data,error){
   const r=normalizeRpcData(data);
   return {data:r,error,ok:!error && (r.success===true || r.ok===true),message:r.message||r.error||error?.message||"تعذر تنفيذ العملية."};
+}
+function showManagerLogin(){
+  const e=$('entryScreen'); if(e)e.classList.remove('hidden');
+  $('entryStep').classList.add('hidden'); $('managerStep').classList.remove('hidden');
+  fillMemberSelects();
+  const chosen=state.members.find(m=>m.name.includes('عامر معيض القحطاني')); if(chosen)$('managerMember').value=chosen.id;
+  $('managerPin').value=''; $('entryStatus').textContent=''; $('entryStatus').className='status';
+  setTimeout(()=>$('managerPin').focus(),50);
 }
 async function managerLogin(){
   const selected=Number($("managerMember").value), pin=normalizeDigits($("managerPin").value);
@@ -260,6 +286,7 @@ async function changeMemberPinFor(id){
   toast("تم تغيير الرقم السري للعضو.");
 }
 async function changeOwnPin(){
+  if(!(await requireMemberAuth())) return;
   if(!state.member)return;
   const current=prompt("الرقم السري الحالي:",""); if(current===null)return;
   const next=prompt("الرقم السري الجديد (4 إلى 12 رقمًا):",""); if(next===null)return;
@@ -320,6 +347,7 @@ async function scheduleNotification(){
   if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر الجدولة.",false);return;} toast("تمت جدولة الإعلان."); await loadData();
 }
 async function sendMessage(){
+  if(!(await requireMemberAuth())) return;
   if(!state.member||!state.pin)return;
   const message=$("messageText").value.trim(); if(!message)return;
   const {data,error}=await rpc("send_group_message",{p_member_id:state.member.id,p_pin:state.pin,p_message:message});
@@ -327,23 +355,27 @@ async function sendMessage(){
   $("messageText").value=""; toast("تم إرسال الرسالة."); await loadData();
 }
 async function submitSuggestion(){
+  if(!(await requireMemberAuth())) return;
   const message=$("suggestionText").value.trim(); if(!message)return;
   const {data,error}=await rpc("submit_suggestion",{p_member_id:state.member.id,p_pin:state.pin,p_category:$("suggestionCategory").value,p_message:message});
   if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر إرسال الاقتراح.",false);return;}
   $("suggestionText").value="";toast("تم إرسال الاقتراح.");
 }
 async function setAttendance(outingId,att){
+  if(!(await requireMemberAuth())) return;
   if(!state.member)return;
   const {data,error}=await rpc("set_outing_attendance",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:outingId,p_attendance:att});
   if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تسجيل الحضور.",false);return;} toast(att?"تم تسجيل الحضور":"تم تسجيل الاعتذار.");
 }
 async function setExpense(){
+  if(!(await requireMemberAuth())) return;
   const id=Number($("expenseOutingId").value), amount=Number($("expenseAmount").value);
   if(!id||!amount)return toast("أدخل الطلعة والمبلغ.",false);
   const {data,error}=await rpc("set_outing_expense",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:id,p_total_amount:amount});
   if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ المصروف.",false);return;} toast("تم حفظ المصروف.");
 }
 async function apologizeCoffee(undo=false){
+  if(!(await requireMemberAuth())) return;
   const id=Number($("coffeeApologyId").value);
   const fn=undo?"member_undo_apologize_coffee":"member_apologize_coffee";
   const {data,error}=await rpc(fn,{p_id:id,p_member_id:state.member.id,p_pin:state.pin});
@@ -385,7 +417,10 @@ function openManagerTab(name){
 window.openManagerTab=openManagerTab;
 function logout(){
   state.member=null;state.pin=null;state.manager=false;state.supervisor=false;
-  $("app").classList.add("hidden");$("acceptModal").classList.add("hidden");$("entryScreen").classList.remove("hidden");$("entryPin").value="";$("managerPin").value="";
+  $('acceptModal').classList.add('hidden');
+  $('whoami').textContent=''; $('managerNav').classList.add('hidden');
+  $('entryScreen').classList.add('hidden'); $('memberAuthModal').classList.add('hidden');
+  openPage('home'); toast('تم الخروج من حساب العضو.');
 }
 function fillManagerFormFromSelected(){
   const c=state.coffee.find(x=>Number(x.id)===Number($("mcId").value));
@@ -395,9 +430,14 @@ function fillManagerFormFromSelected(){
 }
 document.addEventListener("DOMContentLoaded",async()=>{
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
-  $("memberLoginBtn").onclick=memberLogin;$("managerLoginBtn").onclick=managerLogin;
-  $("showManagerBtn").onclick=()=>{$("entryStep").classList.add("hidden");$("managerStep").classList.remove("hidden");};
-  $("backToMemberBtn").onclick=()=>{$("managerStep").classList.add("hidden");$("entryStep").classList.remove("hidden");};
+  if($('memberLoginBtn'))$('memberLoginBtn').onclick=memberLogin;
+  if($('managerLoginBtn'))$('managerLoginBtn').onclick=managerLogin;
+  if($('showManagerBtn'))$('showManagerBtn').onclick=showManagerLogin;
+  if($('backToMemberBtn'))$('backToMemberBtn').onclick=()=>{$('entryScreen').classList.add('hidden');};
+  if($('authLoginBtn'))$('authLoginBtn').onclick=authenticateMemberFromModal;
+  if($('authCancelBtn'))$('authCancelBtn').onclick=closeMemberAuth;
+  if($('memberAccessBtn'))$('memberAccessBtn').onclick=showMemberAuth;
+  if($('showManagerFromHomeBtn'))$('showManagerFromHomeBtn').onclick=showManagerLogin;
   $("acceptTermsBtn").onclick=acceptTerms;$("rejectTermsBtn").onclick=()=>logout();
   $("refreshBtn").onclick=async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");};
   $("logoutBtn").onclick=logout;
@@ -411,5 +451,6 @@ document.addEventListener("DOMContentLoaded",async()=>{
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
   $("prayerBtn").onclick=()=>window.open("https://www.islamicfinder.org/world/saudi-arabia/abha/","_blank","noopener");
   $("weatherBtn").onclick=()=>window.open("https://www.google.com/search?q=الطقس+أبها","_blank","noopener");
+  $('entryScreen').classList.add('hidden'); $('app').classList.remove('hidden'); $('whoami').textContent=''; $('managerNav').classList.add('hidden');
   await loadMembers(); await loadData();
 });
