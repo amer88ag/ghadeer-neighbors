@@ -106,7 +106,7 @@ function fillMemberSelects(){
     el.innerHTML=active.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
     if(current) el.value=current;
   });
-  ["mcMember","moMember1","moMember2","permMember"].forEach(id=>{
+  ["mcMember","moMember1","moMember2","permMember","changePinMember"].forEach(id=>{
     const el=$(id); if(!el) return;
     const current=el.value;
     el.innerHTML=active.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
@@ -127,9 +127,9 @@ async function memberLogin(){
   const id=Number($("entryMember").value), pin=$("entryPin").value.trim();
   if(!id||!pin){setStatus("entryStatus","أدخل الاسم والرقم السري.",false);return;}
   const {data,error}=await rpc("member_login",{p_member_id:id,p_pin:pin});
-  if(error || !data?.ok){setStatus("entryStatus",data?.message||error?.message||"تعذر تسجيل الدخول.",false);return;}
+  if(error || normalizeRpcData(data).success !== true){setStatus("entryStatus",data?.message||error?.message||"الرقم السري غير صحيح.",false);return;}
   state.member=state.members.find(m=>Number(m.id)===id)||{id,name:data.name||memberName(id)};
-  state.pin=pin; state.manager=false; state.supervisor=!!data.is_supervisor;
+  state.pin=pin; state.manager=false; state.supervisor=['super_admin','supervisor'].includes(result.role);
   $("entryScreen").classList.add("hidden"); $("app").classList.remove("hidden");
   $("whoami").textContent="— "+state.member.name+(state.supervisor?" (مشرف)":"");
   $("managerNav").classList.toggle("hidden",!state.supervisor);
@@ -147,79 +147,136 @@ async function acceptTerms(){
   if(error){toast("تعذر تسجيل الموافقة: "+error.message,false);return;}
   $("acceptModal").classList.add("hidden"); toast("تم تسجيل الموافقة.");
 }
-function managerLogin(){
+function normalizeRpcData(data){
+  if(typeof data === "string"){ try { return JSON.parse(data); } catch(e){} }
+  if(Array.isArray(data) && data.length===1 && data[0] && typeof data[0]==="object") return data[0];
+  return data || {};
+}
+function rpcResult(data,error){
+  const r=normalizeRpcData(data);
+  return {data:r,error,ok:!error && (r.success===true || r.ok===true),message:r.message||r.error||error?.message||"تعذر تنفيذ العملية."};
+}
+async function managerLogin(){
   const selected=Number($("managerMember").value), pin=$("managerPin").value.trim();
   if(!selected||!pin){setStatus("entryStatus","اختر المدير وأدخل الرقم السري.",false);return;}
   const chosen=state.members.find(m=>Number(m.id)===selected);
   if(!chosen || !chosen.name.includes("عامر معيض القحطاني")){setStatus("entryStatus","الدخول الإداري مخصص للمدير المحدد في النظام.",false);return;}
-  rpc("manager_pin_login",{p_pin:pin}).then(async ({data,error})=>{
-    if(error || !data?.ok){setStatus("entryStatus",data?.message||error?.message||"الرقم السري غير صحيح.",false);return;}
+  setStatus("entryStatus","جارٍ التحقق من الرقم السري...",true);
+  try{
+    const {data,error}=await rpc("manager_pin_login",{p_pin:pin});
+    const result=normalizeRpcData(data);
+    if(error){ setStatus("entryStatus","تعذر الاتصال بخدمة تسجيل الدخول: "+(error.message||"خطأ غير معروف"),false); return; }
+    if(result.success !== true){ setStatus("entryStatus",result.message||"الرقم السري غير صحيح.",false); return; }
     state.member=chosen; state.pin=pin; state.manager=true; state.supervisor=true;
     $("entryScreen").classList.add("hidden");$("app").classList.remove("hidden");
     $("whoami").textContent="— "+chosen.name+" (مدير)";
     $("managerNav").classList.remove("hidden");
     await loadData(); openPage("manager"); renderManager();
-  });
+  }catch(e){
+    setStatus("entryStatus","حدث خطأ أثناء تسجيل دخول المدير: "+(e?.message||e),false);
+  }
 }
 async function supervisorActor(){
   if(state.manager) return true;
   if(!state.member||!state.pin)return false;
   const {data}=await rpc("manager_or_supervisor_actor",{p_member_id:state.member.id,p_pin:state.pin});
-  return !!data?.ok;
+  {const r=normalizeRpcData(data); return r.ok===true || r.success===true;}
 }
 async function saveCoffee(){
   if(!(await supervisorActor())) return toast("لا تملك صلاحية الإدارة.",false);
   const id=Number($("mcId").value), member=Number($("mcMember").value);
   const {data,error}=await rpc("manager_update_coffee_assignment",{p_manager_pin:state.pin,p_id:id,p_member_id:member,p_date:$("mcDate").value,p_time:$("mcTime").value||null,p_notes:$("mcNotes").value});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حفظ القهوة.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ القهوة.",false);return;}
   toast("تم تعديل موعد القهوة."); await loadData();
 }
 async function swapCoffee(){
   if(!(await supervisorActor()))return toast("لا تملك الصلاحية.",false);
   const {data,error}=await rpc("manager_swap_coffee_dates",{p_manager_pin:state.pin,p_id1:Number($("coffeeSwapA").value),p_id2:Number($("coffeeSwapB").value)});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر التبديل.",false);return;} toast("تم تبديل موعدي القهوة."); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر التبديل.",false);return;} toast("تم تبديل موعدي القهوة."); await loadData();
 }
 async function saveOuting(){
   if(!(await supervisorActor())) return toast("لا تملك صلاحية الإدارة.",false);
   const {data,error}=await rpc("manager_update_outing_assignment",{p_manager_pin:state.pin,p_id:Number($("moId").value),p_member1_id:Number($("moMember1").value),p_member2_id:Number($("moMember2").value),p_date:$("moDate").value,p_time:$("moTime").value||null,p_notes:$("moNotes").value});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حفظ الطلعة.",false);return;} toast("تم تعديل الطلعة."); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ الطلعة.",false);return;} toast("تم تعديل الطلعة."); await loadData();
 }
 async function swapOuting(){
   if(!(await supervisorActor()))return toast("لا تملك الصلاحية.",false);
   const {data,error}=await rpc("manager_swap_outing_dates",{p_manager_pin:state.pin,p_id1:Number($("outingSwapA").value),p_id2:Number($("outingSwapB").value)});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر التبديل.",false);return;} toast("تم تقديم/تأخير الموعد."); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر التبديل.",false);return;} toast("تم تقديم/تأخير الموعد."); await loadData();
 }
 async function randomOuting(){
   if(!state.manager)return toast("إنشاء الجدول العشوائي متاح للمدير.",false);
   const {data,error}=await rpc("manager_randomize_outings",{p_manager_pin:state.pin,p_start_date:currentDateISO()});
-  if(error||!data?.ok){setStatus("randomResult",data?.message||error?.message||"تعذر إنشاء الجدول. تأكد أن عدد الجيران النشطين زوجي.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){setStatus("randomResult",data?.message||error?.message||"تعذر إنشاء الجدول. تأكد أن عدد الجيران النشطين زوجي.",false);return;}
   setStatus("randomResult",data?.message||"تم إنشاء جدول جديد ونشره.",true); await loadData();
 }
 async function addMember(){
   if(!state.manager)return toast("هذه العملية للمدير.",false);
   const name=$("newMemberName").value.trim(); if(!name)return toast("اكتب اسم الجار.",false);
   const {data,error}=await rpc("manager_add_member",{p_manager_pin:state.pin,p_name:name,p_phone:$("newMemberPhone").value.trim(),p_notes:$("newMemberNotes").value.trim(),p_member_pin:$("newMemberPin").value.trim()||null});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر إضافة الجار.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر إضافة الجار.",false);return;}
   toast("تمت إضافة الجار."); ["newMemberName","newMemberPhone","newMemberNotes","newMemberPin"].forEach(id=>$(id).value=""); await loadMembers(); await loadData();
 }
 async function deleteMember(id){
   if(!state.manager)return;
   if(!confirm("هل تريد حذف هذا الجار؟"))return;
   const {data,error}=await rpc("manager_delete_member",{p_manager_pin:state.pin,p_member_id:id});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حذف الجار.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حذف الجار.",false);return;}
   toast("تم حذف الجار."); await loadMembers(); await loadData();
 }
 async function renameMember(id,current){
   const name=prompt("الاسم الجديد:",current); if(!name||name===current)return;
   const {data,error}=await rpc("manager_update_member_name",{p_manager_pin:state.pin,p_member_id:id,p_name:name.trim()});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر تعديل الاسم.",false);return;} toast("تم تعديل الاسم."); await loadMembers(); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تعديل الاسم.",false);return;} toast("تم تعديل الاسم."); await loadMembers(); await loadData();
 }
 async function savePermissions(){
   if(!state.manager)return toast("إدارة المشرفين للمدير.",false);
   const member=Number($("permMember").value);
   const g=k=>document.querySelector(`[data-perm="${k}"]`).checked;
   const {data,error}=await rpc("manager_set_member_permissions",{p_manager_pin:state.pin,p_member_id:member,p_can_manage_coffee:g("coffee"),p_can_manage_outings:g("outings"),p_can_manage_dates:g("dates"),p_can_manage_members:g("members"),p_can_manage_rules:g("rules"),p_can_send_group_messages:g("messages"),p_can_manage_lottery:g("lottery"),p_can_manage_apologies:g("apologies")});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حفظ الصلاحيات.",false);return;} toast("تم حفظ الصلاحيات."); await loadData(); renderPermissions();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ الصلاحيات.",false);return;} toast("تم حفظ الصلاحيات."); await loadData(); renderPermissions();
+}
+async function changeMemberPin(){
+  if(!state.manager && !(await supervisorActor())) return toast("لا تملك صلاحية تغيير أرقام الأعضاء.",false);
+  const member=Number($("changePinMember").value); if(!member)return toast("اختر العضو.",false);
+  const newPin=prompt("أدخل الرقم السري الجديد (4 إلى 12 رقمًا):","");
+  if(newPin===null)return; if(!/^\d{4,12}$/.test(newPin))return toast("الرقم السري يجب أن يكون من 4 إلى 12 رقمًا.",false);
+  const {data,error}=await rpc("manager_set_member_pin",{p_manager_pin:state.pin,p_member_id:member,p_new_pin:newPin});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  toast("تم تغيير الرقم السري للعضو.");
+}
+async function changeMemberPinFor(id){
+  if(!state.manager)return toast("هذه العملية للمدير.",false);
+  const m=state.members.find(x=>Number(x.id)===Number(id)); if(!m)return;
+  const newPin=prompt("الرقم السري الجديد لـ "+m.name+" (4 إلى 12 رقماً):","");
+  if(newPin===null)return;
+  if(!/^\d{4,12}$/.test(newPin))return toast("الرقم السري يجب أن يكون من 4 إلى 12 رقماً.",false);
+  const {data,error}=await rpc("manager_set_member_pin",{p_manager_pin:state.pin,p_member_id:id,p_new_pin:newPin});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  toast("تم تغيير الرقم السري للعضو.");
+}
+async function changeOwnPin(){
+  if(!state.member)return;
+  const current=prompt("الرقم السري الحالي:",""); if(current===null)return;
+  const next=prompt("الرقم السري الجديد (4 إلى 12 رقمًا):",""); if(next===null)return;
+  if(!/^\d{4,12}$/.test(next))return toast("الرقم الجديد يجب أن يكون من 4 إلى 12 رقمًا.",false);
+  const {data,error}=await rpc("member_change_own_pin",{p_member_id:state.member.id,p_current_pin:current,p_new_pin:next});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  toast("تم تغيير رقمك السري. سجّل الدخول من جديد."); logout();
+}
+async function revokeSupervisor(id){
+  if(!state.manager)return toast("هذه العملية للمدير.",false);
+  const m=state.members.find(x=>Number(x.id)===Number(id)); if(!m)return;
+  if(!confirm("إلغاء صلاحيات المشرف عن: "+m.name+" ؟"))return;
+  const {data,error}=await rpc("manager_remove_supervisor",{p_manager_pin:state.pin,p_member_id:id});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  toast("تم إلغاء صلاحيات المشرف."); await loadData();
+}
+function renderSupervisorList(){
+  const map=Object.fromEntries(state.permissions.map(x=>[x.member_id,x]));
+  const el=$("permissionsList2"); if(!el)return;
+  const rows=state.members.filter(m=>m.active && map[m.id]?.role==='supervisor');
+  el.innerHTML=rows.length?rows.map(m=>`<div class="permission-row"><b>${esc(m.name)}</b><button class="small-btn ghost-mini" onclick="revokeSupervisor(${m.id})">إلغاء الإشراف</button></div>`).join(""):"<p class='muted'>لا يوجد مشرفون مفوضون.</p>";
 }
 function renderPermissions(){
   const map=Object.fromEntries(state.permissions.map(x=>[x.member_id,x]));
@@ -228,6 +285,7 @@ function renderPermissions(){
     const flags=["can_manage_coffee","can_manage_outings","can_manage_dates","can_manage_members","can_manage_rules","can_send_group_messages","can_manage_lottery","can_manage_apologies"].filter(k=>p?.[k]).length;
     return `<div class="permission-row"><b>${esc(m.name)}</b><span>${esc(role)} — ${flags} صلاحيات</span></div>`;
   }).join("");
+  renderSupervisorList();
 }
 function renderManager(){
   if(!state.manager&&!state.supervisor){$("managerDenied").classList.remove("hidden");$("managerPanel").classList.add("hidden");return;}
@@ -241,51 +299,73 @@ function renderManager(){
 async function saveRules(){
   if(!state.manager)return toast("إدارة القواعد للمدير.",false);
   const {data,error}=await rpc("manager_set_schedule_rules",{p_manager_pin:state.pin,p_coffee_interval_days:Number($("coffeeInterval").value||14),p_coffee_order_mode:$("coffeeOrder").value,p_coffee_avoid_repeat:$("coffeeAvoid").checked,p_outing_frequency:$("outingFrequency").value,p_outing_day_rule:$("outingRule").value,p_outing_pair_mode:$("pairMode").value,p_avoid_coffee_conflicts:$("avoidConflict").checked});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حفظ القواعد.",false);return;} toast("تم حفظ القواعد."); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ القواعد.",false);return;} toast("تم حفظ القواعد."); await loadData();
 }
 async function changeManagerPin(){
   if(!state.manager)return;
   const old=$("oldManagerPin").value,newPin=$("newManagerPin").value;
   if(!old||!newPin)return toast("أدخل الرقمين.",false);
   const {data,error}=await rpc("manager_set_manager_pin",{p_current_pin:old,p_new_pin:newPin});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر تغيير الرقم.",false);return;} toast("تم تغيير رقم المدير. سجّل الدخول مجددًا."); logout();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تغيير الرقم.",false);return;} toast("تم تغيير رقم المدير. سجّل الدخول مجددًا."); logout();
 }
 async function scheduleNotification(){
   if(!state.manager)return;
   const title=$("notifyTitle").value.trim(), message=$("notifyMessage").value.trim(), at=$("notifyAt").value;
   if(!title||!message||!at)return toast("أكمل بيانات الإعلان.",false);
   const {data,error}=await rpc("manager_schedule_notification",{p_manager_pin:state.pin,p_title:title,p_message:message,p_scheduled_at:new Date(at).toISOString()});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر الجدولة.",false);return;} toast("تمت جدولة الإعلان."); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر الجدولة.",false);return;} toast("تمت جدولة الإعلان."); await loadData();
 }
 async function sendMessage(){
   if(!state.member||!state.pin)return;
   const message=$("messageText").value.trim(); if(!message)return;
   const {data,error}=await rpc("send_group_message",{p_member_id:state.member.id,p_pin:state.pin,p_message:message});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر إرسال الرسالة.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر إرسال الرسالة.",false);return;}
   $("messageText").value=""; toast("تم إرسال الرسالة."); await loadData();
 }
 async function submitSuggestion(){
   const message=$("suggestionText").value.trim(); if(!message)return;
   const {data,error}=await rpc("submit_suggestion",{p_member_id:state.member.id,p_pin:state.pin,p_category:$("suggestionCategory").value,p_message:message});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر إرسال الاقتراح.",false);return;}
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر إرسال الاقتراح.",false);return;}
   $("suggestionText").value="";toast("تم إرسال الاقتراح.");
 }
 async function setAttendance(outingId,att){
   if(!state.member)return;
   const {data,error}=await rpc("set_outing_attendance",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:outingId,p_attendance:att});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر تسجيل الحضور.",false);return;} toast(att?"تم تسجيل الحضور":"تم تسجيل الاعتذار.");
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تسجيل الحضور.",false);return;} toast(att?"تم تسجيل الحضور":"تم تسجيل الاعتذار.");
 }
 async function setExpense(){
   const id=Number($("expenseOutingId").value), amount=Number($("expenseAmount").value);
   if(!id||!amount)return toast("أدخل الطلعة والمبلغ.",false);
   const {data,error}=await rpc("set_outing_expense",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:id,p_total_amount:amount});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر حفظ المصروف.",false);return;} toast("تم حفظ المصروف.");
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ المصروف.",false);return;} toast("تم حفظ المصروف.");
 }
 async function apologizeCoffee(undo=false){
   const id=Number($("coffeeApologyId").value);
   const fn=undo?"member_undo_apologize_coffee":"member_apologize_coffee";
   const {data,error}=await rpc(fn,{p_id:id,p_member_id:state.member.id,p_pin:state.pin});
-  if(error||!data?.ok){toast(data?.message||error?.message||"تعذر تنفيذ العملية.",false);return;} toast(undo?"تم إلغاء الاعتذار":"تم تسجيل الاعتذار"); await loadData();
+  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تنفيذ العملية.",false);return;} toast(undo?"تم إلغاء الاعتذار":"تم تسجيل الاعتذار"); await loadData();
+}
+async function managerStats(){
+  if(!state.manager)return toast("الإحصاءات للمدير.",false);
+  const {data,error}=await rpc("manager_activity_stats",{p_manager_pin:state.pin,p_limit:500});
+  const rr=rpcResult(data,error); if(!rr.ok && !rr.data?.totals)return toast(rr.message,false);
+  const out=rr.data||{}; $("statsOutput").textContent=JSON.stringify(out,null,2); toast("تم تحديث الإحصاءات.");
+}
+async function makeBackup(){
+  if(!state.manager)return toast("النسخ الاحتياطي للمدير.",false);
+  const names=["members","member_permissions","coffee_schedule","outings_schedule","announcements","group_messages","group_rules","neighbor_help","neighbor_market","neighbor_profiles","outing_attendance","outing_expenses","schedule_settings","program_control","suggestions","program_acceptances","lottery_draws"];
+  const tables={};
+  for(const name of names){
+    const {data,error}=await table(name); if(error) {toast("تعذر قراءة "+name+": "+error.message,false);return;}
+    tables[name]=(data||[]).map(row=>{const x={...row}; if(name==='members') delete x.pin_hash; return x;});
+  }
+  const backup={app:"جيران حي الغدير",version:"1.0-final",created_at:new Date().toISOString(),tables};
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ghadeer-neighbors-backup-"+new Date().toISOString().slice(0,10)+".json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast("تم تنزيل النسخة الاحتياطية.");
+}
+async function restoreBackupFile(file){
+  if(!state.manager||!file)return;
+  if(!confirm("استعادة النسخة قد تعدّل بيانات البرنامج. هل تريد المتابعة؟"))return;
+  try{const data=JSON.parse(await file.text()); if(!data?.tables)throw Error("ملف النسخة غير صالح"); const {data:res,error}=await rpc("manager_restore_backup",{p_manager_pin:state.pin,p_data:data}); const rr=rpcResult(res,error); if(!rr.ok)return toast(rr.message,false); toast("تمت الاستعادة."); await loadMembers(); await loadData();}catch(e){toast("تعذر استعادة النسخة: "+e.message,false);}
 }
 function openPage(id){
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));
@@ -316,14 +396,16 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("backToMemberBtn").onclick=()=>{$("managerStep").classList.add("hidden");$("entryStep").classList.remove("hidden");};
   $("acceptTermsBtn").onclick=acceptTerms;$("rejectTermsBtn").onclick=()=>logout();
   $("refreshBtn").onclick=async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");};
-  $("logoutBtn").onclick=logout;$("memberSearch").oninput=renderMembers;
+  $("logoutBtn").onclick=logout;
+  if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers;
   $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
   $("expenseBtn").onclick=setExpense;$("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
   $("saveCoffeeBtn").onclick=saveCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
-  $("addMemberBtn").onclick=addMember;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
+  $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
+  $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
   $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
-  $("prayerBtn").onclick=()=>toast("أدخل اسم المدينة في إعدادات جهازك أو اسمح بالموقع ثم يمكن ربط مزود مواقيت الصلاة.");
-  $("weatherBtn").onclick=()=>toast("حدد المدينة أو اسمح بالموقع من الجهاز أولًا.");
+  $("prayerBtn").onclick=()=>window.open("https://www.islamicfinder.org/world/saudi-arabia/abha/","_blank","noopener");
+  $("weatherBtn").onclick=()=>window.open("https://www.google.com/search?q=الطقس+أبها","_blank","noopener");
   await loadMembers(); await loadData();
 });

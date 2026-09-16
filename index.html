@@ -1,216 +1,36 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0f6b55">
-  <meta name="description" content="جيران حي الغدير بالمحالة">
-  <title>جيران حي الغدير بالمحالة</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.webmanifest">
-</head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#176b45"><title>جيران حي الغدير بالمحالة</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--g:#176b45;--g2:#0d4e34;--bg:#f5f1e8;--card:#fff;--line:#e4dacb;--txt:#27231e;--muted:#71695f;--red:#a32929;--gold:#b98b35}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"SF Arabic","Geeza Pro",Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}.entry{min-height:100vh;display:grid;place-items:center;padding:18px;background:linear-gradient(160deg,#f8f4ec,#e9efe9)}.entry-card{width:min(520px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 18px 50px #0001}.brand{text-align:center;color:var(--g)}.brand .logo{font-size:48px}.brand h1{margin:5px 0}.brand p{color:var(--muted)}label{display:block;font-weight:700;margin:10px 0 6px}input,select,textarea{width:100%;padding:11px;border:1px solid #d7ccbc;border-radius:12px;background:#fff;color:var(--txt)}textarea{min-height:90px;resize:vertical}.btn{border:0;border-radius:12px;padding:11px 14px}.primary{background:var(--g);color:#fff}.secondary{background:#eee8de}.danger{background:#fdeaea;color:var(--red)}.status{min-height:22px;margin-top:8px}.status.bad{color:var(--red)}.status.ok{color:var(--g)}.appbar{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;padding:18px 16px 16px;position:sticky;top:0;z-index:10}.appbar h1{font-size:21px;margin:0}.appbar .sub{opacity:.85;margin-top:5px;font-size:13px}.wrap{max-width:1100px;margin:auto;padding:14px 14px 90px}.page{display:none}.page.active{display:block}.hero{background:linear-gradient(135deg,#fff,#f0e8da);border:1px solid var(--line);border-radius:20px;padding:17px;margin-bottom:12px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}.card h2,.card h3{margin-top:0}.icon-card{min-height:92px;display:flex;gap:10px;align-items:center;text-align:right}.icon{font-size:29px}.muted{color:var(--muted);font-size:13px}.stat{font-size:25px;font-weight:800}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e7f3ec;color:var(--g);font-size:12px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:720px}.table th,.table td{padding:9px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}.table th{background:#f2ecdf}.small-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px}.ghost-mini{color:var(--red)}.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.member-card{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.avatar{width:42px;height:42px;border-radius:50%;background:#e7f3ec;display:grid;place-items:center;font-size:20px}.message{border-bottom:1px solid var(--line);padding:10px 0}.message>div{display:flex;justify-content:space-between;gap:10px}.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:20}.bottom-nav button{flex:1;max-width:150px;border:0;background:#fff;padding:9px 4px;color:var(--muted);font-size:12px}.bottom-nav button.active{color:var(--g);font-weight:800;background:#f4faf6}.toast{position:fixed;left:50%;bottom:74px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 15px;border-radius:12px;opacity:0;pointer-events:none;z-index:50}.toast.show{opacity:1}.toast.ok{background:#176b45}.toast.bad{background:#a32929}.modal{position:fixed;inset:0;background:#0007;display:grid;place-items:center;padding:18px;z-index:60}.modal-card{background:#fff;border-radius:20px;padding:20px;width:min(650px,100%);max-height:90vh;overflow:auto}.manager-tabs{display:flex;gap:6px;overflow:auto;margin-bottom:10px}.manager-tabs .tab{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 12px}.manager-tabs .tab.active{background:var(--g);color:#fff}.mtab{display:none}.mtab.active{display:block}.check{display:flex;align-items:center;gap:8px;margin:7px 0}.check input{width:auto}.links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.links a{text-decoration:none;color:var(--g);background:#f4faf6;border:1px solid #dcebe1;padding:10px;border-radius:11px}.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px 5px}.top-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}@media(max-width:650px){.grid3{grid-template-columns:1fr 1fr}.table{min-width:650px}.wrap{padding-bottom:88px}}
+</style></head>
 <body>
-  <div id="toast" class="toast" aria-live="polite"></div>
-
-  <section id="entryScreen" class="entry-screen">
-    <div class="entry-card">
-      <div class="logo">🏘️</div>
-      <h1>جيران حي الغدير بالمحالة</h1>
-      <p class="muted">برنامج الجيران — القهوة والطلعات والخدمات</p>
-      <div id="entryStep">
-        <label>اختر اسمك</label>
-        <select id="entryMember"></select>
-        <label>الرقم السري</label>
-        <input id="entryPin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري">
-        <button class="primary wide" id="memberLoginBtn">دخول الجار</button>
-        <button class="ghost wide" id="showManagerBtn">🔐 دخول المدير</button>
-      </div>
-      <div id="managerStep" class="hidden">
-        <label>اسم المدير</label>
-        <select id="managerMember"></select>
-        <label>الرقم السري للمدير</label>
-        <input id="managerPin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري">
-        <button class="primary wide" id="managerLoginBtn">دخول المدير</button>
-        <button class="ghost wide" id="backToMemberBtn">رجوع</button>
-      </div>
-      <p id="entryStatus" class="status"></p>
-    </div>
-  </section>
-
-  <div id="acceptModal" class="modal hidden">
-    <div class="modal-card">
-      <h2>إقرار استخدام البرنامج</h2>
-      <div class="terms">
-        <p>أقرّ باستخدامي لبرنامج جيران حي الغدير بالمحالة ضمن الأنظمة والقوانين والآداب العامة والقيم والأحكام الشرعية، وأتحمل المسؤولية عن أي محتوى أو رسالة أو تصرف يصدر مني.</p>
-        <p>ويحق لمدير البرنامج والمشرفين المفوضين، في حدود الصلاحيات، اتخاذ الإجراءات التنظيمية المناسبة، ومنها حذف أو إخفاء المحتوى، وإيقاف أو تقييد العضوية، وحذف العضو، والاحتفاظ بحق اتخاذ الإجراءات النظامية المناسبة أو إحالة الأمر للجهات المختصة عند الاقتضاء.</p>
-        <label class="check"><input type="checkbox" id="acceptCheck"> أقر أنني قرأت الشروط وأوافق عليها.</label>
-      </div>
-      <div class="actions">
-        <button class="ghost" id="rejectTermsBtn">لا أوافق</button>
-        <button class="primary" id="acceptTermsBtn">أوافق وأدخل البرنامج</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="app" class="hidden">
-    <header class="topbar">
-      <div>
-        <strong>🏘️ جيران الغدير</strong>
-        <span id="whoami" class="small"></span>
-      </div>
-      <div class="top-actions">
-        <button class="icon-btn" id="refreshBtn" title="تحديث">↻</button>
-        <button class="icon-btn" id="logoutBtn" title="خروج">⎋</button>
-      </div>
-    </header>
-
-    <main class="container">
-      <section id="home" class="page active">
-        <div class="hero">
-          <div><span class="eyebrow">أهلًا بالجيران</span><h2>مجتمع واحد، تنظيم أسهل</h2><p>تابع القهوة والطلعات والإعلانات والخدمات من مكان واحد.</p></div>
-          <div class="hero-mark">🤝</div>
-        </div>
-        <div class="grid cards">
-          <article class="card highlight"><div class="card-icon">☕</div><h3>القهوة القادمة</h3><div id="nextCoffee">جارٍ التحميل…</div></article>
-          <article class="card highlight"><div class="card-icon">🚐</div><h3>الطلعة القادمة</h3><div id="nextOuting">جارٍ التحميل…</div></article>
-          <article class="card"><div class="card-icon">📢</div><h3>آخر إعلان</h3><div id="latestAnnouncement">جارٍ التحميل…</div></article>
-          <article class="card"><div class="card-icon">👥</div><h3>الجيران</h3><div id="memberCount">—</div></article>
-        </div>
-        <div class="grid two">
-          <article class="card"><h3>☀️ خدمات اليوم</h3><div id="serviceInfo">الطقس ومواقيت الصلاة تتطلب تحديد المدينة أو السماح بالموقع من الجهاز.</div><div class="actions"><button class="secondary" onclick="openPage('services')">الخدمات</button></div></article>
-          <article class="card"><h3>📰 الأخبار والرياضة</h3><p>روابط ومصادر خارجية موثوقة، مع عدم خلط المحتوى الخارجي بمحتوى المشروع.</p><div class="actions"><button class="secondary" onclick="openPage('news')">الأخبار</button><button class="secondary" onclick="openPage('sports')">الرياضة</button></div></article>
-        </div>
-      </section>
-
-      <section id="coffee" class="page">
-        <div class="section-head"><div><span class="eyebrow">☕ القهوة</span><h2>جدول القهوة</h2></div><button class="secondary" onclick="loadData()">تحديث</button></div>
-        <div class="card"><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>المضيف</th><th>الوقت</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="coffeeTable"></tbody></table></div></div>
-        <div class="card" id="coffeeActionCard"><h3>اعتذار عن القهوة</h3><p class="muted">يمكن للجار الاعتذار عن دوره ثم التراجع عن الاعتذار من نفس الحساب.</p><div class="inline"><select id="coffeeApologyId"></select><button class="secondary" id="apologizeCoffeeBtn">تسجيل الاعتذار</button><button class="ghost" id="undoApologyBtn">إلغاء الاعتذار</button></div></div>
-      </section>
-
-      <section id="outings" class="page">
-        <div class="section-head"><div><span class="eyebrow">🚐 الطلعات</span><h2>سرى الطلعات</h2></div><button class="secondary" onclick="loadData()">تحديث</button></div>
-        <div class="card notice">يُدار الجدول مركزيًا. يمكن للمدير أو المشرف المفوض تعديل الموعد، تقديمه أو تأخيره، وإنشاء قرعة جديدة عند توفر عدد زوجي من الجيران النشطين.</div>
-        <div class="card"><div class="table-wrap"><table><thead><tr><th>م</th><th>التاريخ</th><th>الأول</th><th>الثاني</th><th>الوقت</th><th>الحالة</th><th>الحضور</th></tr></thead><tbody id="outingTable"></tbody></table></div></div>
-        <div class="card"><h3>مصروفات الطلعة</h3><p class="muted">يمكن تسجيل إجمالي المصروف للطلعة من حساب أحد الجيران.</p><div class="inline"><select id="expenseOutingId"></select><input id="expenseAmount" type="number" min="0" step="0.01" placeholder="المبلغ بالريال"><button class="secondary" id="expenseBtn">حفظ المصروف</button></div></div>
-      </section>
-
-      <section id="neighbors" class="page">
-        <div class="section-head"><div><span class="eyebrow">👥 الجيران</span><h2>أعضاء الحي</h2></div><input id="memberSearch" class="search" placeholder="بحث باسم الجار"></div>
-        <div id="membersGrid" class="grid members"></div>
-      </section>
-
-      <section id="adhkar" class="page">
-        <div class="section-head"><div><span class="eyebrow">📖 الذكر والقرآن</span><h2>القرآن والأذكار</h2></div></div>
-        <div class="grid two">
-          <article class="card"><div class="big-icon">📖</div><h3>القرآن الكريم</h3><p>مصحف عثماني، بحث وتلاوة وتفسير ومعاني الكلمات ومعلومات السور. المحتوى القرآني مصدر خارجي وليس من حقوق مشروع الجيران.</p><div class="actions"><a class="primary link-btn" target="_blank" rel="noopener" href="https://quran.com/">فتح المصحف</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://quran.com/tafsirs">التفسير</a></div></article>
-          <article class="card"><div class="big-icon">🌙</div><h3>الأذكار</h3><p>الأذكار الصباحية والمسائية وحصن المسلم.</p><div class="actions"><a class="primary link-btn" target="_blank" rel="noopener" href="https://hisnmuslim.com/">حصن المسلم</a></div></article>
-        </div>
-      </section>
-
-      <section id="sports" class="page">
-        <div class="section-head"><div><span class="eyebrow">⚽ الرياضة</span><h2>كرة القدم</h2></div></div>
-        <div class="grid cards">
-          <article class="card"><h3>🇸🇦 السعودية</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.spl.com.sa/">دوري روشن</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.saff.com.sa/">الاتحاد السعودي</a></article>
-          <article class="card"><h3>🌏 آسيا</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.the-afc.com/">AFC</a></article>
-          <article class="card"><h3>🌐 العالم</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.uefa.com/">UEFA</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.fifa.com/">FIFA</a></article>
-        </div>
-        <div class="card"><h3>مباريات قادمة</h3><p class="muted">للحصول على أوقات ونتائج لحظية استخدم مصدر المسابقة الرسمي؛ يمكن إضافة مزود نتائج مرخص لاحقًا دون تخزين بيانات خارجية داخل المشروع.</p></div>
-      </section>
-
-      <section id="services" class="page">
-        <div class="section-head"><div><span class="eyebrow">🏘️ خدمات الحي</span><h2>الخدمات</h2></div></div>
-        <div class="grid cards">
-          <article class="card"><div class="big-icon">🕌</div><h3>مواقيت الصلاة</h3><p>اختر المدينة أو اسمح للموقع من جهازك. لا يتم افتراض موقع دقيق دون موافقة.</p><button class="secondary" id="prayerBtn">تحديد المدينة</button></article>
-          <article class="card"><div class="big-icon">🌤️</div><h3>الطقس</h3><p>يمكن ربط مزود طقس موثوق بعد تحديد المدينة.</p><button class="secondary" id="weatherBtn">تحديد المدينة</button></article>
-          <article class="card"><div class="big-icon">📅</div><h3>مناسبات</h3><p>الأعياد والإجازات والمناسبات العامة تُعرض من مصادرها الرسمية عند الربط.</p></article>
-        </div>
-      </section>
-
-      <section id="news" class="page">
-        <div class="section-head"><div><span class="eyebrow">📰 الأخبار</span><h2>مصادر الأخبار</h2></div></div>
-        <div class="grid cards">
-          <article class="card"><h3>🇸🇦 السعودية</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.spa.gov.sa/">واس SPA</a></article>
-          <article class="card"><h3>🌙 عربي</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.alarabiya.net/">العربية</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.aljazeera.net/">الجزيرة</a></article>
-          <article class="card"><h3>🌐 عالمي</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.reuters.com/">Reuters</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://apnews.com/">AP</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.bbc.com/arabic">BBC عربي</a></article>
-        </div>
-      </section>
-
-      <section id="messages" class="page">
-        <div class="section-head"><div><span class="eyebrow">💬 التواصل</span><h2>رسائل الجيران</h2></div></div>
-        <div class="card"><div id="messagesList" class="messages"></div><div class="message-box"><textarea id="messageText" maxlength="1000" placeholder="اكتب رسالة للجيران…"></textarea><button class="primary" id="sendMessageBtn">إرسال</button></div></div>
-        <div class="card"><h3>اقتراح</h3><div class="inline"><select id="suggestionCategory"><option>عام</option><option>القهوة</option><option>الطلعات</option><option>الخدمات</option><option>الرياضة</option></select><input id="suggestionText" maxlength="500" placeholder="اكتب اقتراحك"><button class="secondary" id="suggestionBtn">إرسال الاقتراح</button></div></div>
-      </section>
-
-      <section id="manager" class="page">
-        <div class="section-head"><div><span class="eyebrow">🔐 الإدارة</span><h2>لوحة المدير والمشرف</h2></div></div>
-        <div id="managerDenied" class="card hidden"><h3>غير مصرح</h3><p>هذه الصفحة للمدير والمشرفين المفوضين فقط.</p></div>
-        <div id="managerPanel" class="hidden">
-          <div class="grid cards">
-            <article class="card"><h3>👥 الأعضاء</h3><div id="managerMemberStats">—</div><button class="secondary" onclick="openManagerTab('members')">إدارة الأعضاء</button></article>
-            <article class="card"><h3>☕ القهوة</h3><div id="managerCoffeeStats">—</div><button class="secondary" onclick="openManagerTab('coffee')">تعديل القهوة</button></article>
-            <article class="card"><h3>🚐 الطلعات</h3><div id="managerOutingStats">—</div><button class="secondary" onclick="openManagerTab('outings')">تعديل الطلعات</button></article>
-            <article class="card"><h3>📊 النشاط</h3><div id="managerActivityStats">—</div></article>
-          </div>
-
-          <div class="manager-tabs">
-            <button class="tab active" data-mtab="coffee">☕ القهوة</button>
-            <button class="tab" data-mtab="outings">🚐 الطلعات</button>
-            <button class="tab" data-mtab="members">👥 الأعضاء</button>
-            <button class="tab" data-mtab="supervisors">🛡️ المشرفون</button>
-            <button class="tab" data-mtab="settings">⚙️ الإعدادات</button>
-          </div>
-
-          <div id="mtab-coffee" class="mtab active">
-            <div class="card"><h3>تعديل سجل القهوة</h3><div class="form-grid"><select id="mcId"></select><select id="mcMember"></select><input id="mcDate" type="date"><input id="mcTime" type="time"><input id="mcNotes" placeholder="ملاحظات"></div><button class="primary" id="saveCoffeeBtn">حفظ التعديل</button></div>
-            <div class="card"><h3>تقديم/تأخير القهوة</h3><div class="inline"><select id="coffeeSwapA"></select><select id="coffeeSwapB"></select><button class="secondary" id="swapCoffeeBtn">تبديل الموعدين</button></div></div>
-          </div>
-
-          <div id="mtab-outings" class="mtab">
-            <div class="card"><h3>إدراج جميع أسماء الجيران في الطلعة</h3><p>ينشئ جدولًا جديدًا بتوزيع عشوائي للأعضاء النشطين. يجب أن يكون العدد زوجيًا.</p><button class="primary" id="randomOutingBtn">🎲 إنشاء جدول عشوائي جديد</button><p id="randomResult" class="status"></p></div>
-            <div class="card"><h3>تعديل سجل طلعة</h3><div class="form-grid"><select id="moId"></select><select id="moMember1"></select><select id="moMember2"></select><input id="moDate" type="date"><input id="moTime" type="time"><input id="moNotes" placeholder="ملاحظات"></div><button class="primary" id="saveOutingBtn">حفظ التعديل</button></div>
-            <div class="card"><h3>تقديم/تأخير الطلعات</h3><div class="inline"><select id="outingSwapA"></select><select id="outingSwapB"></select><button class="secondary" id="swapOutingBtn">تبديل الموعدين</button></div></div>
-          </div>
-
-          <div id="mtab-members" class="mtab">
-            <div class="card"><h3>إدارة الأعضاء</h3><div class="form-grid"><input id="newMemberName" placeholder="اسم الجار"><input id="newMemberPhone" placeholder="الجوال"><input id="newMemberPin" placeholder="رقم سري للجار" inputmode="numeric"><input id="newMemberNotes" placeholder="ملاحظات"></div><button class="primary" id="addMemberBtn">إضافة جار</button></div>
-            <div class="card"><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الجوال</th><th>الحالة</th><th>تعديل</th><th>حذف</th></tr></thead><tbody id="managerMembersTable"></tbody></table></div></div>
-          </div>
-
-          <div id="mtab-supervisors" class="mtab">
-            <div class="card"><h3>تعيين صلاحيات المشرف</h3><p class="muted">تغيير الرقم السري للعضو يتم من خلال إعدادات العضوية/الدالة المخصصة، ولا يتم حفظه في المتصفح.</p><div class="form-grid"><select id="permMember"></select><label class="check"><input type="checkbox" data-perm="coffee"> إدارة القهوة</label><label class="check"><input type="checkbox" data-perm="outings"> إدارة الطلعات</label><label class="check"><input type="checkbox" data-perm="dates"> تقديم/تأخير المواعيد</label><label class="check"><input type="checkbox" data-perm="members"> إدارة الأعضاء</label><label class="check"><input type="checkbox" data-perm="rules"> إدارة القواعد</label><label class="check"><input type="checkbox" data-perm="messages"> إرسال رسائل جماعية</label><label class="check"><input type="checkbox" data-perm="lottery"> القرعة</label><label class="check"><input type="checkbox" data-perm="apologies"> إدارة الاعتذارات</label></div><button class="primary" id="savePermBtn">حفظ الصلاحيات</button></div>
-            <div class="card"><h3>الصلاحيات الحالية</h3><div id="permissionsList"></div></div>
-          </div>
-
-          <div id="mtab-settings" class="mtab">
-            <div class="card"><h3>إعدادات الجدول</h3><div class="form-grid"><input id="coffeeInterval" type="number" min="1" placeholder="فاصل القهوة بالأيام"><select id="coffeeOrder"><option value="current">الترتيب الحالي</option><option value="random">عشوائي</option></select><label class="check"><input id="coffeeAvoid" type="checkbox"> منع تكرار المضيف</label><select id="outingFrequency"><option value="monthly">شهري</option></select><select id="outingRule"><option value="first_monday_after_27">أول اثنين بعد 27</option></select><select id="pairMode"><option value="random_no_repeat">عشوائي بلا تكرار</option></select><label class="check"><input id="avoidConflict" type="checkbox"> تجنب تعارض القهوة</label></div><button class="primary" id="saveRulesBtn">حفظ القواعد</button></div>
-            <div class="card"><h3>تغيير رقم المدير</h3><div class="inline"><input id="oldManagerPin" type="password" placeholder="الرقم الحالي"><input id="newManagerPin" type="password" placeholder="الرقم الجديد"><button class="secondary" id="changeManagerPinBtn">تغيير</button></div></div>
-            <div class="card"><h3>إعلان مجدول</h3><div class="form-grid"><input id="notifyTitle" placeholder="العنوان"><input id="notifyMessage" placeholder="الرسالة"><input id="notifyAt" type="datetime-local"></div><button class="secondary" id="scheduleNotifyBtn">جدولة الإعلان</button></div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <nav class="bottom-nav">
-      <button data-page="home" class="active">🏠<span>الرئيسية</span></button>
-      <button data-page="adhkar">📖<span>الذكر</span></button>
-      <button data-page="coffee">☕<span>القهوة</span></button>
-      <button data-page="outings">🚐<span>الطلعات</span></button>
-      <button data-page="neighbors">👥<span>الجيران</span></button>
-      <button data-page="services">🏘️<span>الخدمات</span></button>
-      <button data-page="news">📰<span>الأخبار</span></button>
-      <button data-page="sports">⚽<span>الرياضة</span></button>
-      <button data-page="messages">💬<span>الرسائل</span></button>
-      <button data-page="manager" id="managerNav">🔐<span>المدير</span></button>
-    </nav>
-
-    <footer>
-      <p>© جميع الحقوق الفكرية محفوظة — مشروع جيران حي الغدير بالمحالة — المالك: أبو باسل — جميع حقوق التصميم والبرمجة والمحتوى المخصص للمشروع محفوظة للمالك.</p>
-      <p class="muted">المصادر الخارجية مثل الأخبار والرياضة والطقس والقرآن ليست ملكًا للمشروع.</p>
-    </footer>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+<section id="entryScreen" class="entry"><div class="entry-card"><div class="brand"><div class="logo">🏘️</div><h1>جيران حي الغدير</h1><p>بالمحالة - أبها<br>القهوة تجمعنا والطلعة تقربنا</p></div>
+<div id="entryStep"><label>اختر اسمك</label><select id="entryMember"></select><label>الرقم السري</label><input id="entryPin" type="password" inputmode="numeric" autocomplete="current-password"><div class="top-actions"><button id="memberLoginBtn" class="btn primary">دخول البرنامج</button><button id="showManagerBtn" class="btn secondary">🔐 دخول المدير</button></div></div>
+<div id="managerStep" class="hidden"><label>اسم المدير</label><select id="managerMember"></select><label>الرقم السري للمدير</label><input id="managerPin" type="password" inputmode="numeric" autocomplete="current-password"><div class="top-actions"><button id="managerLoginBtn" class="btn primary">دخول المدير</button><button id="backToMemberBtn" class="btn secondary">رجوع</button></div></div><div id="entryStatus" class="status"></div></div></section>
+<section id="app" class="hidden"><header class="appbar"><h1>🏘️ جيران حي الغدير بالمحالة</h1><div class="sub">القهوة تجمعنا والطلعة تقربنا <span id="whoami"></span></div></header>
+<main class="wrap">
+<section id="home" class="page active"><div class="hero"><h2>مرحباً بكم</h2><p class="muted">برنامج موحد لتنظيم القهوة والطلعات والتواصل والخدمات.</p><div class="top-actions"><button id="refreshBtn" class="btn secondary">🔄 تحديث</button><button id="logoutBtn" class="btn danger">🚪 خروج</button></div></div><div class="grid"><div class="card"><div class="muted">الجيران النشطون</div><div id="memberCount" class="stat">—</div></div><div class="card"><div class="muted">الرسائل</div><div id="managerActivityStats" class="stat">—</div></div></div><div class="grid"><button class="card icon-card" onclick="openPage('coffee')"><span class="icon">☕</span><span><b>القهوة</b><br><small>الجدول والاعتذار</small></span></button><button class="card icon-card" onclick="openPage('outings')"><span class="icon">🚐</span><span><b>الطلعات</b><br><small>الأسماء والحضور</small></span></button><button class="card icon-card" onclick="openPage('members')"><span class="icon">👥</span><span><b>الجيران</b><br><small>قائمة الأعضاء</small></span></button><button class="card icon-card" onclick="openPage('messages')"><span class="icon">💬</span><span><b>الرسائل والاقتراحات</b></span></button><button class="card icon-card" onclick="openPage('dhikr')"><span class="icon">📖</span><span><b>القرآن والأذكار</b></span></button><button class="card icon-card" onclick="openPage('sports')"><span class="icon">⚽</span><span><b>الرياضة</b></span></button><button class="card icon-card" onclick="openPage('services')"><span class="icon">🏘️</span><span><b>خدمات الحي</b></span></button><button class="card icon-card" onclick="openPage('news')"><span class="icon">📰</span><span><b>الأخبار</b></span></button></div><div class="grid"><div class="card"><h3>☕ القهوة القادمة</h3><div id="nextCoffee">—</div></div><div class="card"><h3>🚐 الطلعة القادمة</h3><div id="nextOuting">—</div></div></div><div class="card"><h3>🔔 آخر إعلان</h3><div id="latestAnnouncement">لا توجد إعلانات</div></div></section>
+<section id="coffee" class="page"><div class="hero"><h2>☕ جدول القهوة</h2><p class="muted">كل أسبوعين يوم الاثنين، مع مراعاة عدم التعارض مع الطلعات.</p></div><div class="card table-wrap"><table class="table"><thead><tr><th>التاريخ</th><th>صاحب القهوة</th><th>الوقت</th><th>الحالة</th><th>ملاحظات</th><th></th></tr></thead><tbody id="coffeeTable"></tbody></table></div><div class="card"><h3>الاعتذار عن الموعد</h3><select id="coffeeApologyId"></select><div class="top-actions"><button id="apologizeCoffeeBtn" class="btn danger">اعتذار</button><button id="undoApologyBtn" class="btn secondary">إلغاء الاعتذار</button></div></div></section>
+<section id="outings" class="page"><div class="hero"><h2>🚐 جدول الطلعات</h2><p class="muted">الطلعة أول يوم اثنين بعد 27 من كل شهر، والجدول يحدده المدير.</p></div><div class="card table-wrap"><table class="table"><thead><tr><th>م</th><th>التاريخ</th><th>الجار الأول</th><th>الجار الثاني</th><th>الوقت</th><th>الحالة</th><th>الحضور</th></tr></thead><tbody id="outingTable"></tbody></table></div><div class="card"><h3>💰 مصروف الطلعة</h3><select id="expenseOutingId"></select><label>المبلغ الإجمالي</label><input id="expenseAmount" type="number" min="0" step="0.01"><button id="expenseBtn" class="btn primary" style="margin-top:8px">حفظ المصروف</button></div></section>
+<section id="members" class="page"><div class="hero"><h2>👥 الجيران</h2><input id="memberSearch" placeholder="ابحث بالاسم…"></div><div id="membersGrid" class="member-grid"></div></section>
+<section id="messages" class="page"><div class="hero"><h2>💬 الرسائل والاقتراحات</h2><p class="muted">الإرسال متاح حسب صلاحيات العضو.</p></div><div class="card"><h3>رسائل المجموعة</h3><div id="messagesList"></div><textarea id="messageText" placeholder="اكتب رسالة للمجموعة…"></textarea><button id="sendMessageBtn" class="btn primary" style="margin-top:8px">إرسال</button></div><div class="card"><h3>اقتراح</h3><select id="suggestionCategory"><option>عام</option><option>القهوة</option><option>الطلعات</option><option>البرنامج</option><option>خدمات الحي</option></select><textarea id="suggestionText" placeholder="اكتب اقتراحك…"></textarea><button id="suggestionBtn" class="btn primary" style="margin-top:8px">إرسال الاقتراح</button></div></section>
+<section id="dhikr" class="page"><div class="hero"><h2>📖 القرآن والأذكار</h2><p class="muted">قسم مستقل للوصول السريع للمصحف والتفسير والأذكار.</p></div><div class="grid"><a class="card icon-card" target="_blank" rel="noopener" href="https://quran.com/"><span class="icon">📖</span><span><b>القرآن الكريم</b><br><small>مصحف عثماني — قراءة واستماع</small></span></a><a class="card icon-card" target="_blank" rel="noopener" href="https://tafsir.app/"><span class="icon">📚</span><span><b>التفسير</b><br><small>تفاسير متعددة</small></span></a><a class="card icon-card" target="_blank" rel="noopener" href="https://quran.ksu.edu.sa/"><span class="icon">🔎</span><span><b>بحث في القرآن</b></span></a><a class="card icon-card" target="_blank" rel="noopener" href="https://hisnmuslim.com/"><span class="icon">🤲</span><span><b>حصن المسلم والأذكار</b></span></a></div></section>
+<section id="sports" class="page"><div class="hero"><h2>⚽ الرياضة</h2><p class="muted">روابط مباشرة للمصادر الرسمية ومتابعة البطولات.</p></div><div class="links"><a target="_blank" rel="noopener" href="https://www.spl.com.sa/">🇸🇦 دوري روشن السعودي</a><a target="_blank" rel="noopener" href="https://www.saff.com.sa/">🇸🇦 الاتحاد السعودي</a><a target="_blank" rel="noopener" href="https://www.the-afc.com/">🌏 الاتحاد الآسيوي</a><a target="_blank" rel="noopener" href="https://www.uefa.com/">🌐 UEFA</a><a target="_blank" rel="noopener" href="https://www.fifa.com/">🌍 FIFA</a><a target="_blank" rel="noopener" href="https://www.gulfcup.com/">🌙 كأس الخليج</a></div></section>
+<section id="services" class="page"><div class="hero"><h2>🏘️ خدمات الحي</h2></div><div class="grid"><button id="prayerBtn" class="card icon-card"><span class="icon">🕌</span><span><b>مواقيت الصلاة</b><br><small>فتح خدمة المواقيت</small></span></button><button id="weatherBtn" class="card icon-card"><span class="icon">🌤️</span><span><b>الطقس</b><br><small>فتح الطقس المحلي</small></span></button><a class="card icon-card" target="_blank" rel="noopener" href="https://www.moi.gov.sa/"><span class="icon">🏛️</span><span><b>الخدمات الحكومية</b></span></a><a class="card icon-card" target="_blank" rel="noopener" href="https://www.google.com/maps/search/مساجد+قريبة+من+المحالة+أبها"><span class="icon">🕌</span><span><b>المساجد القريبة</b></span></a></div></section>
+<section id="news" class="page"><div class="hero"><h2>📰 الأخبار</h2><p class="muted">مصادر إخبارية موثوقة؛ يتم فتح المصدر مباشرة.</p></div><div class="links"><a target="_blank" rel="noopener" href="https://www.spa.gov.sa/">السعودية — واس</a><a target="_blank" rel="noopener" href="https://www.reuters.com/world/middle-east/">الشرق الأوسط — Reuters</a><a target="_blank" rel="noopener" href="https://www.bbc.com/arabic">العالم — BBC عربي</a><a target="_blank" rel="noopener" href="https://arabic.cnn.com/">العالم — CNN عربية</a><a target="_blank" rel="noopener" href="https://www.alarabiya.net/">العربية</a><a target="_blank" rel="noopener" href="https://www.asharq.com/">الشرق</a></div></section>
+<section id="manager" class="page"><div id="managerDenied" class="card">هذه الصفحة مخصصة للمدير والمشرفين المفوضين.</div><div id="managerPanel" class="hidden"><div class="hero"><h2>🔐 لوحة المدير</h2><div class="grid3"><div class="card"><b>الجيران</b><div id="managerMemberStats" class="stat">—</div></div><div class="card"><b>القهوة</b><div id="managerCoffeeStats" class="stat">—</div></div><div class="card"><b>الطلعات</b><div id="managerOutingStats" class="stat">—</div></div></div></div><div class="manager-tabs"><button class="tab active" data-mtab="schedules">الجداول</button><button class="tab" data-mtab="members">الأعضاء والأرقام</button><button class="tab" data-mtab="permissions">المشرفون</button><button class="tab" data-mtab="rules">القواعد</button><button class="tab" data-mtab="notifications">التنبيهات</button><button class="tab" data-mtab="reports">الإحصاءات والنسخ</button></div>
+<div id="mtab-schedules" class="mtab active"><div class="card"><h3>☕ تعديل القهوة</h3><select id="mcId"></select><select id="mcMember"></select><input id="mcDate" type="date"><input id="mcTime" type="time"><textarea id="mcNotes" placeholder="ملاحظات"></textarea><button id="saveCoffeeBtn" class="btn primary">حفظ</button></div><div class="card"><h3>تقديم/تأخير القهوة</h3><select id="coffeeSwapA"></select><select id="coffeeSwapB"></select><button id="swapCoffeeBtn" class="btn secondary">تبديل الموعدين</button></div><div class="card"><h3>🚐 تعديل الطلعة</h3><select id="moId"></select><select id="moMember1"></select><select id="moMember2"></select><input id="moDate" type="date"><input id="moTime" type="time"><textarea id="moNotes"></textarea><button id="saveOutingBtn" class="btn primary">حفظ</button></div><div class="card"><h3>تقديم/تأخير الطلعات</h3><select id="outingSwapA"></select><select id="outingSwapB"></select><button id="swapOutingBtn" class="btn secondary">تبديل الموعدين</button></div><div class="card"><h3>إدراج جميع أسماء الجيران في الطلعة</h3><p class="muted">ينشئ جدولاً جديداً عشوائياً لجميع الجيران النشطين على شكل أزواج.</p><button id="randomOutingBtn" class="btn primary">🎲 إنشاء ونشر جدول جديد</button><div id="randomResult" class="status"></div></div></div>
+<div id="mtab-members" class="mtab"><div class="card"><h3>إضافة جار ورقم سري</h3><input id="newMemberName" placeholder="اسم الجار"><input id="newMemberPhone" placeholder="الجوال"><input id="newMemberNotes" placeholder="ملاحظات"><input id="newMemberPin" placeholder="رقم سري للعضو" inputmode="numeric"><button id="addMemberBtn" class="btn primary">إضافة</button></div><div class="card"><h3>تغيير رقم المدير</h3><input id="oldManagerPin" type="password" placeholder="الرقم الحالي" inputmode="numeric"><input id="newManagerPin" type="password" placeholder="الرقم الجديد" inputmode="numeric"><button id="changeManagerPinBtn" class="btn primary">تغيير</button></div><div class="card"><h3>تغيير رقم عضو</h3><select id="changePinMember"></select><button id="changeMemberPinBtn" class="btn primary">تعيين رقم جديد</button></div><div class="card"><h3>صلاحيات تغيير أرقام الأعضاء</h3><p class="muted">سيتم ربط تغيير أرقام الأعضاء بصلاحية إدارة الأعضاء، مع حفظ الرقم مشفراً في قاعدة البيانات.</p><div id="permissionsList"></div></div></div>
+<div id="mtab-permissions" class="mtab"><div class="card"><h3>تعيين مشرف وصلاحياته</h3><select id="permMember"></select><label class="check"><input type="checkbox" data-perm="coffee"> إدارة القهوة</label><label class="check"><input type="checkbox" data-perm="outings"> إدارة الطلعات</label><label class="check"><input type="checkbox" data-perm="dates"> تقديم وتأخير المواعيد</label><label class="check"><input type="checkbox" data-perm="members"> إدارة الأعضاء والأرقام</label><label class="check"><input type="checkbox" data-perm="rules"> إدارة القواعد</label><label class="check"><input type="checkbox" data-perm="messages"> إرسال رسائل المجموعة</label><label class="check"><input type="checkbox" data-perm="lottery"> القرعة والجدول العشوائي</label><label class="check"><input type="checkbox" data-perm="apologies"> إدارة الاعتذارات</label><button id="savePermBtn" class="btn primary">حفظ الصلاحيات</button><div id="permissionsList2"></div></div></div>
+<div id="mtab-rules" class="mtab"><div class="card"><h3>⚙️ قواعد البرنامج</h3><label>فاصل القهوة بالأيام</label><input id="coffeeInterval" type="number" value="14"><label>ترتيب القهوة</label><select id="coffeeOrder"><option value="current">الترتيب الحالي</option><option value="alphabetical">أبجدي</option><option value="random_no_repeat">عشوائي بدون تكرار</option></select><label class="check"><input id="coffeeAvoid" type="checkbox" checked> عدم تكرار القهوة</label><label>تكرار الطلعات</label><select id="outingFrequency"><option value="monthly">شهري</option></select><label>قاعدة يوم الطلعة</label><select id="outingRule"><option value="first_monday_after_27">أول اثنين بعد 27</option><option value="first_monday_of_month">أول اثنين من الشهر</option></select><label>نمط الأزواج</label><select id="pairMode"><option value="random_no_repeat">عشوائي بدون تكرار</option><option value="current">الحالي</option></select><label class="check"><input id="avoidConflict" type="checkbox" checked> منع تعارض القهوة والطلعات</label><button id="saveRulesBtn" class="btn primary">حفظ القواعد</button></div></div>
+<div id="mtab-notifications" class="mtab"><div class="card"><h3>🔔 جدولة إعلان</h3><input id="notifyTitle" placeholder="العنوان"><textarea id="notifyMessage" placeholder="نص الإعلان"></textarea><input id="notifyAt" type="datetime-local"><button id="scheduleNotifyBtn" class="btn primary">جدولة</button></div></div>
+<div id="mtab-reports" class="mtab"><div class="card"><h3>📊 إحصاءات البرنامج</h3><button id="statsBtn" class="btn primary">تحديث الإحصاءات</button><pre id="statsOutput" class="muted" style="white-space:pre-wrap"></pre></div><div class="card"><h3>💾 النسخ الاحتياطي</h3><p class="muted">النسخة لا تحتوي على أرقام PIN الخام؛ تحفظ الأرقام المشفرة فقط في قاعدة البيانات.</p><div class="top-actions"><button id="backupBtn" class="btn primary">تنزيل نسخة احتياطية</button><label class="btn secondary" style="display:inline-block;cursor:pointer">استعادة نسخة JSON<input id="restoreFile" type="file" accept="application/json,.json" hidden></label></div></div></div></div></section>
+<div class="footer">© جميع الحقوق الفكرية محفوظة — مشروع جيران حي الغدير بالمحالة — المالك: أبو باسل — جميع حقوق التصميم والبرمجة والمحتوى المخصص للمشروع محفوظة للمالك.</div>
+</main><nav class="bottom-nav"><button class="active" data-page="home">🏠<br>الرئيسية</button><button data-page="coffee">☕<br>القهوة</button><button data-page="outings">🚐<br>الطلعات</button><button data-page="members">👥<br>الجيران</button><button id="managerNav" class="hidden" data-page="manager">🔐<br>المدير</button></nav></section>
+<div id="acceptModal" class="modal hidden"><div class="modal-card"><h2>إقرار استخدام البرنامج</h2><p>أقرّ باستخدام البرنامج ضمن الأنظمة والقوانين والآداب العامة والقيم والأحكام الشرعية، وأتحمل المسؤولية عن أي محتوى أو رسالة أو تصرف يصدر مني. وللمدير والمشرفين المفوضين، في حدود الصلاحيات، اتخاذ الإجراءات التنظيمية المناسبة، بما في ذلك حذف أو إخفاء المحتوى أو إيقاف أو تقييد العضوية أو حذف العضو، مع الاحتفاظ بحق اتخاذ الإجراءات النظامية المناسبة أو إحالة الأمر للجهات المختصة عند الاقتضاء.</p><label class="check"><input id="acceptCheck" type="checkbox"> أقر أنني قرأت الشروط وأوافق عليها.</label><div class="top-actions"><button id="acceptTermsBtn" class="btn primary">أوافق وأدخل البرنامج</button><button id="rejectTermsBtn" class="btn danger">لا أوافق</button></div></div></div><div id="toast" class="toast"></div>
+<script src="app.js"></script><script>document.addEventListener('click',e=>{const a=e.target.closest('a[href^="http"]');if(a){/* external navigation intentionally enabled */}});</script>
+</body></html>
