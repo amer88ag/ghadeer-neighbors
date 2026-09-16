@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f6b55">
+  <meta name="description" content="جيران حي الغدير بالمحالة">
+  <title>جيران حي الغدير بالمحالة</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <section id="entryScreen" class="entry-screen">
+    <div class="entry-card">
+      <div class="logo">🏘️</div>
+      <h1>جيران حي الغدير بالمحالة</h1>
+      <p class="muted">برنامج الجيران — القهوة والطلعات والخدمات</p>
+      <div id="entryStep">
+        <label>اختر اسمك</label>
+        <select id="entryMember"></select>
+        <label>الرقم السري</label>
+        <input id="entryPin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري">
+        <button class="primary wide" id="memberLoginBtn">دخول الجار</button>
+        <button class="ghost wide" id="showManagerBtn">🔐 دخول المدير</button>
+      </div>
+      <div id="managerStep" class="hidden">
+        <label>اسم المدير</label>
+        <select id="managerMember"></select>
+        <label>الرقم السري للمدير</label>
+        <input id="managerPin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري">
+        <button class="primary wide" id="managerLoginBtn">دخول المدير</button>
+        <button class="ghost wide" id="backToMemberBtn">رجوع</button>
+      </div>
+      <p id="entryStatus" class="status"></p>
+    </div>
+  </section>
+
+  <div id="acceptModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>إقرار استخدام البرنامج</h2>
+      <div class="terms">
+        <p>أقرّ باستخدامي لبرنامج جيران حي الغدير بالمحالة ضمن الأنظمة والقوانين والآداب العامة والقيم والأحكام الشرعية، وأتحمل المسؤولية عن أي محتوى أو رسالة أو تصرف يصدر مني.</p>
+        <p>ويحق لمدير البرنامج والمشرفين المفوضين، في حدود الصلاحيات، اتخاذ الإجراءات التنظيمية المناسبة، ومنها حذف أو إخفاء المحتوى، وإيقاف أو تقييد العضوية، وحذف العضو، والاحتفاظ بحق اتخاذ الإجراءات النظامية المناسبة أو إحالة الأمر للجهات المختصة عند الاقتضاء.</p>
+        <label class="check"><input type="checkbox" id="acceptCheck"> أقر أنني قرأت الشروط وأوافق عليها.</label>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="rejectTermsBtn">لا أوافق</button>
+        <button class="primary" id="acceptTermsBtn">أوافق وأدخل البرنامج</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div>
+        <strong>🏘️ جيران الغدير</strong>
+        <span id="whoami" class="small"></span>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="refreshBtn" title="تحديث">↻</button>
+        <button class="icon-btn" id="logoutBtn" title="خروج">⎋</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="home" class="page active">
+        <div class="hero">
+          <div><span class="eyebrow">أهلًا بالجيران</span><h2>مجتمع واحد، تنظيم أسهل</h2><p>تابع القهوة والطلعات والإعلانات والخدمات من مكان واحد.</p></div>
+          <div class="hero-mark">🤝</div>
+        </div>
+        <div class="grid cards">
+          <article class="card highlight"><div class="card-icon">☕</div><h3>القهوة القادمة</h3><div id="nextCoffee">جارٍ التحميل…</div></article>
+          <article class="card highlight"><div class="card-icon">🚐</div><h3>الطلعة القادمة</h3><div id="nextOuting">جارٍ التحميل…</div></article>
+          <article class="card"><div class="card-icon">📢</div><h3>آخر إعلان</h3><div id="latestAnnouncement">جارٍ التحميل…</div></article>
+          <article class="card"><div class="card-icon">👥</div><h3>الجيران</h3><div id="memberCount">—</div></article>
+        </div>
+        <div class="grid two">
+          <article class="card"><h3>☀️ خدمات اليوم</h3><div id="serviceInfo">الطقس ومواقيت الصلاة تتطلب تحديد المدينة أو السماح بالموقع من الجهاز.</div><div class="actions"><button class="secondary" onclick="openPage('services')">الخدمات</button></div></article>
+          <article class="card"><h3>📰 الأخبار والرياضة</h3><p>روابط ومصادر خارجية موثوقة، مع عدم خلط المحتوى الخارجي بمحتوى المشروع.</p><div class="actions"><button class="secondary" onclick="openPage('news')">الأخبار</button><button class="secondary" onclick="openPage('sports')">الرياضة</button></div></article>
+        </div>
+      </section>
+
+      <section id="coffee" class="page">
+        <div class="section-head"><div><span class="eyebrow">☕ القهوة</span><h2>جدول القهوة</h2></div><button class="secondary" onclick="loadData()">تحديث</button></div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>المضيف</th><th>الوقت</th><th>الحالة</th><th>ملاحظات</th><th>إجراء</th></tr></thead><tbody id="coffeeTable"></tbody></table></div></div>
+        <div class="card" id="coffeeActionCard"><h3>اعتذار عن القهوة</h3><p class="muted">يمكن للجار الاعتذار عن دوره ثم التراجع عن الاعتذار من نفس الحساب.</p><div class="inline"><select id="coffeeApologyId"></select><button class="secondary" id="apologizeCoffeeBtn">تسجيل الاعتذار</button><button class="ghost" id="undoApologyBtn">إلغاء الاعتذار</button></div></div>
+      </section>
+
+      <section id="outings" class="page">
+        <div class="section-head"><div><span class="eyebrow">🚐 الطلعات</span><h2>سرى الطلعات</h2></div><button class="secondary" onclick="loadData()">تحديث</button></div>
+        <div class="card notice">يُدار الجدول مركزيًا. يمكن للمدير أو المشرف المفوض تعديل الموعد، تقديمه أو تأخيره، وإنشاء قرعة جديدة عند توفر عدد زوجي من الجيران النشطين.</div>
+        <div class="card"><div class="table-wrap"><table><thead><tr><th>م</th><th>التاريخ</th><th>الأول</th><th>الثاني</th><th>الوقت</th><th>الحالة</th><th>الحضور</th></tr></thead><tbody id="outingTable"></tbody></table></div></div>
+        <div class="card"><h3>مصروفات الطلعة</h3><p class="muted">يمكن تسجيل إجمالي المصروف للطلعة من حساب أحد الجيران.</p><div class="inline"><select id="expenseOutingId"></select><input id="expenseAmount" type="number" min="0" step="0.01" placeholder="المبلغ بالريال"><button class="secondary" id="expenseBtn">حفظ المصروف</button></div></div>
+      </section>
+
+      <section id="neighbors" class="page">
+        <div class="section-head"><div><span class="eyebrow">👥 الجيران</span><h2>أعضاء الحي</h2></div><input id="memberSearch" class="search" placeholder="بحث باسم الجار"></div>
+        <div id="membersGrid" class="grid members"></div>
+      </section>
+
+      <section id="adhkar" class="page">
+        <div class="section-head"><div><span class="eyebrow">📖 الذكر والقرآن</span><h2>القرآن والأذكار</h2></div></div>
+        <div class="grid two">
+          <article class="card"><div class="big-icon">📖</div><h3>القرآن الكريم</h3><p>مصحف عثماني، بحث وتلاوة وتفسير ومعاني الكلمات ومعلومات السور. المحتوى القرآني مصدر خارجي وليس من حقوق مشروع الجيران.</p><div class="actions"><a class="primary link-btn" target="_blank" rel="noopener" href="https://quran.com/">فتح المصحف</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://quran.com/tafsirs">التفسير</a></div></article>
+          <article class="card"><div class="big-icon">🌙</div><h3>الأذكار</h3><p>الأذكار الصباحية والمسائية وحصن المسلم.</p><div class="actions"><a class="primary link-btn" target="_blank" rel="noopener" href="https://hisnmuslim.com/">حصن المسلم</a></div></article>
+        </div>
+      </section>
+
+      <section id="sports" class="page">
+        <div class="section-head"><div><span class="eyebrow">⚽ الرياضة</span><h2>كرة القدم</h2></div></div>
+        <div class="grid cards">
+          <article class="card"><h3>🇸🇦 السعودية</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.spl.com.sa/">دوري روشن</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.saff.com.sa/">الاتحاد السعودي</a></article>
+          <article class="card"><h3>🌏 آسيا</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.the-afc.com/">AFC</a></article>
+          <article class="card"><h3>🌐 العالم</h3><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.uefa.com/">UEFA</a><a class="secondary link-btn" target="_blank" rel="noopener" href="https://www.fifa.com/">FIFA</a></article>
+        </div>
+        <div class="card"><h3>مباريات قادمة</h3><p class="muted">للحصول على أوقات ونتائج لحظية استخدم مصدر المسابقة الرسمي؛ يمكن إضافة مزود نتائج مرخص لاحقًا دون تخزين بيانات خارجية داخل المشروع.</p></div>
+      </section>
+
+      <section id="services" class="page">
+        <div class="section-head"><div><span class="eyebrow">🏘️ خدمات الحي</span><h2>الخدمات</h2></div></div>
+        <div class="grid cards">
+          <article class="card"><div class="big-icon">🕌</div><h3>مواقيت الصلاة</h3><p>اختر المدينة أو اسمح للموقع من جهازك. لا يتم افتراض موقع دقيق دون موافقة.</p><button class="secondary" id="prayerBtn">تحديد المدينة</button></article>
+          <article class="card"><div class="big-icon">🌤️</div><h3>الطقس</h3><p>يمكن ربط مزود طقس موثوق بعد تحديد المدينة.</p><button class="secondary" id="weatherBtn">تحديد المدينة</button></article>
+          <article class="card"><div class="big-icon">📅</div><h3>مناسبات</h3><p>الأعياد والإجازات والمناسبات العامة تُعرض من مصادرها الرسمية عند الربط.</p></article>
+        </div>
+      </section>
+
+      <section id="news" class="page">
+        <div class="section-head"><div><span class="eyebrow">📰 الأخبار</span><h2>مصادر الأخبار</h2></div></div>
+        <div class="grid cards">
+          <article class="card"><h3>🇸🇦 السعودية</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.spa.gov.sa/">واس SPA</a></article>
+          <article class="card"><h3>🌙 عربي</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.alarabiya.net/">العربية</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.aljazeera.net/">الجزيرة</a></article>
+          <article class="card"><h3>🌐 عالمي</h3><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.reuters.com/">Reuters</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://apnews.com/">AP</a><a class="link-btn secondary" target="_blank" rel="noopener" href="https://www.bbc.com/arabic">BBC عربي</a></article>
+        </div>
+      </section>
+
+      <section id="messages" class="page">
+        <div class="section-head"><div><span class="eyebrow">💬 التواصل</span><h2>رسائل الجيران</h2></div></div>
+        <div class="card"><div id="messagesList" class="messages"></div><div class="message-box"><textarea id="messageText" maxlength="1000" placeholder="اكتب رسالة للجيران…"></textarea><button class="primary" id="sendMessageBtn">إرسال</button></div></div>
+        <div class="card"><h3>اقتراح</h3><div class="inline"><select id="suggestionCategory"><option>عام</option><option>القهوة</option><option>الطلعات</option><option>الخدمات</option><option>الرياضة</option></select><input id="suggestionText" maxlength="500" placeholder="اكتب اقتراحك"><button class="secondary" id="suggestionBtn">إرسال الاقتراح</button></div></div>
+      </section>
+
+      <section id="manager" class="page">
+        <div class="section-head"><div><span class="eyebrow">🔐 الإدارة</span><h2>لوحة المدير والمشرف</h2></div></div>
+        <div id="managerDenied" class="card hidden"><h3>غير مصرح</h3><p>هذه الصفحة للمدير والمشرفين المفوضين فقط.</p></div>
+        <div id="managerPanel" class="hidden">
+          <div class="grid cards">
+            <article class="card"><h3>👥 الأعضاء</h3><div id="managerMemberStats">—</div><button class="secondary" onclick="openManagerTab('members')">إدارة الأعضاء</button></article>
+            <article class="card"><h3>☕ القهوة</h3><div id="managerCoffeeStats">—</div><button class="secondary" onclick="openManagerTab('coffee')">تعديل القهوة</button></article>
+            <article class="card"><h3>🚐 الطلعات</h3><div id="managerOutingStats">—</div><button class="secondary" onclick="openManagerTab('outings')">تعديل الطلعات</button></article>
+            <article class="card"><h3>📊 النشاط</h3><div id="managerActivityStats">—</div></article>
+          </div>
+
+          <div class="manager-tabs">
+            <button class="tab active" data-mtab="coffee">☕ القهوة</button>
+            <button class="tab" data-mtab="outings">🚐 الطلعات</button>
+            <button class="tab" data-mtab="members">👥 الأعضاء</button>
+            <button class="tab" data-mtab="supervisors">🛡️ المشرفون</button>
+            <button class="tab" data-mtab="settings">⚙️ الإعدادات</button>
+          </div>
+
+          <div id="mtab-coffee" class="mtab active">
+            <div class="card"><h3>تعديل سجل القهوة</h3><div class="form-grid"><select id="mcId"></select><select id="mcMember"></select><input id="mcDate" type="date"><input id="mcTime" type="time"><input id="mcNotes" placeholder="ملاحظات"></div><button class="primary" id="saveCoffeeBtn">حفظ التعديل</button></div>
+            <div class="card"><h3>تقديم/تأخير القهوة</h3><div class="inline"><select id="coffeeSwapA"></select><select id="coffeeSwapB"></select><button class="secondary" id="swapCoffeeBtn">تبديل الموعدين</button></div></div>
+          </div>
+
+          <div id="mtab-outings" class="mtab">
+            <div class="card"><h3>إدراج جميع أسماء الجيران في الطلعة</h3><p>ينشئ جدولًا جديدًا بتوزيع عشوائي للأعضاء النشطين. يجب أن يكون العدد زوجيًا.</p><button class="primary" id="randomOutingBtn">🎲 إنشاء جدول عشوائي جديد</button><p id="randomResult" class="status"></p></div>
+            <div class="card"><h3>تعديل سجل طلعة</h3><div class="form-grid"><select id="moId"></select><select id="moMember1"></select><select id="moMember2"></select><input id="moDate" type="date"><input id="moTime" type="time"><input id="moNotes" placeholder="ملاحظات"></div><button class="primary" id="saveOutingBtn">حفظ التعديل</button></div>
+            <div class="card"><h3>تقديم/تأخير الطلعات</h3><div class="inline"><select id="outingSwapA"></select><select id="outingSwapB"></select><button class="secondary" id="swapOutingBtn">تبديل الموعدين</button></div></div>
+          </div>
+
+          <div id="mtab-members" class="mtab">
+            <div class="card"><h3>إدارة الأعضاء</h3><div class="form-grid"><input id="newMemberName" placeholder="اسم الجار"><input id="newMemberPhone" placeholder="الجوال"><input id="newMemberPin" placeholder="رقم سري للجار" inputmode="numeric"><input id="newMemberNotes" placeholder="ملاحظات"></div><button class="primary" id="addMemberBtn">إضافة جار</button></div>
+            <div class="card"><div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الجوال</th><th>الحالة</th><th>تعديل</th><th>حذف</th></tr></thead><tbody id="managerMembersTable"></tbody></table></div></div>
+          </div>
+
+          <div id="mtab-supervisors" class="mtab">
+            <div class="card"><h3>تعيين صلاحيات المشرف</h3><p class="muted">تغيير الرقم السري للعضو يتم من خلال إعدادات العضوية/الدالة المخصصة، ولا يتم حفظه في المتصفح.</p><div class="form-grid"><select id="permMember"></select><label class="check"><input type="checkbox" data-perm="coffee"> إدارة القهوة</label><label class="check"><input type="checkbox" data-perm="outings"> إدارة الطلعات</label><label class="check"><input type="checkbox" data-perm="dates"> تقديم/تأخير المواعيد</label><label class="check"><input type="checkbox" data-perm="members"> إدارة الأعضاء</label><label class="check"><input type="checkbox" data-perm="rules"> إدارة القواعد</label><label class="check"><input type="checkbox" data-perm="messages"> إرسال رسائل جماعية</label><label class="check"><input type="checkbox" data-perm="lottery"> القرعة</label><label class="check"><input type="checkbox" data-perm="apologies"> إدارة الاعتذارات</label></div><button class="primary" id="savePermBtn">حفظ الصلاحيات</button></div>
+            <div class="card"><h3>الصلاحيات الحالية</h3><div id="permissionsList"></div></div>
+          </div>
+
+          <div id="mtab-settings" class="mtab">
+            <div class="card"><h3>إعدادات الجدول</h3><div class="form-grid"><input id="coffeeInterval" type="number" min="1" placeholder="فاصل القهوة بالأيام"><select id="coffeeOrder"><option value="current">الترتيب الحالي</option><option value="random">عشوائي</option></select><label class="check"><input id="coffeeAvoid" type="checkbox"> منع تكرار المضيف</label><select id="outingFrequency"><option value="monthly">شهري</option></select><select id="outingRule"><option value="first_monday_after_27">أول اثنين بعد 27</option></select><select id="pairMode"><option value="random_no_repeat">عشوائي بلا تكرار</option></select><label class="check"><input id="avoidConflict" type="checkbox"> تجنب تعارض القهوة</label></div><button class="primary" id="saveRulesBtn">حفظ القواعد</button></div>
+            <div class="card"><h3>تغيير رقم المدير</h3><div class="inline"><input id="oldManagerPin" type="password" placeholder="الرقم الحالي"><input id="newManagerPin" type="password" placeholder="الرقم الجديد"><button class="secondary" id="changeManagerPinBtn">تغيير</button></div></div>
+            <div class="card"><h3>إعلان مجدول</h3><div class="form-grid"><input id="notifyTitle" placeholder="العنوان"><input id="notifyMessage" placeholder="الرسالة"><input id="notifyAt" type="datetime-local"></div><button class="secondary" id="scheduleNotifyBtn">جدولة الإعلان</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button data-page="home" class="active">🏠<span>الرئيسية</span></button>
+      <button data-page="adhkar">📖<span>الذكر</span></button>
+      <button data-page="coffee">☕<span>القهوة</span></button>
+      <button data-page="outings">🚐<span>الطلعات</span></button>
+      <button data-page="neighbors">👥<span>الجيران</span></button>
+      <button data-page="services">🏘️<span>الخدمات</span></button>
+      <button data-page="news">📰<span>الأخبار</span></button>
+      <button data-page="sports">⚽<span>الرياضة</span></button>
+      <button data-page="messages">💬<span>الرسائل</span></button>
+      <button data-page="manager" id="managerNav">🔐<span>المدير</span></button>
+    </nav>
+
+    <footer>
+      <p>© جميع الحقوق الفكرية محفوظة — مشروع جيران حي الغدير بالمحالة — المالك: أبو باسل — جميع حقوق التصميم والبرمجة والمحتوى المخصص للمشروع محفوظة للمالك.</p>
+      <p class="muted">المصادر الخارجية مثل الأخبار والرياضة والطقس والقرآن ليست ملكًا للمشروع.</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
