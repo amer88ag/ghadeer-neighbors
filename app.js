@@ -123,12 +123,16 @@ function fillManagerSelects(){
   fill("outingSwapB",state.outings,x=>`${fmtDate(x.outing_date)} — ${memberName(x.member1_id)} + ${memberName(x.member2_id)}`);
 }
 function focusCoffee(id){ openPage("coffee"); $("coffeeApologyId").value=id; }
+function normalizeDigits(value){
+  return String(value ?? "").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim();
+}
 async function memberLogin(){
-  const id=Number($("entryMember").value), pin=$("entryPin").value.trim();
+  const id=Number($("entryMember").value), pin=normalizeDigits($("entryPin").value);
   if(!id||!pin){setStatus("entryStatus","أدخل الاسم والرقم السري.",false);return;}
   const {data,error}=await rpc("member_login",{p_member_id:id,p_pin:pin});
-  if(error || normalizeRpcData(data).success !== true){setStatus("entryStatus",data?.message||error?.message||"الرقم السري غير صحيح.",false);return;}
-  state.member=state.members.find(m=>Number(m.id)===id)||{id,name:data.name||memberName(id)};
+  const result=normalizeRpcData(data);
+  if(error || result.success !== true){setStatus("entryStatus",result.message||error?.message||"الرقم السري غير صحيح.",false);return;}
+  state.member=state.members.find(m=>Number(m.id)===id)||{id,name:result.name||memberName(id)};
   state.pin=pin; state.manager=false; state.supervisor=['super_admin','supervisor'].includes(result.role);
   $("entryScreen").classList.add("hidden"); $("app").classList.remove("hidden");
   $("whoami").textContent="— "+state.member.name+(state.supervisor?" (مشرف)":"");
@@ -157,7 +161,7 @@ function rpcResult(data,error){
   return {data:r,error,ok:!error && (r.success===true || r.ok===true),message:r.message||r.error||error?.message||"تعذر تنفيذ العملية."};
 }
 async function managerLogin(){
-  const selected=Number($("managerMember").value), pin=$("managerPin").value.trim();
+  const selected=Number($("managerMember").value), pin=normalizeDigits($("managerPin").value);
   if(!selected||!pin){setStatus("entryStatus","اختر المدير وأدخل الرقم السري.",false);return;}
   const chosen=state.members.find(m=>Number(m.id)===selected);
   if(!chosen || !chosen.name.includes("عامر معيض القحطاني")){setStatus("entryStatus","الدخول الإداري مخصص للمدير المحدد في النظام.",false);return;}
