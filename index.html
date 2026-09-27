@@ -109,22 +109,46 @@ function startReadTest(){if(!QURAN_DATA){loadQuranLocal().then(startReadTest);re
 function recordQuranReading(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){$('readFeedback').innerHTML='<div class="qtest-result">المتصفح الحالي لا يدعم التعرف على الصوت. جرّب Safari أو Chrome بإذن الميكروفون.</div>';return;}const rec=new SR();rec.lang='ar-SA';rec.interimResults=false;rec.maxAlternatives=1;$('readFeedback').innerHTML='<div class="qtest-result">🎙️ استمع لك… ابدأ القراءة الآن.</div>';rec.onresult=e=>{const heard=e.results[0][0].transcript||'',expected=normQuranText(READ_STATE.v.text),got=normQuranText(heard),ew=expected.split(' ').filter(Boolean),gw=got.split(' ').filter(Boolean);let hit=0;ew.forEach(w=>{if(gw.includes(w))hit++;});const score=ew.length?Math.round(hit/ew.length*100):0;$('readFeedback').innerHTML=`<div class="qtest-result"><b>${score>=90?'🌟 ممتاز':score>=75?'✅ جيد جدًا':'🔎 تحتاج إعادة المحاولة'}</b><br>نسبة المطابقة النصية: ${score}%<br><small>المسموع: ${esc(heard)}</small><br><small>تنبيه: هذه مقارنة صوتية للنص وليست تقييمًا لأحكام التجويد أو صحة النطق بشكل متخصص.</small></div>`;};rec.onerror=e=>{$('readFeedback').innerHTML='<div class="qtest-result">تعذر الوصول إلى الميكروفون أو التعرف على الصوت. تأكد من السماح بالميكروفون.</div>';};rec.start();}
 async function loadQuranLocal(){
   if(QURAN_DATA)return QURAN_DATA;
-  const s=$('quranStatus'); if(s)s.textContent='جارٍ تحميل المصحف المحلي…';
-  try{const r=await fetch('quran.json',{cache:'force-cache'}); if(!r.ok)throw new Error('HTTP '+r.status); QURAN_DATA=await r.json();
-    const sel=$('quranSurah'); if(sel) sel.innerHTML='<option value="">اختر السورة</option>'+QURAN_DATA.surahs.map(x=>`<option value="${x.id}">${x.id} — ${esc(x.name)} (${x.type})</option>`).join('');
-    populateQuizSurahs(); if(s)s.textContent='تم تحميل 114 سورة و6236 آية محليًا.'; return QURAN_DATA;
-  }catch(e){if(s)s.textContent='تعذر تحميل quran.json. تأكد أنه مرفوع مع ملفات البرنامج.';throw e;}
+  const status=$('quranStatus'); if(status)status.textContent='جارٍ تحميل بيانات القرآن الموثوقة…';
+  try{
+    const metaUrl='https://cdn.jsdelivr.net/npm/quran-json@3.1.2/dist/chapters/index.json';
+    const meta=await fetch(metaUrl,{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+    const list=Array.isArray(meta)?meta:(meta.chapters||meta.data||[]);
+    if(!list.length)throw new Error('No chapter metadata');
+    const surahs=list.map((x,i)=>({id:Number(x.id||x.index||i+1),name:x.name||x.name_ar||x.nameArabic||'',type:x.type||x.revelation_place||'',total_verses:Number(x.total_verses||x.verses_count||x.count||0),verses:[]}));
+    const selected=surahs.find(x=>x.id===QURAN_SURAH)||surahs[0];
+    const chapter=await fetch('https://cdn.jsdelivr.net/npm/quran-json@3.1.2/dist/chapters/'+selected.id+'.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+    const normalizeChapter=(c,id)=>({id:Number(c.id||id),name:c.name||selected.name,type:c.type||selected.type,total_verses:Number(c.total_verses||selected.total_verses||0),verses:(c.verses||[]).map(v=>({id:Number(v.id),text:String(v.text||'')}))});
+    selected.name=chapter.name||selected.name; selected.type=chapter.type||selected.type; selected.total_verses=chapter.total_verses||selected.total_verses; selected.verses=normalizeChapter(chapter,selected.id).verses;
+    QURAN_DATA={surahs};
+    const sel=$('quranSurah'); if(sel)sel.innerHTML='<option value="">اختر السورة</option>'+QURAN_DATA.surahs.map(x=>'<option value="'+x.id+'">'+x.id+' — '+esc(x.name)+' ('+esc(x.type)+')</option>').join('');
+    if(status)status.textContent='تم تحميل بيانات السور. تُحمّل السورة عند فتحها.';
+    return QURAN_DATA;
+  }catch(e){
+    if(status)status.textContent='تعذر تحميل بيانات القرآن. تحقق من الاتصال بالإنترنت.';
+    throw e;
+  }
 }
-async function openQuran(){await loadQuranLocal();$('quranSurah').value=String(QURAN_SURAH);renderQuranSurah(QURAN_SURAH);}
-function renderQuranSurah(id){
-  if(!QURAN_DATA)return; const s=QURAN_DATA.surahs.find(x=>x.id===Number(id)); if(!s)return; QURAN_SURAH=s.id; $('quranSurah').value=String(s.id);
+async function ensureQuranSurahLoaded(id){
+  if(!QURAN_DATA)await loadQuranLocal();
+  const s=QURAN_DATA?.surahs?.find(x=>x.id===Number(id));
+  if(!s)return null;
+  if(!s.verses?.length){
+    const c=await fetch('https://cdn.jsdelivr.net/npm/quran-json@3.1.2/dist/chapters/'+s.id+'.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();});
+    s.name=c.name||s.name;s.type=c.type||s.type;s.total_verses=Number(c.total_verses||s.total_verses);s.verses=(c.verses||[]).map(v=>({id:Number(v.id),text:String(v.text||'')}));
+  }
+  return s;
+}
+async function openQuran(){await loadQuranLocal();await ensureQuranSurahLoaded(QURAN_SURAH);$('quranSurah').value=String(QURAN_SURAH);renderQuranSurah(QURAN_SURAH);}
+async function renderQuranSurah(id){
+  if(!QURAN_DATA)await loadQuranLocal(); const s=await ensureQuranSurahLoaded(id); if(!s)return; QURAN_SURAH=s.id; $('quranSurah').value=String(s.id);
   $('quranContent').innerHTML=`<div class="quran-title">سورة ${esc(s.name)}</div><div class="quran-meta">${s.type} — ${s.total_verses} آية</div>`+
     s.verses.map(v=>{const key=`${s.id}:${v.id}`,saved=QURAN_BOOKMARKS.includes(key);return `<div class="quran-ayah" id="ayah-${key.replace(':','-')}"><button class="small-btn quran-bookmark" onclick="toggleQuranBookmark('${key}')">${saved?'⭐':'☆'}</button><span class="ayah-no">﴿${v.id}﴾</span>${esc(v.text)} <button class="small-btn" onclick="playQuranAyah(${s.id},${v.id})">🔊</button> <button class="small-btn" onclick="openQuranTafsir('${key}')">📚</button></div>`}).join('');
 }
 function toggleQuranBookmark(key){const i=QURAN_BOOKMARKS.indexOf(key);if(i>=0)QURAN_BOOKMARKS.splice(i,1);else QURAN_BOOKMARKS.push(key);localStorage.setItem('ghadeer_quran_bookmarks',JSON.stringify(QURAN_BOOKMARKS));renderQuranSurah(QURAN_SURAH);}
 function playQuranAyah(s,a){const u=`https://everyayah.com/data/Alafasy_128kbps/${String(s).padStart(3,'0')}${String(a).padStart(3,'0')}.mp3`;window.open(u,'_blank','noopener');}
 function openQuranTafsir(key){window.open(`https://tafsir.app/${key}`,'_blank','noopener');}
-async function searchQuran(){await loadQuranLocal();const q=String($('quranSearch').value||'').trim();if(!q){renderQuranSurah(QURAN_SURAH);return;}const norm=x=>x.replace(/[ًٌٍَُِّْـٰۖۗۚۛ]/g,'').replace(/ٱ/g,'ا');const nq=norm(q);let hits=[];for(const s of QURAN_DATA.surahs){for(const v of s.verses){if(norm(v.text).includes(nq)){hits.push({s,v});if(hits.length>=80)break;}}if(hits.length>=80)break;}$('quranContent').innerHTML=`<div class="quran-title">نتائج البحث</div><div class="quran-meta">${hits.length} نتيجة${hits.length>=80?' (تم عرض أول 80)':''}</div>`+(hits.length?hits.map(x=>`<div class="card quran-search-result" onclick="renderQuranSurah(${x.s.id});setTimeout(()=>document.getElementById('ayah-${x.s.id}-${x.v.id}')?.scrollIntoView({behavior:'smooth'}),50)"><b>سورة ${esc(x.s.name)} — الآية ${x.v.id}</b><div class="quran-ayah">${esc(x.v.text)}</div></div>`).join(''):'<div class="card">لا توجد نتائج مطابقة.</div>');}
+async function searchQuran(){await loadQuranLocal();await Promise.all(QURAN_DATA.surahs.map(s=>ensureQuranSurahLoaded(s.id)));const q=String($('quranSearch').value||'').trim();if(!q){renderQuranSurah(QURAN_SURAH);return;}const norm=x=>x.replace(/[ًٌٍَُِّْـٰۖۗۚۛ]/g,'').replace(/ٱ/g,'ا');const nq=norm(q);let hits=[];for(const s of QURAN_DATA.surahs){for(const v of s.verses){if(norm(v.text).includes(nq)){hits.push({s,v});if(hits.length>=80)break;}}if(hits.length>=80)break;}$('quranContent').innerHTML=`<div class="quran-title">نتائج البحث</div><div class="quran-meta">${hits.length} نتيجة${hits.length>=80?' (تم عرض أول 80)':''}</div>`+(hits.length?hits.map(x=>`<div class="card quran-search-result" onclick="renderQuranSurah(${x.s.id});setTimeout(()=>document.getElementById('ayah-${x.s.id}-${x.v.id}')?.scrollIntoView({behavior:'smooth'}),50)"><b>سورة ${esc(x.s.name)} — الآية ${x.v.id}</b><div class="quran-ayah">${esc(x.v.text)}</div></div>`).join(''):'<div class="card">لا توجد نتائج مطابقة.</div>');}
 function showQuranBookmarks(){if(!QURAN_DATA)return;const items=[];for(const key of QURAN_BOOKMARKS){const [s,a]=key.split(':').map(Number),sur=QURAN_DATA.surahs.find(x=>x.id===s),v=sur?.verses.find(x=>x.id===a);if(sur&&v)items.push({sur,v});}$('quranContent').innerHTML='<div class="quran-title">⭐ المحفوظات</div>'+(items.length?items.map(x=>`<div class="card quran-search-result" onclick="renderQuranSurah(${x.sur.id});setTimeout(()=>document.getElementById('ayah-${x.sur.id}-${x.v.id}')?.scrollIntoView({behavior:'smooth'}),50)"><b>سورة ${esc(x.sur.name)} — الآية ${x.v.id}</b><div class="quran-ayah">${esc(x.v.text)}</div></div>`).join(''):'<div class="card">لا توجد آيات محفوظة.</div>');}
 document.addEventListener('DOMContentLoaded',()=>{if($('startHifzBtn'))$('startHifzBtn').onclick=startHifz;if($('startReadBtn'))$('startReadBtn').onclick=startReadTest;if($('readSurah'))$('readSurah').onchange=updateReadAyahs;if($('quranOpenBtn'))$('quranOpenBtn').onclick=openQuran;if($('quranPrevBtn'))$('quranPrevBtn').onclick=async()=>{await loadQuranLocal();renderQuranSurah(Math.max(1,QURAN_SURAH-1));};if($('quranNextBtn'))$('quranNextBtn').onclick=async()=>{await loadQuranLocal();renderQuranSurah(Math.min(114,QURAN_SURAH+1));};if($('quranBookmarksBtn'))$('quranBookmarksBtn').onclick=showQuranBookmarks;if($('quranSurah'))$('quranSurah').onchange=e=>renderQuranSurah(Number(e.target.value));if($('quranSearch'))$('quranSearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchQuran();});});
 </script><script src="app.js"></script><script>document.addEventListener('click',e=>{const a=e.target.closest('a[href^="http"]');if(a){/* external navigation intentionally enabled */}});</script>
