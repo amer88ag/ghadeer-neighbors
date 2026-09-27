@@ -8,8 +8,8 @@ if(!db) console.error("Supabase client could not be initialized.");
 
 const state = {
   member: null, pin: null, manager: false, supervisor: false,
-  members: [], coffee: [], outings: [], announcements: [], messages: [],
-  settings: {}, permissions: null
+  members: [], coffee: [], outings: [], announcements: [], messages: [], neighborChecks: [],
+  settings: {}, permissions: null, managerNeighborChecks: []
 };
 
 const $ = id => document.getElementById(id);
@@ -40,13 +40,14 @@ async function loadMembers(){
 }
 async function loadData(){
   if(!db){return;}
-  const [c,o,a,m,p,s] = await Promise.all([
+  const [c,o,a,m,p,s,n] = await Promise.all([
     table("coffee_schedule",{order:"coffee_date"}),
     table("outings_schedule",{order:"outing_date"}),
     table("announcements",{order:"created_at",ascending:false,limit:20}),
     table("group_messages",{order:"created_at",ascending:true,limit:100}),
     table("member_permissions",{order:"member_id"}),
-    rpc("get_schedule_settings")
+    rpc("get_schedule_settings"),
+    state.member&&state.pin ? rpc("get_neighbor_checks",{p_member_id:state.member.id,p_pin:state.pin}) : Promise.resolve({data:[]})
   ]);
   if(c.error) toast("تعذر تحميل جدول القهوة: "+c.error.message,false);
   else state.coffee=c.data||[];
@@ -56,13 +57,67 @@ async function loadData(){
   if(m.error) state.messages=[]; else state.messages=m.data||[];
   state.permissions = p.error ? [] : (p.data||[]);
   state.settings = s.error ? {} : (s.data||{});
+  state.neighborChecks = n.error ? [] : (n.data||[]);
   renderAll();
   fillManagerMessageSelect();
   fillOccasionSelect();
   if(state.manager) renderManager();
 }
+function renderNeighborCheckMembers(){
+  const el=$("checkTargetMember"); if(!el)return;
+  const cur=el.value;
+  el.innerHTML='<option value="">اختر الجار (اختياري)</option>'+activeMemberList().map(m=>'<option value="'+m.id+'">'+esc(m.name)+'</option>').join("");
+  if(cur)el.value=cur;
+}
+function neighborCheckLabel(x){return x.category+(x.target_member_id?' — '+memberName(x.target_member_id):"");}
+function renderNeighborChecks(){
+  const el=$("neighborChecksList"); if(!el)return;
+  const rows=state.neighborChecks||[];
+  el.innerHTML=rows.length?rows.map(x=>`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>❤️ ${esc(neighborCheckLabel(x))}</b><span class="pill">${esc(x.status)}</span></div><p>${esc(x.details||"بدون تفاصيل إضافية")}</p><small class="muted">${new Date(x.created_at).toLocaleString("ar-SA")}</small><div class="top-actions"><button class="small-btn" onclick="updateNeighborCheckStatus(${x.id},'تم التواصل')">تم التواصل</button><button class="small-btn" onclick="updateNeighborCheckStatus(${x.id},'تمت المساعدة')">تمت المساعدة</button><button class="small-btn" onclick="updateNeighborCheckStatus(${x.id},'مغلقة')">إغلاق</button></div></div>`).join(""):'<p class="muted">لا توجد حالات مشاركة حاليًا.</p>';
+  const me=$("managerNeighborChecksList"); if(!me)return;
+  const all=state.managerNeighborChecks||[];
+  me.innerHTML=all.length?all.map(x=>`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(neighborCheckLabel(x))}</b><span class="pill">${esc(x.status)}</span></div><p>${esc(x.details||"بدون تفاصيل")}</p><small class="muted">المبلّغ: ${esc(memberName(x.reporter_member_id))} — ${new Date(x.created_at).toLocaleString("ar-SA")}</small><div class="top-actions"><button class="small-btn" onclick="managerUpdateNeighborCheck(${x.id},'تم التواصل')">تم التواصل</button><button class="small-btn" onclick="managerUpdateNeighborCheck(${x.id},'تمت المساعدة')">تمت المساعدة</button><button class="small-btn" onclick="managerUpdateNeighborCheck(${x.id},'مغلقة')">إغلاق</button><button class="small-btn ghost-mini" onclick="managerDeleteNeighborCheck(${x.id})">حذف</button></div></div>`).join(""):'<p class="muted">لا توجد حالات.</p>';
+}
+async function loadNeighborChecks(){
+  if(!state.member||!state.pin){state.neighborChecks=[];renderNeighborChecks();return;}
+  const {data,error}=await rpc("get_neighbor_checks",{p_member_id:state.member.id,p_pin:state.pin});
+  state.neighborChecks=error?[]:(data||[]);
+  renderNeighborChecks();
+}
+async function createNeighborCheck(){
+  if(!(await requireMemberAuth()))return;
+  const category=$("checkCategory").value, target=Number($("checkTargetMember").value)||null, details=$("checkDetails").value.trim(), visibility=$("checkVisibility").value;
+  const {data,error}=await rpc("create_neighbor_check",{p_member_id:state.member.id,p_pin:state.pin,p_target_member_id:target,p_category:category,p_details:details,p_visibility:visibility});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  $("checkDetails").value=""; toast("تم تسجيل حالة التفقد."); await loadNeighborChecks();
+}
+async function updateNeighborCheckStatus(id,status){
+  if(!(await requireMemberAuth()))return;
+  const {data,error}=await rpc("update_neighbor_check_status",{p_member_id:state.member.id,p_pin:state.pin,p_id:id,p_status:status});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  toast("تم تحديث حالة التفقد."); await loadNeighborChecks();
+}
+async function loadManagerNeighborChecks(){
+  if(!state.manager)return;
+  const {data,error}=await rpc("manager_get_neighbor_checks",{p_manager_pin:state.pin});
+  state.managerNeighborChecks=error?[]:(data||[]);
+  renderNeighborChecks();
+}
+async function managerUpdateNeighborCheck(id,status){
+  if(!state.manager)return;
+  const {data,error}=await rpc("manager_update_neighbor_check",{p_manager_pin:state.pin,p_id:id,p_status:status});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  await loadManagerNeighborChecks(); toast("تم تحديث الحالة.");
+}
+async function managerDeleteNeighborCheck(id){
+  if(!state.manager||!confirm("حذف حالة التفقد؟"))return;
+  const {data,error}=await rpc("manager_delete_neighbor_check",{p_manager_pin:state.pin,p_id:id});
+  const rr=rpcResult(data,error); if(!rr.ok)return toast(rr.message,false);
+  await loadManagerNeighborChecks(); toast("تم حذف الحالة.");
+}
+window.updateNeighborCheckStatus=updateNeighborCheckStatus;window.managerUpdateNeighborCheck=managerUpdateNeighborCheck;window.managerDeleteNeighborCheck=managerDeleteNeighborCheck;
 function renderAll(){
-  renderHome(); renderCoffee(); renderOutings(); renderMessages(); renderMembers();
+  renderHome(); renderCoffee(); renderOutings(); renderMessages(); renderMembers(); renderNeighborCheckMembers(); renderNeighborChecks();
 }
 function occasionRows(){return state.announcements.filter(a=>a.is_occasion===true).sort((x,y)=>new Date(x.scheduled_at||x.created_at)-new Date(y.scheduled_at||y.created_at));}
 function fillOccasionSelect(){const el=$("occasionId");if(!el)return;const rows=occasionRows();const cur=el.value;el.innerHTML=rows.map(x=>`<option value="${x.id}">${x.occasion_type==="وطنية"?"🇸🇦":"🕌"} ${esc(x.title)} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}</option>`).join("");if(cur)el.value=cur;const x=rows.find(z=>Number(z.id)===Number(el.value));if(x){$("editOccasionTitle").value=x.title||"";$("editOccasionType").value=x.occasion_type||"دينية";$("editOccasionMessage").value=x.message||"";$("editOccasionAt").value=x.scheduled_at?new Date(x.scheduled_at).toISOString().slice(0,16):"";}$("occasionList").textContent=rows.length?rows.map(x=>`${x.title} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}`).join("\n"):"لا توجد رسائل مناسبات.";renderOccasionAutomationRules();}
@@ -347,7 +402,7 @@ function renderManager(){
   const mc=$("managerCoffeeStats"); if(mc) mc.textContent=`${state.coffee.length} سجل`;
   const mo=$("managerOutingStats"); if(mo) mo.textContent=`${state.outings.length} سجل`;
   const ma=$("managerActivityStats"); if(ma) ma.textContent=`${state.messages.length} رسالة`;
-  renderPermissions(); fillManagerSelects();
+  renderPermissions(); fillManagerSelects(); loadManagerNeighborChecks();
 }
 async function saveRules(){
   if(!state.manager)return toast("إدارة القواعد للمدير.",false);
@@ -438,7 +493,7 @@ function openManagerTab(name){
 }
 window.openManagerTab=openManagerTab;window.toggleOccasionAutomation=toggleOccasionAutomation;
 function logout(){
-  state.member=null;state.pin=null;state.manager=false;state.supervisor=false;
+  state.member=null;state.pin=null;state.manager=false;state.supervisor=false;state.neighborChecks=[];state.managerNeighborChecks=[];
   $('acceptModal').classList.add('hidden');
   $('whoami').textContent=''; $('managerNav').classList.add('hidden');
   $('entryScreen').classList.add('hidden'); $('memberAuthModal').classList.add('hidden');
@@ -465,8 +520,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("acceptTermsBtn").onclick=acceptTerms;$("rejectTermsBtn").onclick=()=>logout();
   $("refreshBtn").onclick=async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");};
   $("logoutBtn").onclick=logout;
-  if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers;
+  if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers; renderNeighborCheckMembers();
   $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
+  $("createNeighborCheckBtn").onclick=createNeighborCheck;
   $("expenseBtn").onclick=setExpense;$("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
   $("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
   $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
