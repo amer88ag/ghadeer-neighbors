@@ -110,7 +110,7 @@ function fillMemberSelects(){
     el.innerHTML=active.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
     if(current) el.value=current;
   });
-  ["mcMember","moMember1","moMember2","permMember","changePinMember"].forEach(id=>{
+  ["mcMember","moMember1","moMember2","newCoffeeMember","newOutingMember1","newOutingMember2","permMember","changePinMember"].forEach(id=>{
     const el=$(id); if(!el) return;
     const current=el.value;
     el.innerHTML=active.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join("");
@@ -216,6 +216,10 @@ async function supervisorActor(){
   const {data}=await rpc("manager_or_supervisor_actor",{p_member_id:state.member.id,p_pin:state.pin});
   {const r=normalizeRpcData(data); return r.ok===true || r.success===true;}
 }
+async function createCoffee(){if(!state.manager)return toast("إنشاء موعد القهوة للمدير فقط.",false);const member=Number($("newCoffeeMember").value),date=$("newCoffeeDate").value;if(!member||!date)return toast("اختر الجار والتاريخ.",false);const {data,error}=await rpc("manager_create_coffee",{p_manager_pin:state.pin,p_member_id:member,p_date:date,p_time:$("newCoffeeTime").value||null,p_hijri:$("newCoffeeHijri").value,p_notes:$("newCoffeeNotes").value});const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast("تم إنشاء موعد القهوة.");["newCoffeeDate","newCoffeeTime","newCoffeeHijri","newCoffeeNotes"].forEach(id=>$(id).value="");await loadData();}
+async function deleteCoffee(){if(!state.manager)return toast("الحذف للمدير فقط.",false);const id=Number($("mcId").value);if(!id)return toast("اختر موعد القهوة.",false);if(!confirm("حذف موعد القهوة نهائيًا؟"))return;const {data,error}=await rpc("manager_delete_coffee",{p_manager_pin:state.pin,p_id:id});const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast("تم حذف موعد القهوة.");await loadData();}
+async function createOuting(){if(!state.manager)return toast("إنشاء موعد الطلعة للمدير فقط.",false);const m1=Number($("newOutingMember1").value),m2=Number($("newOutingMember2").value),date=$("newOutingDate").value;if(!m1||!m2||!date)return toast("أكمل بيانات الطلعة.",false);const {data,error}=await rpc("manager_create_outing",{p_manager_pin:state.pin,p_member1_id:m1,p_member2_id:m2,p_date:date,p_time:$("newOutingTime").value||null,p_hijri:$("newOutingHijri").value,p_notes:$("newOutingNotes").value});const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast("تم إنشاء موعد الطلعة.");["newOutingDate","newOutingTime","newOutingHijri","newOutingNotes"].forEach(id=>$(id).value="");await loadData();}
+async function deleteOuting(){if(!state.manager)return toast("الحذف للمدير فقط.",false);const id=Number($("moId").value);if(!id)return toast("اختر موعد الطلعة.",false);if(!confirm("حذف موعد الطلعة نهائيًا؟"))return;const {data,error}=await rpc("manager_delete_outing",{p_manager_pin:state.pin,p_id:id});const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast("تم حذف موعد الطلعة.");await loadData();}
 async function saveCoffee(){
   if(!(await supervisorActor())) return toast("لا تملك صلاحية الإدارة.",false);
   const id=Number($("mcId").value), member=Number($("mcMember").value);
@@ -450,7 +454,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers;
   $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
   $("expenseBtn").onclick=setExpense;$("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
-  $("saveCoffeeBtn").onclick=saveCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
+  $("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
   $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
   $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
   $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
