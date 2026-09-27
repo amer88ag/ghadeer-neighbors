@@ -356,9 +356,14 @@ async function authenticateMemberFromModal(){
 }
 async function memberLogin(){ return authenticateMemberFromModal(); }
 async function ensureAcceptance(){
-  // Acceptance is recorded after login. We do not store the PIN or acceptance locally.
-  const {data,error}=await table("program_acceptances",{eq:{member_id:state.member.id},order:"accepted_at",ascending:false,limit:1});
-  if(error || !data?.length){$("acceptModal").classList.remove("hidden");}
+  // لا نقرأ جدول الموافقات مباشرة من المتصفح؛ الاستعلام يمر عبر RPC يتحقق من PIN العضو.
+  try{
+    const {data,error}=await rpc("get_program_acceptance",{p_member_id:state.member.id,p_pin:state.pin});
+    const r=normalizeRpcData(data);
+    if(error || r.exists!==true) $("acceptModal")?.classList.remove("hidden");
+  }catch(e){
+    $("acceptModal")?.classList.remove("hidden");
+  }
 }
 async function acceptTerms(){
   if(!$("acceptCheck").checked){toast("يرجى تأكيد قراءة الشروط.",false);return;}
