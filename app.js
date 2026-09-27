@@ -8,7 +8,7 @@ if(!db) console.error("Supabase client could not be initialized.");
 
 const state = {
   member: null, pin: null, manager: false, supervisor: false,
-  members: [], coffee: [], outings: [], outingPlans: [], announcements: [], messages: [], neighborChecks: [],
+  members: [], coffee: [], outings: [], outingPlans: [], memberProfiles: [], announcements: [], messages: [], neighborChecks: [],
   settings: {}, permissions: null, managerNeighborChecks: []
 };
 
@@ -40,10 +40,11 @@ async function loadMembers(){
 }
 async function loadData(){
   if(!db){return;}
-  const [c,o,plans,a,m,p,s,n] = await Promise.all([
+  const [c,o,plans,profiles,a,m,p,s,n] = await Promise.all([
     table("coffee_schedule",{order:"coffee_date"}),
     table("outings_schedule",{order:"outing_date"}),
     rpc("get_outing_plans"),
+    rpc("get_member_profiles"),
     table("announcements",{order:"created_at",ascending:false,limit:20}),
     table("group_messages",{order:"created_at",ascending:true,limit:100}),
     table("member_permissions",{order:"member_id"}),
@@ -55,6 +56,7 @@ async function loadData(){
   if(o.error) toast("تعذر تحميل جدول الطلعات: "+o.error.message,false);
   else state.outings=o.data||[];
   try { state.outingPlans=plans.error?[]:(Array.isArray(plans.data)?plans.data:(typeof plans.data==="string"?JSON.parse(plans.data||"[]"):(plans.data||[]))); } catch(e) { state.outingPlans=[]; }
+  try { state.memberProfiles=profiles.error?[]:(Array.isArray(profiles.data)?profiles.data:(typeof profiles.data==="string"?JSON.parse(profiles.data||"[]"):(profiles.data||[]))); } catch(e) { state.memberProfiles=[]; }
   if(a.error) state.announcements=[]; else state.announcements=a.data||[];
   if(m.error) state.messages=[]; else state.messages=m.data||[];
   state.permissions = p.error ? [] : (p.data||[]);
@@ -196,12 +198,38 @@ function renderOutingPlans(){
     html+="<div style=\"margin-top:8px\">🙋 المشاركون: <b>"+(p.attending_count||0)+"</b> | 💰 الإجمالي: <b>"+Number(p.total_expense||0).toFixed(2)+" ريال</b> | 👤 للفرد: <b>"+(cost?cost.toFixed(2):"0.00")+" ريال</b></div>";
     if(org)html+="<div class=\"muted\">🎲 المنظمون: "+org+"</div>";
     if(p.status!=="scheduled")html+="<div class=\"top-actions\"><button class=\"small-btn\" onclick=\"voteOutingPlan("+p.id+",'attending')\">"+(p.my_vote==="attending"?"✅ أنت مصوّت: سأطلع":"🙋 سأطلع")+"</button><button class=\"small-btn\" onclick=\"voteOutingPlan("+p.id+",'not_attending')\">"+(p.my_vote==="not_attending"?"🚫 أنت معتذر":"لن أطلع")+"</button></div>";
+    if(p.status==="scheduled"&&state.member){
+      const r=p.my_rating||{}; const opt=(id,label,val)=>"<label>"+label+"</label><select id=\"rate-"+id+"-"+p.id+"\"><option value=\"1\">1 ⭐</option><option value=\"2\">2 ⭐</option><option value=\"3\">3 ⭐</option><option value=\"4\">4 ⭐</option><option value=\"5\" selected>5 ⭐</option></select>";
+      let form="<details><summary>⭐ تقييم الطلعة ("+(p.rating_count||0)+" تقييم — متوسط "+(p.rating_average||"0")+")</summary><div class=\"qtest-row\">"+opt("place","المكان")+opt("food","نوعية الأكل")+opt("time","الوقت")+opt("cost","مبلغ الدفع")+opt("organization","التنظيم")+opt("cleanliness","النظافة")+"</div><textarea id=\"rate-comment-"+p.id+"\" placeholder=\"ملاحظة اختيارية\">"+esc(r.comment||"")+"</textarea><button class=\"small-btn\" onclick=\"submitOutingRating("+p.id+")\">💾 حفظ التقييم</button></div></details>";
+      html+=form;
+    }
     if(state.member&&(p.organizers||[]).some(o=>Number(o.member_id)===Number(state.member.id)))html+="<div class=\"top-actions\"><input id=\"exp-"+p.id+"\" type=\"number\" min=\"0\" step=\"0.01\" placeholder=\"مبلغ دفعته\"><input id=\"expnote-"+p.id+"\" placeholder=\"ملاحظة اختيارية\"><button class=\"small-btn\" onclick=\"addPlanExpense("+p.id+")\">💰 إضافة مصروف</button></div>";
     if((p.assignments||[]).length)html+="<details><summary>توزيع المشاركين ("+p.assignments.length+")</summary><div class=\"muted\">"+p.assignments.map(a=>esc(a.member_name)+" ← "+esc(memberName(a.organizer_id))).join("<br>")+"</div></details>";
     html+="</div>"; return html;
   }).join("");
   fillOutingPlanManagerSelects();
 }
+async function saveMemberProfile(){
+  if(!(await requireMemberAuth()))return;
+  const full=$("profileFullName").value.trim(); if(!full)return setStatus("profileStatus","الاسم الرباعي مطلوب.",false);
+  const {data,error}=await rpc("save_member_profile",{p_member_id:state.member.id,p_pin:state.pin,p_full_name:full,p_bio:$("profileBio").value,p_phone_public:$("profilePhone").value,p_occupation:$("profileOccupation").value});
+  const rr=rpcResult(data,error);if(!rr.ok)return setStatus("profileStatus",rr.message,false);
+  setStatus("profileStatus","تم حفظ بطاقة الجار. البيانات الإضافية اختيارية.",true);await loadData();
+}
+async function loadOwnPlanRatings(){
+  if(!state.member||!state.pin)return;
+  for(const p of (state.outingPlans||[])){if(p.status!=="scheduled")continue;try{const {data}=await rpc("get_outing_plan_rating",{p_member_id:state.member.id,p_pin:state.pin,p_plan_id:p.id});p.my_rating=data||{};}catch(e){p.my_rating={};}}
+  renderOutingPlans();
+}
+async function submitOutingRating(id){
+  if(!(await requireMemberAuth()))return;
+  const v=k=>Number($("rate-"+k+"-"+id)?.value||5);
+  const comment=$("rate-comment-"+id)?.value||"";
+  const {data,error}=await rpc("submit_outing_rating",{p_member_id:state.member.id,p_pin:state.pin,p_plan_id:id,p_place:v("place"),p_food:v("food"),p_time:v("time"),p_cost:v("cost"),p_organization:v("organization"),p_cleanliness:v("cleanliness"),p_comment:comment});
+  const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);
+  toast("تم حفظ تقييم الطلعة. شكرًا لمشاركتك.");await loadData();await loadOwnPlanRatings();
+}
+
 async function createOutingPlan(){
   if(!(await requireMemberAuth()))return;
   const type=$("newPlanType").value.trim(),place=$("newPlanPlace").value.trim(),date=$("newPlanDate").value,time=$("newPlanTime").value||null,count=Number($("newPlanOrganizerCount").value||1);
@@ -259,7 +287,9 @@ async function loadPrayerByMemberLocation(){
 function renderMembers(){
   const q=($("memberSearch")?.value||"").trim();
   const list=state.members.filter(m=>m.active && (!q || m.name.includes(q)));
-  $("membersGrid").innerHTML=list.map(m=>`<article class="member-card"><div class="avatar">👤</div><div><b>${esc(m.name)}</b><p>${esc(m.notes||"جار في الحي")}</p></div></article>`).join("") || `<div class="card">لا توجد نتائج.</div>`;
+  const profiles=new Map((state.memberProfiles||[]).map(p=>[Number(p.member_id),p]));
+  $("membersGrid").innerHTML=list.map(m=>{const p=profiles.get(Number(m.id));return `<article class="member-card"><div class="avatar">👤</div><div><b>${esc(p?.full_name||m.name)}</b>${p?.occupation?`<p>💼 ${esc(p.occupation)}</p>`:""}${p?.bio?`<p>${esc(p.bio)}</p>`:""}</div></article>`;}).join("") || `<div class="card">لا توجد نتائج.</div>`;
+  const me=state.member&&profiles.get(Number(state.member.id)); if(me){$("profileFullName").value=me.full_name||"";$("profilePhone").value=me.phone_public||"";$("profileOccupation").value=me.occupation||"";$("profileBio").value=me.bio||"";}
 }
 function fillManagerMessageSelect(){const el=$("managerMessageId");if(!el)return;const cur=el.value;el.innerHTML=state.messages.map(m=>`<option value="${m.id}">${new Date(m.created_at).toLocaleString("ar-SA")} — ${esc(String(m.message).slice(0,70))}</option>`).join("");if(cur)el.value=cur;const selected=state.messages.find(x=>Number(x.id)===Number(el.value));if(selected&&$("editManagerMessage"))$("editManagerMessage").value=selected.message||"";}
 function renderMessages(){
@@ -626,7 +656,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
   $("createNeighborCheckBtn").onclick=createNeighborCheck;
   $("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
-  $("createOutingPlanBtn").onclick=createOutingPlan;$("randomPlanBtn").onclick=randomizePlan;$("managerApprovePlanBtn").onclick=()=>approvePlan("manager");$("supervisorApprovePlanBtn").onclick=()=>approvePlan("supervisor");$("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;
+  $("createOutingPlanBtn").onclick=createOutingPlan;$("saveProfileBtn").onclick=saveMemberProfile;$("randomPlanBtn").onclick=randomizePlan;$("managerApprovePlanBtn").onclick=()=>approvePlan("manager");$("supervisorApprovePlanBtn").onclick=()=>approvePlan("supervisor");$("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;
   $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
   $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
   $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
