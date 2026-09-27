@@ -636,6 +636,10 @@ function fillManagerFormFromSelected(){
   if(o){$("moMember1").value=o.member1_id;$("moMember2").value=o.member2_id;$("moDate").value=o.outing_date;$("moTime").value=fmtTime(o.outing_time);$("moNotes").value=o.notes||"";}
 }
 document.addEventListener("DOMContentLoaded",async()=>{
+  // إظهار الواجهة أولاً حتى لا تبقى الشاشة فارغة إذا تعطل تحميل خدمة خارجية أو بيانات لاحقة.
+  $("entryScreen")?.classList.add("hidden");
+  $("app")?.classList.remove("hidden");
+  try {
   hadithIndex=Math.floor(Date.now()/86400000)%hadithBoardItems.length; renderHadithBoard(); if($("hadithPrevBtn"))$("hadithPrevBtn").onclick=()=>stepHadith(-1); if($("hadithNextBtn"))$("hadithNextBtn").onclick=()=>stepHadith(1);
 
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
@@ -664,6 +668,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
   ["homePrayerBtn","prayerRefreshBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=loadPrayerByMemberLocation;});
   ["weatherBtn","homeWeatherBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(weatherUrl,"_blank","noopener");});
-  $('entryScreen').classList.add('hidden'); $('app').classList.remove('hidden'); $('whoami').textContent=''; $('managerNav').classList.add('hidden');
+  $('whoami').textContent=''; $('managerNav')?.classList.add('hidden');
   await loadMembers(); await loadData(); if(state.member&&state.pin)await loadOwnPlanVotes();
+  } catch(e) {
+    console.error("Ghadeer initialization failed:", e);
+    toast("تم فتح الواجهة، لكن تعذر تحميل بعض البيانات. اضغط تحديث.",false);
+  }
 });
