@@ -117,13 +117,36 @@ async function managerDeleteNeighborCheck(id){
 }
 window.updateNeighborCheckStatus=updateNeighborCheckStatus;window.managerUpdateNeighborCheck=managerUpdateNeighborCheck;window.managerDeleteNeighborCheck=managerDeleteNeighborCheck;
 function renderAll(){
-  renderHome(); renderCoffee(); renderOutings(); renderMessages(); renderMembers(); renderNeighborCheckMembers(); renderNeighborChecks();
+  renderHome(); renderCoffee(); renderOutings(); renderMessages(); renderMembers(); renderNeighborCheckMembers(); renderNeighborChecks(); renderHadithBoard();
 }
 function occasionRows(){return state.announcements.filter(a=>a.is_occasion===true).sort((x,y)=>new Date(x.scheduled_at||x.created_at)-new Date(y.scheduled_at||y.created_at));}
 function fillOccasionSelect(){const el=$("occasionId");if(!el)return;const rows=occasionRows();const cur=el.value;el.innerHTML=rows.map(x=>`<option value="${x.id}">${x.occasion_type==="وطنية"?"🇸🇦":"🕌"} ${esc(x.title)} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}</option>`).join("");if(cur)el.value=cur;const x=rows.find(z=>Number(z.id)===Number(el.value));if(x){$("editOccasionTitle").value=x.title||"";$("editOccasionType").value=x.occasion_type||"دينية";$("editOccasionMessage").value=x.message||"";$("editOccasionAt").value=x.scheduled_at?new Date(x.scheduled_at).toISOString().slice(0,16):"";}$("occasionList").textContent=rows.length?rows.map(x=>`${x.title} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}`).join("\n"):"لا توجد رسائل مناسبات.";renderOccasionAutomationRules();}
 async function renderOccasionAutomationRules(){const el=$("occasionAutomationList");if(!el||(!state.manager&&!state.supervisor))return;const {data,error}=await rpc("get_occasion_automation_rules");if(error){el.innerHTML="<p class='muted'>تعذر تحميل قواعد المناسبات.</p>";return;}const rows=Array.isArray(data)?data:[];el.innerHTML=rows.map(x=>`<div class="permission-row" style="margin:6px 0;padding:10px;border:1px solid var(--line);border-radius:12px"><div><b>${x.occasion_type==="وطنية"?"🇸🇦":"🕌"} ${esc(x.title)}</b><div class="muted">${x.calendar_type==="hijri"?"هجري":"ميلادي"} — ${x.enabled?"تلقائي مفعّل":"متوقف"}</div></div><button class="small-btn" onclick="toggleOccasionAutomation('${esc(x.rule_key)}',${x.enabled})">${x.enabled?"⏸️ إيقاف":"▶️ تشغيل"}</button></div>`).join("")||"<p class='muted'>لا توجد قواعد تلقائية.</p>";}
 async function toggleOccasionAutomation(ruleKey,enabled){let data,error;if(state.manager){({data,error}=await rpc("manager_set_occasion_automation",{p_manager_pin:state.pin,p_rule_key:ruleKey,p_enabled:!enabled}));}else if(state.supervisor){({data,error}=await rpc("supervisor_set_occasion_automation",{p_member_id:state.member.id,p_pin:state.pin,p_rule_key:ruleKey,p_enabled:!enabled}));}else return toast("لا تملك صلاحية إدارة المناسبات.",false);const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast(rr.message||"تم تحديث المناسبة.");await renderOccasionAutomationRules();}
 function visibleOccasions(){const now=Date.now();return occasionRows().filter(x=>!x.scheduled_at||new Date(x.scheduled_at).getTime()<=now);}
+const hadithBoardItems=[
+ {topic:"حسن الجوار",text:"ما زال جبريل يوصيني بالجار حتى ظننت أنه سيورثه.",source:"صحيح البخاري 6014",url:"https://sunnah.com/bukhari:6014"},
+ {topic:"حسن الجوار",text:"من كان يؤمن بالله واليوم الآخر فلا يؤذ جاره.",source:"صحيح البخاري 6018",url:"https://sunnah.com/bukhari:6018"},
+ {topic:"حسن المعاملة",text:"من كان يؤمن بالله واليوم الآخر فليقل خيرًا أو ليصمت.",source:"صحيح مسلم 47a",url:"https://sunnah.com/muslim/1/79"},
+ {topic:"الأخوة",text:"لا يؤمن أحدكم حتى يحب لأخيه ما يحب لنفسه.",source:"صحيح البخاري 13",url:"https://sunnah.com/bukhari/2/6"},
+ {topic:"سلامة الناس",text:"المسلم من سلم المسلمون من لسانه ويده.",source:"صحيح مسلم 41",url:"https://sunnah.com/muslim/1/69"},
+ {topic:"تفريج الكرب",text:"والله في عون العبد ما كان العبد في عون أخيه.",source:"صحيح مسلم 2699a",url:"https://sunnah.com/muslim:2699a"},
+ {topic:"الأخلاق",text:"لا تحاسدوا ولا تباغضوا ولا تدابروا، وكونوا عباد الله إخوانًا.",source:"صحيح مسلم 2564a",url:"https://sunnah.com/muslim/45/40"},
+ {topic:"الرحمة والتعاون",text:"من نفس عن مؤمن كربة من كرب الدنيا نفس الله عنه كربة من كرب يوم القيامة.",source:"صحيح مسلم 2699a",url:"https://sunnah.com/muslim:2699a"}
+];
+let hadithIndex=0;
+function renderHadithBoard(){
+ const textEl=$("hadithText"), topicEl=$("hadithTopic"), sourceEl=$("hadithSource");
+ if(!textEl)return;
+ const h=hadithBoardItems[hadithIndex%hadithBoardItems.length];
+ topicEl.textContent=h.topic;
+ textEl.textContent=h.text;
+ sourceEl.innerHTML='<a target="_blank" rel="noopener" href="'+h.url+'" style="color:#e9d18a;text-decoration:none">المصدر: '+esc(h.source)+' ↗</a>';
+}
+function stepHadith(delta){
+ hadithIndex=(hadithIndex+delta+hadithBoardItems.length)%hadithBoardItems.length;
+ renderHadithBoard();
+}
 function renderHome(){
   const today=currentDateISO();
   const c=state.coffee.find(x=>x.coffee_date>=today);
@@ -506,6 +529,8 @@ function fillManagerFormFromSelected(){
   if(o){$("moMember1").value=o.member1_id;$("moMember2").value=o.member2_id;$("moDate").value=o.outing_date;$("moTime").value=fmtTime(o.outing_time);$("moNotes").value=o.notes||"";}
 }
 document.addEventListener("DOMContentLoaded",async()=>{
+  hadithIndex=Math.floor(Date.now()/86400000)%hadithBoardItems.length; renderHadithBoard(); if($("hadithPrevBtn"))$("hadithPrevBtn").onclick=()=>stepHadith(-1); if($("hadithNextBtn"))$("hadithNextBtn").onclick=()=>stepHadith(1);
+
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
   if($('memberLoginBtn'))$('memberLoginBtn').onclick=memberLogin;
   if($('managerLoginBtn'))$('managerLoginBtn').onclick=managerLogin;
