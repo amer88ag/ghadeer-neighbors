@@ -319,7 +319,7 @@ async function authenticateMemberFromModal(){
     $('managerNav').classList.toggle('hidden',!state.supervisor);
     closeMemberAuth();
     await ensureAcceptance();
-    await loadData();
+    await loadData(); await loadOwnPlanVotes();
     toast('تم تسجيل الدخول.');
     return true;
   }catch(e){setStatus('authStatus','حدث خطأ أثناء تسجيل الدخول: '+(e?.message||e),false);return false;}
