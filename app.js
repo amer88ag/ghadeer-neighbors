@@ -202,6 +202,60 @@ function renderOutingPlans(){
   }).join("");
   fillOutingPlanManagerSelects();
 }
+async function createOutingPlan(){
+  if(!(await requireMemberAuth()))return;
+  const type=$("newPlanType").value.trim(),place=$("newPlanPlace").value.trim(),date=$("newPlanDate").value,time=$("newPlanTime").value||null,count=Number($("newPlanOrganizerCount").value||1);
+  if(!type||!place||!date)return setStatus("planCreateStatus","أكمل نوع الطلعة والمكان والتاريخ.",false);
+  const {data,error}=await rpc("create_outing_plan",{p_member_id:state.member.id,p_pin:state.pin,p_outing_type:type,p_outing_place:place,p_date:date,p_time:time,p_organizer_count:count});
+  const rr=rpcResult(data,error);if(!rr.ok)return setStatus("planCreateStatus",rr.message,false);
+  ["newPlanType","newPlanPlace","newPlanDate","newPlanTime"].forEach(id=>$(id).value="");toast("تم طرح الطلعة للتصويت.");await loadData();await loadOwnPlanVotes();
+}
+async function loadOwnPlanVotes(){
+  if(!state.member||!state.pin)return;
+  for(const p of (state.outingPlans||[])){if(p.status==="scheduled"||p.status==="rejected")continue;try{const {data}=await rpc("get_outing_plan_vote",{p_member_id:state.member.id,p_pin:state.pin,p_plan_id:p.id});p.my_vote=data?.vote||null;}catch(e){p.my_vote=null;}}
+  renderOutingPlans();
+}
+async function voteOutingPlan(id,vote){
+  if(!(await requireMemberAuth()))return;
+  const {data,error}=await rpc("vote_outing_plan",{p_member_id:state.member.id,p_pin:state.pin,p_plan_id:id,p_vote:vote});
+  const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);
+  toast(vote==="attending"?"تم تسجيل مشاركتك في الطلعة.":"تم تسجيل عدم المشاركة.");await loadData();await loadOwnPlanVotes();
+}
+async function addPlanExpense(planId){
+  if(!(await requireMemberAuth()))return;
+  const amount=Number($("exp-"+planId)?.value||0),note=$("expnote-"+planId)?.value.trim()||null;if(!amount)return toast("أدخل المبلغ الذي دفعته.",false);
+  const {data,error}=await rpc("add_outing_plan_expense",{p_member_id:state.member.id,p_pin:state.pin,p_plan_id:planId,p_amount:amount,p_note:note});
+  const rr=rpcResult(data,error);if(!rr.ok)return toast(rr.message,false);toast("تم تسجيل المصروف وسيُقسم تلقائيًا على المشاركين.");await loadData();await loadOwnPlanVotes();
+}
+function fillOutingPlanManagerSelects(){
+  const plans=(state.outingPlans||[]).filter(p=>p.status!=="rejected");
+  ["randomPlanId","approvalPlanId"].forEach(id=>{const el=$(id);if(!el)return;const cur=el.value;el.innerHTML=plans.map(p=>"<option value=\""+p.id+"\">"+esc(p.outing_type)+" — "+fmtDate(p.outing_date)+" — "+(p.attending_count||0)+" مشارك — "+esc(p.status)+"</option>").join("");if(cur)el.value=cur;});
+  const box=$("managerPlansList");if(box)box.innerHTML=plans.map(p=>"<div class=\"permission-row\" style=\"margin:6px 0;padding:10px;border:1px solid var(--line);border-radius:12px\"><b>🚐 "+esc(p.outing_type)+"</b> — "+esc(p.outing_place)+"<div class=\"muted\">"+fmtDate(p.outing_date)+" — "+(p.attending_count||0)+" مشارك — مدير: "+(p.manager_approved?"✅":"⏳")+" — مشرف: "+(p.supervisor_approved?"✅":"⏳")+" — منظمون: "+((p.organizers||[]).map(o=>esc(o.member_name)).join("، ")||"لم يوزعوا بعد")+"</div></div>").join("")||"<p class=\"muted\">لا توجد طلبات.</p>";
+}
+async function randomizePlan(){
+  if(!state.manager&&!state.supervisor)return toast("هذه العملية للمدير أو المشرف المفوض.",false);
+  const plan=Number($("randomPlanId").value),count=Number($("randomOrganizerCount").value||1);if(!plan)return toast("اختر طلب الطلعة.",false);
+  const {data,error}=await rpc("manager_randomize_outing_plan",{p_manager_pin:state.pin,p_plan_id:plan,p_organizer_count:count});const rr=rpcResult(data,error);if(!rr.ok)return setStatus("randomPlanResult",rr.message,false);
+  setStatus("randomPlanResult","تم اختيار "+(rr.data?.organizers||count)+" منظمين وتوزيع "+(rr.data?.participants||0)+" مشاركًا عشوائيًا.",true);await loadData();await loadOwnPlanVotes();
+}
+async function approvePlan(role){
+  if(role==="manager"&&!state.manager)return toast("موافقة المدير للمدير.",false);if(role==="supervisor"&&!state.supervisor)return toast("موافقة المشرف للمشرف المفوض.",false);
+  const plan=Number($("approvalPlanId").value);if(!plan)return toast("اختر طلب الطلعة.",false);
+  const {data,error}=await rpc("approve_outing_plan",{p_member_id:state.manager?0:state.member.id,p_pin:state.pin,p_plan_id:plan});const rr=rpcResult(data,error);if(!rr.ok)return setStatus("approvalPlanResult",rr.message,false);
+  setStatus("approvalPlanResult",rr.data?.scheduled?"تمت موافقة المدير والمشرف وأُدرجت الطلعة في الجدول.":(role==="manager"?"تم تسجيل موافقة المدير.":"تم تسجيل موافقة المشرف."),true);await loadData();await loadOwnPlanVotes();
+}
+function prayerDateForApi(){const d=new Date();return String(d.getDate()).padStart(2,"0")+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+d.getFullYear();}
+async function loadPrayerByMemberLocation(){
+  const status=$("prayerStatus");if(!navigator.geolocation)return setStatus("prayerStatus","المتصفح لا يدعم تحديد الموقع.",false);
+  setStatus("prayerStatus","جارٍ تحديد موقع الجهاز وحساب المواقيت…",true);
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{const lat=pos.coords.latitude,lon=pos.coords.longitude;const url="https://api.aladhan.com/v1/timings/"+prayerDateForApi()+"?latitude="+encodeURIComponent(lat)+"&longitude="+encodeURIComponent(lon)+"&method=4";const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw new Error("HTTP "+res.status);const json=await res.json();const t=json?.data?.timings;if(!t)throw new Error("لا توجد بيانات مواقيت");
+      ["Fajr","Dhuhr","Asr","Maghrib","Isha"].forEach(k=>{const el=$("pt"+k);if(el)el.textContent=String(t[k]||"—").slice(0,5);});
+      $("prayerLocationLabel").textContent="تم حساب المواقيت حسب موقع جهازك الحالي. لا يتم حفظ الإحداثيات في البرنامج.";setStatus("prayerStatus","تم تحديث مواقيت الصلاة.",true);
+    }catch(e){setStatus("prayerStatus","تعذر جلب المواقيت لهذا الموقع. حاول مرة أخرى.",false);}
+  },()=>setStatus("prayerStatus","لم يتم السماح بالموقع. يمكنك السماح بالموقع من إعدادات المتصفح ثم المحاولة مرة أخرى.",false),{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
+}
+
 function renderMembers(){
   const q=($("memberSearch")?.value||"").trim();
   const list=state.members.filter(m=>m.active && (!q || m.name.includes(q)));
@@ -571,16 +625,15 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers; renderNeighborCheckMembers();
   $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
   $("createNeighborCheckBtn").onclick=createNeighborCheck;
-  $("expenseBtn").onclick=setExpense;$("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
-  $("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
+  $("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
+  $("createOutingPlanBtn").onclick=createOutingPlan;$("randomPlanBtn").onclick=randomizePlan;$("managerApprovePlanBtn").onclick=()=>approvePlan("manager");$("supervisorApprovePlanBtn").onclick=()=>approvePlan("supervisor");$("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;$("randomOutingBtn").onclick=randomOuting;
   $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
   $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
   $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
-  const prayerUrl="https://www.islamicfinder.org/world/saudi-arabia/abha/";
   const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
-  ["prayerBtn","homePrayerBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(prayerUrl,"_blank","noopener");});
+  ["homePrayerBtn","prayerRefreshBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=loadPrayerByMemberLocation;});
   ["weatherBtn","homeWeatherBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(weatherUrl,"_blank","noopener");});
   $('entryScreen').classList.add('hidden'); $('app').classList.remove('hidden'); $('whoami').textContent=''; $('managerNav').classList.add('hidden');
-  await loadMembers(); await loadData();
+  await loadMembers(); await loadData(); if(state.member&&state.pin)await loadOwnPlanVotes();
 });
