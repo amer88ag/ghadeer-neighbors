@@ -449,8 +449,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
   $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
-  $("prayerBtn").onclick=()=>window.open("https://www.islamicfinder.org/world/saudi-arabia/abha/","_blank","noopener");
-  $("weatherBtn").onclick=()=>window.open("https://www.google.com/search?q=الطقس+أبها","_blank","noopener");
+  const prayerUrl="https://www.islamicfinder.org/world/saudi-arabia/abha/";
+  const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
+  ["prayerBtn","homePrayerBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(prayerUrl,"_blank","noopener");});
+  ["weatherBtn","homeWeatherBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(weatherUrl,"_blank","noopener");});
   $('entryScreen').classList.add('hidden'); $('app').classList.remove('hidden'); $('whoami').textContent=''; $('managerNav').classList.add('hidden');
   await loadMembers(); await loadData();
 });
