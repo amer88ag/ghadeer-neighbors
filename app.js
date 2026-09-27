@@ -441,7 +441,9 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if($('authLoginBtn'))$('authLoginBtn').onclick=authenticateMemberFromModal;
   if($('authCancelBtn'))$('authCancelBtn').onclick=closeMemberAuth;
   if($('memberAccessBtn'))$('memberAccessBtn').onclick=showMemberAuth;
+  if($('topMemberAccessBtn'))$('topMemberAccessBtn').onclick=showMemberAuth;
   if($('showManagerFromHomeBtn'))$('showManagerFromHomeBtn').onclick=showManagerLogin;
+  if($('developerAccessBtn'))$('developerAccessBtn').onclick=showManagerLogin;
   $("acceptTermsBtn").onclick=acceptTerms;$("rejectTermsBtn").onclick=()=>logout();
   $("refreshBtn").onclick=async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");};
   $("logoutBtn").onclick=logout;
