@@ -1,8 +1,10 @@
 /* جيران حي الغدير بالمحالة — تطبيق ويب ثابت متوافق مع GitHub/Vercel */
 const SUPABASE_URL = "https://xewjakfmdfkbhcnxglct.supabase.co";
 const SUPABASE_KEY = "sb_publishable__i-E8Gi5hcdfNd7gZXa12Q_-ZPSXPUr";
-const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseLib = window.supabase;
+const createClient = supabaseLib?.createClient;
+const db = createClient ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+if(!db) console.error("Supabase client could not be initialized.");
 
 const state = {
   member: null, pin: null, manager: false, supervisor: false,
@@ -29,6 +31,7 @@ function memberName(id){ return state.members.find(m=>Number(m.id)===Number(id))
 function currentDateISO(){ return new Date().toISOString().slice(0,10); }
 
 async function loadMembers(){
+  if(!db){toast("تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.",false); return;}
   const {data,error}=await table("members",{order:"id"});
   if(error){toast("تعذر تحميل الجيران: "+error.message,false); return;}
   state.members=data||[];
@@ -36,6 +39,7 @@ async function loadMembers(){
   renderMembers();
 }
 async function loadData(){
+  if(!db){return;}
   const [c,o,a,m,p,s] = await Promise.all([
     table("coffee_schedule",{order:"coffee_date"}),
     table("outings_schedule",{order:"outing_date"}),
