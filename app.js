@@ -8,7 +8,7 @@ if(!db) console.error("Supabase client could not be initialized.");
 
 const state = {
   member: null, pin: null, manager: false, supervisor: false,
-  members: [], coffee: [], outings: [], announcements: [], messages: [], neighborChecks: [],
+  members: [], coffee: [], outings: [], outingPlans: [], announcements: [], messages: [], neighborChecks: [],
   settings: {}, permissions: null, managerNeighborChecks: []
 };
 
@@ -40,9 +40,10 @@ async function loadMembers(){
 }
 async function loadData(){
   if(!db){return;}
-  const [c,o,a,m,p,s,n] = await Promise.all([
+  const [c,o,plans,a,m,p,s,n] = await Promise.all([
     table("coffee_schedule",{order:"coffee_date"}),
     table("outings_schedule",{order:"outing_date"}),
+    rpc("get_outing_plans"),
     table("announcements",{order:"created_at",ascending:false,limit:20}),
     table("group_messages",{order:"created_at",ascending:true,limit:100}),
     table("member_permissions",{order:"member_id"}),
@@ -53,6 +54,7 @@ async function loadData(){
   else state.coffee=c.data||[];
   if(o.error) toast("تعذر تحميل جدول الطلعات: "+o.error.message,false);
   else state.outings=o.data||[];
+  try { state.outingPlans=plans.error?[]:(Array.isArray(plans.data)?plans.data:(typeof plans.data==="string"?JSON.parse(plans.data||"[]"):(plans.data||[]))); } catch(e) { state.outingPlans=[]; }
   if(a.error) state.announcements=[]; else state.announcements=a.data||[];
   if(m.error) state.messages=[]; else state.messages=m.data||[];
   state.permissions = p.error ? [] : (p.data||[]);
@@ -117,7 +119,7 @@ async function managerDeleteNeighborCheck(id){
 }
 window.updateNeighborCheckStatus=updateNeighborCheckStatus;window.managerUpdateNeighborCheck=managerUpdateNeighborCheck;window.managerDeleteNeighborCheck=managerDeleteNeighborCheck;
 function renderAll(){
-  renderHome(); renderCoffee(); renderOutings(); renderMessages(); renderMembers(); renderNeighborCheckMembers(); renderNeighborChecks(); renderHadithBoard();
+  renderHome(); renderCoffee(); renderOutings(); renderOutingPlans(); renderMessages(); renderMembers(); renderNeighborCheckMembers(); renderNeighborChecks(); renderHadithBoard();
 }
 function occasionRows(){return state.announcements.filter(a=>a.is_occasion===true).sort((x,y)=>new Date(x.scheduled_at||x.created_at)-new Date(y.scheduled_at||y.created_at));}
 function fillOccasionSelect(){const el=$("occasionId");if(!el)return;const rows=occasionRows();const cur=el.value;el.innerHTML=rows.map(x=>`<option value="${x.id}">${x.occasion_type==="وطنية"?"🇸🇦":"🕌"} ${esc(x.title)} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}</option>`).join("");if(cur)el.value=cur;const x=rows.find(z=>Number(z.id)===Number(el.value));if(x){$("editOccasionTitle").value=x.title||"";$("editOccasionType").value=x.occasion_type||"دينية";$("editOccasionMessage").value=x.message||"";$("editOccasionAt").value=x.scheduled_at?new Date(x.scheduled_at).toISOString().slice(0,16):"";}$("occasionList").textContent=rows.length?rows.map(x=>`${x.title} — ${new Date(x.scheduled_at||x.created_at).toLocaleString("ar-SA")}`).join("\n"):"لا توجد رسائل مناسبات.";renderOccasionAutomationRules();}
@@ -169,15 +171,36 @@ function renderCoffee(){
   fillManagerSelects();
 }
 function renderOutings(){
-  const body=$("outingTable"), sel=$("expenseOutingId");
-  body.innerHTML=""; sel.innerHTML="";
+  const body=$("outingTable"); if(!body)return; body.innerHTML="";
+  const planMap=new Map((state.outingPlans||[]).map(p=>[Number(p.id),p]));
   state.outings.forEach((x,i)=>{
+    const p=x.plan_id?planMap.get(Number(x.plan_id)):null;
+    const organizers=p&&p.organizers&&p.organizers.length?p.organizers.map(o=>o.member_name).join("، "):[memberName(x.member1_id),memberName(x.member2_id)].filter(Boolean).join(" + ");
+    const cost=p?Number(p.per_person_cost||0):0;
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${i+1}</td><td>${fmtDate(x.outing_date)}</td><td>${esc(memberName(x.member1_id))}</td><td>${esc(memberName(x.member2_id))}</td><td>${fmtTime(x.outing_time)}</td><td><span class="pill">${esc(x.status||"مجدولة")}</span></td><td><button class="small-btn" onclick="setAttendance(${x.id},true)">حاضر</button> <button class="small-btn ghost-mini" onclick="setAttendance(${x.id},false)">اعتذر</button></td>`;
+    tr.innerHTML="<td>"+(i+1)+"</td><td>"+esc(x.outing_type||p?.outing_type||"طلعة")+"</td><td>"+esc(x.outing_place||p?.outing_place||"—")+"</td><td>"+fmtDate(x.outing_date)+"</td><td>"+fmtTime(x.outing_time)+"</td><td>"+esc(organizers)+"</td><td>"+(p?Number(p.attending_count||0):"—")+"</td><td>"+(cost?cost.toFixed(2)+" ريال":"—")+"</td><td><button class=\"small-btn\" onclick=\"setAttendance("+x.id+",true)\">حاضر</button> <button class=\"small-btn ghost-mini\" onclick=\"setAttendance("+x.id+",false)\">اعتذر</button></td>";
     body.appendChild(tr);
-    const op=document.createElement("option"); op.value=x.id; op.textContent=`${fmtDate(x.outing_date)} — ${memberName(x.member1_id)} + ${memberName(x.member2_id)}`; sel.appendChild(op);
   });
   fillManagerSelects();
+}
+function renderOutingPlans(){
+  const el=$("outingPlansList"); if(!el)return;
+  const plans=state.outingPlans||[];
+  if(!plans.length){el.innerHTML="<p class=\"muted\">لا توجد طلعات مطروحة حاليًا.</p>";fillOutingPlanManagerSelects();return;}
+  el.innerHTML=plans.map(p=>{
+    const org=(p.organizers||[]).map(o=>esc(o.member_name)).join("، ");
+    const status=p.status==="voting"?"🗳️ تصويت":p.status==="awaiting_approval"?"⏳ بانتظار الاعتماد":p.status==="scheduled"?"✅ مدرجة":"🔧 تنظيم";
+    const cost=Number(p.per_person_cost||0);
+    let html="<div class=\"card\" style=\"margin-bottom:9px\"><div style=\"display:flex;justify-content:space-between;gap:8px\"><b>🚐 "+esc(p.outing_type)+"</b><span class=\"pill\">"+status+"</span></div>";
+    html+="<div class=\"muted\">📍 "+esc(p.outing_place)+" — 📅 "+fmtDate(p.outing_date)+" — ⏰ "+fmtTime(p.outing_time)+"</div>";
+    html+="<div style=\"margin-top:8px\">🙋 المشاركون: <b>"+(p.attending_count||0)+"</b> | 💰 الإجمالي: <b>"+Number(p.total_expense||0).toFixed(2)+" ريال</b> | 👤 للفرد: <b>"+(cost?cost.toFixed(2):"0.00")+" ريال</b></div>";
+    if(org)html+="<div class=\"muted\">🎲 المنظمون: "+org+"</div>";
+    if(p.status!=="scheduled")html+="<div class=\"top-actions\"><button class=\"small-btn\" onclick=\"voteOutingPlan("+p.id+",'attending')\">"+(p.my_vote==="attending"?"✅ أنت مصوّت: سأطلع":"🙋 سأطلع")+"</button><button class=\"small-btn\" onclick=\"voteOutingPlan("+p.id+",'not_attending')\">"+(p.my_vote==="not_attending"?"🚫 أنت معتذر":"لن أطلع")+"</button></div>";
+    if(state.member&&(p.organizers||[]).some(o=>Number(o.member_id)===Number(state.member.id)))html+="<div class=\"top-actions\"><input id=\"exp-"+p.id+"\" type=\"number\" min=\"0\" step=\"0.01\" placeholder=\"مبلغ دفعته\"><input id=\"expnote-"+p.id+"\" placeholder=\"ملاحظة اختيارية\"><button class=\"small-btn\" onclick=\"addPlanExpense("+p.id+")\">💰 إضافة مصروف</button></div>";
+    if((p.assignments||[]).length)html+="<details><summary>توزيع المشاركين ("+p.assignments.length+")</summary><div class=\"muted\">"+p.assignments.map(a=>esc(a.member_name)+" ← "+esc(memberName(a.organizer_id))).join("<br>")+"</div></details>";
+    html+="</div>"; return html;
+  }).join("");
+  fillOutingPlanManagerSelects();
 }
 function renderMembers(){
   const q=($("memberSearch")?.value||"").trim();
