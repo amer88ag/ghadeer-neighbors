@@ -579,13 +579,6 @@ async function setAttendance(outingId,att){
   const {data,error}=await rpc("set_outing_attendance",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:outingId,p_attendance:att});
   if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر تسجيل الحضور.",false);return;} toast(att?"تم تسجيل الحضور":"تم تسجيل الاعتذار.");
 }
-async function setExpense(){
-  if(!(await requireMemberAuth())) return;
-  const id=Number($("expenseOutingId").value), amount=Number($("expenseAmount").value);
-  if(!id||!amount)return toast("أدخل الطلعة والمبلغ.",false);
-  const {data,error}=await rpc("set_outing_expense",{p_member_id:state.member.id,p_pin:state.pin,p_outing_id:id,p_total_amount:amount});
-  if(error||!normalizeRpcData(data).ok && !normalizeRpcData(data).success){toast(data?.message||error?.message||"تعذر حفظ المصروف.",false);return;} toast("تم حفظ المصروف.");
-}
 async function apologizeCoffee(undo=false){
   if(!(await requireMemberAuth())) return;
   const id=Number($("coffeeApologyId").value);
