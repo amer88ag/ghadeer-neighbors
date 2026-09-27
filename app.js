@@ -28,7 +28,7 @@ async function table(name, opts={}){
 }
 function activeMemberList(){ return state.members.filter(m=>m.active); }
 function memberName(id){ return state.members.find(m=>Number(m.id)===Number(id))?.name || "—"; }
-function currentDateISO(){ return new Date().toISOString().slice(0,10); }
+function currentDateISO(){ return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()); }
 
 async function loadMembers(){
   if(!db){toast("تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.",false); return;}
@@ -77,7 +77,7 @@ function renderHome(){
   $("nextOuting").innerHTML=o?`<b>${esc(memberName(o.member1_id))} + ${esc(memberName(o.member2_id))}</b><br><span>${fmtDate(o.outing_date)} — ${fmtTime(o.outing_time)}</span>`:"لا توجد طلعة قادمة";
   const a=visibleOccasions()[0]||state.announcements.find(x=>!x.is_occasion);
   $("latestAnnouncement").innerHTML=a?`<b>${esc(a.title)}</b><br><span>${esc(a.message).slice(0,150)}</span>`:"لا توجد إعلانات";
-  $("memberCount").textContent=activeMemberList().length+" جار نشط";
+  $("memberCount").textContent=activeMemberList().length+" جار نشط"; const mc=$("messageCount"); if(mc) mc.textContent=state.messages.length+" رسالة";
 }
 function renderCoffee(){
   const body=$("coffeeTable"), sel=$("coffeeApologyId");
@@ -343,10 +343,10 @@ function renderPermissions(){
 function renderManager(){
   if(!state.manager&&!state.supervisor){$("managerDenied").classList.remove("hidden");$("managerPanel").classList.add("hidden");return;}
   $("managerDenied").classList.add("hidden");$("managerPanel").classList.remove("hidden");
-  $("managerMemberStats").textContent=`${activeMemberList().length} نشط`;
-  $("managerCoffeeStats").textContent=`${state.coffee.length} سجل`;
-  $("managerOutingStats").textContent=`${state.outings.length} سجل`;
-  $("managerActivityStats").textContent=`${state.messages.length} رسالة`;
+  const mm=$("managerMemberStats"); if(mm) mm.textContent=`${activeMemberList().length} نشط`;
+  const mc=$("managerCoffeeStats"); if(mc) mc.textContent=`${state.coffee.length} سجل`;
+  const mo=$("managerOutingStats"); if(mo) mo.textContent=`${state.outings.length} سجل`;
+  const ma=$("managerActivityStats"); if(ma) ma.textContent=`${state.messages.length} رسالة`;
   renderPermissions(); fillManagerSelects();
 }
 async function saveRules(){
@@ -442,7 +442,7 @@ function logout(){
   $('acceptModal').classList.add('hidden');
   $('whoami').textContent=''; $('managerNav').classList.add('hidden');
   $('entryScreen').classList.add('hidden'); $('memberAuthModal').classList.add('hidden');
-  openPage('home'); toast('تم الخروج من حساب العضو.');
+  openPage('home'); toast('تم تسجيل الخروج.');
 }
 function fillManagerFormFromSelected(){
   const c=state.coffee.find(x=>Number(x.id)===Number($("mcId").value));
