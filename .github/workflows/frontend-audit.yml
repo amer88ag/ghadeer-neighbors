@@ -28,4 +28,5 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/app.js
-          grep -q "ghadeer" dist/index.html
+          grep -q "جيران حي الغدير" dist/index.html
+          test -s dist/app.js
