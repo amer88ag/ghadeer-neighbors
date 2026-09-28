@@ -21,6 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Validate required frontend files
         run: |
           python - <<'PY'
@@ -35,4 +38,36 @@ jobs:
           if missing:
               raise SystemExit('Missing required files: ' + ', '.join(missing))
           print('Ghadeer frontend asset validation passed.')
+          PY
+      - name: Validate JavaScript syntax
+        run: |
+          for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js; do
+            node --check "$f"
+          done
+      - name: Validate build output and local script references
+        run: |
+          node build.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          required_scripts = [
+              'app.js', 'enhancements.js', 'quran-enhancement.js',
+              'runtime-fix.js', 'services-enhancement.js',
+              'rental-enhancement.js', 'neighbor-connect.js'
+          ]
+          missing = [s for s in required_scripts if s not in html]
+          if missing:
+              raise SystemExit('Missing script references after build: ' + ', '.join(missing))
+          local_src = re.findall(r'<script[^>]+src=[\"\']([^\"\']+)[\"\']', html)
+          missing_files = []
+          for src in local_src:
+              src = src.split('?',1)[0]
+              if src.startswith(('http://','https://','//')):
+                  continue
+              if not Path(src).is_file():
+                  missing_files.append(src)
+          if missing_files:
+              raise SystemExit('Missing local script files: ' + ', '.join(sorted(set(missing_files))))
+          print('Build/reference validation passed.')
           PY
