@@ -673,3 +673,6 @@ document.addEventListener("DOMContentLoaded",async()=>{
     toast("تم فتح الواجهة، لكن تعذر تحميل بعض البيانات. اضغط تحديث.",false);
   }
 });
+
+// ghadeer-enhancements-loader
+(function(){var s=document.createElement('script');s.src='enhancements.js?v=20260928';s.defer=false;document.head.appendChild(s);})();
