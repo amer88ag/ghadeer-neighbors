@@ -1,0 +1,31 @@
+name: Ghadeer frontend audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Audit frontend wiring and icons
+        run: node scripts/validate-frontend.js
+      - name: Build production output
+        run: node build.js
+      - name: Verify build output
+        run: |
+          test -f dist/index.html
+          test -f dist/app.js
+          grep -q "ghadeer" dist/index.html
