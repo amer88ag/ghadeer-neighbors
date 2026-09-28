@@ -1,31 +1,38 @@
-name: Load Ghadeer enhancements
+name: Validate Ghadeer frontend assets
 on:
   push:
     branches: [main]
     paths:
+      - index.html
+      - app.js
       - enhancements.js
+      - quran-enhancement.js
+      - runtime-fix.js
+      - services-enhancement.js
+      - rental-enhancement.js
+      - neighbor-connect.js
+      - build.js
+      - vercel.json
       - .github/workflows/load-enhancements.yml
 permissions:
-  contents: write
+  contents: read
 jobs:
-  attach:
-    if: ${{ !contains(github.event.head_commit.message, '[enhancements-attached]') }}
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Attach enhancements loader
+      - name: Validate required frontend files
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('app.js')
-          s=p.read_text(encoding='utf-8')
-          marker="ghadeer-enhancements-loader"
-          if marker not in s:
-              s += "\n// ghadeer-enhancements-loader\n(function(){var s=document.createElement('script');s.src='enhancements.js?v=20260928';s.defer=false;document.head.appendChild(s);})();\n"
-              p.write_text(s,encoding='utf-8')
+          required = [
+              'index.html', 'app.js', 'build.js', 'enhancements.js',
+              'quran-enhancement.js', 'runtime-fix.js',
+              'services-enhancement.js', 'rental-enhancement.js',
+              'neighbor-connect.js', 'vercel.json'
+          ]
+          missing = [p for p in required if not Path(p).is_file()]
+          if missing:
+              raise SystemExit('Missing required files: ' + ', '.join(missing))
+          print('Ghadeer frontend asset validation passed.')
           PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add app.js
-          git diff --cached --quiet || git commit -m "إرفاق تحسينات الواجهة [enhancements-attached]"
-          git push
