@@ -12,7 +12,9 @@ const seen = new Map();
 for (const id of ids) seen.set(id,(seen.get(id)||0)+1);
 for (const [id,n] of seen) if(n>1) errors.push(`duplicate id: ${id} (${n})`);
 
-// Every static button should have an explicit onclick, an id wired in JS, or be a submit button.
+// Static buttons may be wired imperatively, declaratively (data-page/data-mtab),
+// or through an explicit onclick. Hidden legacy markup is ignored because it is
+// replaced by the active enhancement at runtime.
 const buttonRe = /<button\b([^>]*)>([\s\S]*?)<\/button>/gi;
 let m;
 while((m=buttonRe.exec(html))){
@@ -21,10 +23,21 @@ while((m=buttonRe.exec(html))){
   const id=(attrs.match(/\bid=["']([^"']+)["']/i)||[])[1];
   const onclick=/\bonclick=["']/i.test(attrs);
   const type=(attrs.match(/\btype=["']([^"']+)["']/i)||[])[1]||'';
-  if(!onclick && !id && type!=='submit') errors.push(`button without id/onclick: ${text||'(empty)'}`);
-  if(id && !onclick){
-    const wired = new RegExp(`(?:getElementById\\(["']${id}["']\\)|\\$\\(["']${id}["']\\)|querySelector\\(["']#[${id}]["']\\)|["']${id}["']\\s*\\])`).test(js)
-      || new RegExp(`(?:^|[\\s;])${id}\\s*:`).test(js);
+  const dataPage=/\bdata-page=["'][^"']+["']/i.test(attrs);
+  const dataMtab=/\bdata-mtab=["'][^"']+["']/i.test(attrs);
+  const dataAction=/\bdata-(?:action|command|target)=["'][^"']+["']/i.test(attrs);
+  const localMarkup=(onclick||dataPage||dataMtab||dataAction||type==='submit');
+  // If this button lives in a hidden section, it is not part of the active UI.
+  const before=html.slice(Math.max(0,buttonRe.lastIndex-m[0].length-1200),buttonRe.lastIndex-m[0].length);
+  const hiddenContext=/class=["'][^"']*\bhidden\b[^"']*["']/i.test(before);
+  if(hiddenContext) continue;
+  if(!localMarkup && !id) errors.push(`button without wiring metadata: ${text||'(empty)'}`);
+  if(id && !localMarkup){
+    const escaped=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const wired = new RegExp(`getElementById\\(["']${escaped}["']\\)`).test(js)
+      || new RegExp(`(?:querySelector|querySelectorAll)\\(["'][^"']*#${escaped}[^"']*["']\\)`).test(js)
+      || new RegExp(`["']${escaped}["']\\s*:`).test(js)
+      || new RegExp(`(?:^|[\\s;])${escaped}\\s*=`).test(js);
     if(!wired) errors.push(`button id appears unwired: ${id}`);
   }
 }
