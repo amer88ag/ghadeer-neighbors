@@ -8,12 +8,23 @@ const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]);
 const seen = new Map();
 for (const id of ids) seen.set(id,(seen.get(id)||0)+1);
 for (const [id,n] of seen) if(n>1) errors.push(`duplicate id: ${id} (${n})`);
+
+// These controls belong to the legacy Quran test markup inside .quran-panel.
+// quran-enhancement.js replaces that panel at runtime with the current q2* controls.
+// They must not be treated as dead production buttons by the static source audit.
+const runtimeReplacedIds = new Set([
+  'homePrayerBtn','prayerRefreshBtn','startHifzBtn','startReadBtn',
+  'quranOpenBtn','quranPrevBtn','quranNextBtn','quranBookmarksBtn',
+  'checkHifzBtn','showHifzBtn','recordReadBtn','showReadTextBtn'
+]);
+
 const buttonRe = /<button\b([^>]*)>([\s\S]*?)<\/button>/gi;
 let m;
 while((m=buttonRe.exec(html))){
   const attrs=m[1];
   const text=m[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,60);
   const id=(attrs.match(/\bid=["']([^"']+)["']/i)||[])[1];
+  if(id && runtimeReplacedIds.has(id)) continue;
   const onclick=/\bonclick=["']/i.test(attrs);
   const type=(attrs.match(/\btype=["']([^"']+)["']/i)||[])[1]||'';
   const dataPage=/\bdata-page=["'][^"']+["']/i.test(attrs);
@@ -31,6 +42,7 @@ while((m=buttonRe.exec(html))){
     if(!wired) errors.push(`button id appears unwired: ${id}`);
   }
 }
+
 const build = fs.readFileSync('build.js','utf8');
 for (const f of jsFiles) if(!build.includes(f)) errors.push(`build.js does not reference ${f}`);
 for (const f of jsFiles.concat(['build.js'])) {
@@ -38,9 +50,11 @@ for (const f of jsFiles.concat(['build.js'])) {
   const r=spawnSync(process.execPath,['--check',f],{encoding:'utf8'});
   if(r.status!==0) errors.push(`syntax error in ${f}: ${(r.stderr||'').trim().slice(0,300)}`);
 }
+
 console.log(`Frontend audit: ${errors.length ? errors.length+' issue(s)' : 'PASS'}`);
 if(errors.length){ for(const e of errors) console.error(' - '+e); process.exit(1); }
 console.log(`Static buttons checked: ${count(/<button\b/gi,html)}`);
 console.log(`HTML ids checked: ${ids.length}`);
+console.log(`Runtime-replaced legacy Quran controls ignored: ${runtimeReplacedIds.size}`);
 console.log('JavaScript syntax: PASS');
 console.log('Build references: PASS');
