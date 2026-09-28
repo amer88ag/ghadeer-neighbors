@@ -1,0 +1,31 @@
+name: Load Ghadeer enhancements
+on:
+  push:
+    branches: [main]
+    paths:
+      - enhancements.js
+      - .github/workflows/load-enhancements.yml
+permissions:
+  contents: write
+jobs:
+  attach:
+    if: ${{ !contains(github.event.head_commit.message, '[enhancements-attached]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attach enhancements loader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app.js')
+          s=p.read_text(encoding='utf-8')
+          marker="ghadeer-enhancements-loader"
+          if marker not in s:
+              s += "\n// ghadeer-enhancements-loader\n(function(){var s=document.createElement('script');s.src='enhancements.js?v=20260928';s.defer=false;document.head.appendChild(s);})();\n"
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js
+          git diff --cached --quiet || git commit -m "إرفاق تحسينات الواجهة [enhancements-attached]"
+          git push
