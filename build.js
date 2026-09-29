@@ -10,7 +10,8 @@ const scripts = [
   'services-enhancement.js?v=20260929.1',
   'rental-enhancement.js?v=20260929.1',
   'neighbor-connect.js?v=20260929.1',
-  'outing-events-enhancement.js?v=20260929.1'
+  'outing-events-enhancement.js?v=20260929.1',
+  'production-fixes.js?v=20260929.1'
 ];
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
 for (const src of scripts) {
