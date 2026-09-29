@@ -19,20 +19,20 @@
     `;
     document.head.appendChild(s);
   }
+  function removeDuplicateDhikr(){
+    // The consolidated hadith/reminder board in index.html is the only reminder UI.
+    // Remove the legacy standalone ticker if an older deployment/script injects it.
+    document.querySelectorAll('#dhikrTicker,.dhikr-ticker').forEach(el=>el.remove());
+    $('dhikrTickerStyles')?.remove();
+  }
   function compactPrayer(){
     const extra=$('ghPrayerExtra');
-    if(extra) extra.remove();
-
-    // Keep exactly one prayer card even if another enhancement/runtime script
-    // injects a duplicate copy after the initial page render.
+    if(extra)extra.remove();
     const prayerCards=[...document.querySelectorAll('.card')].filter(card=>{
       const title=card.querySelector('h3');
-      return title && /مواقيت الصلاة/.test(title.textContent||'');
+      return title&&/مواقيت الصلاة/.test(title.textContent||'');
     });
-    if(prayerCards.length>1){
-      prayerCards.slice(1).forEach(card=>card.remove());
-    }
-
+    if(prayerCards.length>1)prayerCards.slice(1).forEach(card=>card.remove());
     const card=$('prayerTimesToday')?.closest('.card');
     if(!card)return;
     card.classList.add('gh-prayer-compact');
@@ -45,7 +45,9 @@
       btn.addEventListener('click',e=>{
         const page=btn.dataset.page;
         if(page&&typeof window.openPage==='function'){
-          e.preventDefault(); e.stopImmediatePropagation(); window.openPage(page);
+          e.preventDefault();
+          e.stopPropagation();
+          window.openPage(page);
         }
       },true);
     });
@@ -59,17 +61,42 @@
       btn.dataset.ghFinalBound='1';
       btn.addEventListener('click',e=>{
         if(typeof window.openPage==='function'){
-          e.preventDefault(); e.stopImmediatePropagation(); window.openPage(m[1]);
+          e.preventDefault();
+          e.stopPropagation();
+          window.openPage(m[1]);
         }
       },true);
     });
   }
-  function run(){injectStyle();compactPrayer();bindNav();bindQuickIcons();}
+  function bindButtonsById(){
+    const map={
+      refreshBtn:()=>window.loadData?.(),
+      prayerRefreshBtn:()=>window.loadPrayerByMemberLocation?.(),
+      homePrayerBtn:()=>window.loadPrayerByMemberLocation?.(),
+      homeWeatherBtn:()=>document.getElementById('ghWeatherBox')?.onclick?.(),
+      topMemberAccessBtn:()=>window.showMemberAuth?.(),
+      memberAccessBtn:()=>window.showMemberAuth?.()
+    };
+    Object.entries(map).forEach(([id,fn])=>{
+      const b=$(id);
+      if(!b||b.dataset.ghIdBound)return;
+      b.dataset.ghIdBound='1';
+      b.addEventListener('click',e=>{try{e.preventDefault();fn()}catch(err){console.error('[ghadeer ui]',err)}},true);
+    });
+  }
+  function run(){
+    injectStyle();
+    removeDuplicateDhikr();
+    compactPrayer();
+    bindNav();
+    bindQuickIcons();
+    bindButtonsById();
+  }
   function boot(){
     run();
-    [250,1000,2500].forEach(ms=>setTimeout(run,ms));
+    [250,1000,2500,5000].forEach(ms=>setTimeout(run,ms));
     const root=document.getElementById('app')||document.body;
-    new MutationObserver(run).observe(root,{childList:true,subtree:true});
+    new MutationObserver(()=>run()).observe(root,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
