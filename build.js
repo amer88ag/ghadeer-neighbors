@@ -44,12 +44,14 @@ for (const src of scripts) {
   }
 }
 
-text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.2');
+text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.3');
 
 const appFile = path.join(root, 'app.js');
 if (fs.existsSync(appFile)) {
   let app = fs.readFileSync(appFile, 'utf8');
   app = app.replace(/\n\/\/ ghadeer-enhancements-loader[\s\S]*?\}\)\(\);\s*$/m, '\n');
+  // Never let the public member-list query fetch pin_hash or other private columns.
+  app = app.replace('table("members",{order:"id"})', 'table("members",{select:"id,name,active",order:"id"})');
   const marker = 'function openPage(id){';
   if (!app.includes('window.GHADEER_CTX') && app.includes(marker)) {
     app = app.replace(marker, 'window.GHADEER_CTX=()=>({state,db,rpc,loadData,loadMembers});\n' + marker);
@@ -58,4 +60,4 @@ if (fs.existsSync(appFile)) {
 }
 
 fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, and compact dhikr ticker.');
+console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, compact dhikr ticker, and restricted public member reads to non-sensitive columns.');
