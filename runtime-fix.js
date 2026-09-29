@@ -33,10 +33,39 @@
       });
     });
   }
+  function fixMembersLoader(){
+    safe(()=>{
+      if(typeof window.loadMembers!=='function' || typeof window.table!=='function') return false;
+      if(window.__ghadeerSafeMembersLoader) return true;
+      const safeLoadMembers=async function(){
+        if(!window.db){
+          if(typeof window.toast==='function')window.toast('تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.',false);
+          return;
+        }
+        const q=window.db.from('members').select('id,name,active,created_at,last_seen_at').order('id');
+        const {data,error}=await q;
+        if(error){
+          if(typeof window.toast==='function')window.toast('تعذر تحميل الجيران: '+error.message,false);
+          return;
+        }
+        window.state.members=data||[];
+        if(typeof window.fillMemberSelects==='function')window.fillMemberSelects();
+        if(typeof window.renderMembers==='function')window.renderMembers();
+      };
+      window.loadMembers=safeLoadMembers;
+      window.__ghadeerSafeMembersLoader=true;
+      return safeLoadMembers();
+    });
+    return true;
+  }
   function observe(){
     bind();
+    fixMembersLoader();
+    setTimeout(fixMembersLoader,0);
+    setTimeout(fixMembersLoader,100);
+    setTimeout(fixMembersLoader,500);
     const root=document.getElementById('app')||document.body;
-    new MutationObserver(bind).observe(root,{childList:true,subtree:true});
+    new MutationObserver(()=>{bind();fixMembersLoader()}).observe(root,{childList:true,subtree:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe,{once:true});else observe();
 })();
