@@ -4,6 +4,12 @@
 (() => {
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const $ = id => document.getElementById(id);
+  function getState(){
+    try{
+      if(typeof window.GHADEER_CTX==='function') return window.GHADEER_CTX()?.state || null;
+    }catch(e){ console.error('[ghadeer news]',e); }
+    return null;
+  }
 
   function ensureStyles(){
     if ($('neighborhoodNewsTickerStyles')) return;
@@ -35,7 +41,8 @@
       if(hero?.parentNode) hero.parentNode.insertBefore(box, hero.nextSibling);
       else home.prepend(box);
     }
-    const rows=Array.isArray(window.state?.announcements)?window.state.announcements:[];
+    const state=getState();
+    const rows=Array.isArray(state?.announcements)?state.announcements:[];
     const items=rows.filter(x=>x && !x.is_occasion).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,12);
     if(!items.length){
       box.innerHTML='<div class="neighborhood-news-head">📰 أخبار الحي</div><div class="neighborhood-news-empty">لا توجد أخبار أو إعلانات منشورة حاليًا.</div>';
