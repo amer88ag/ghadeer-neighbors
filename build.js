@@ -17,7 +17,13 @@ for (const src of scripts) {
   if (!text.includes(src)) text = text.replace('</body>', `<script src="${src}"></script>\n</body>`);
 }
 text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.1');
-// Expose a narrow runtime context for approved enhancement modules without exposing secrets beyond the existing client-side publishable key.
-const marker = 'function openPage(id){';
-if (!text.includes('window.GHADEER_CTX')) text = text.replace(marker, 'window.GHADEER_CTX=()=>({state,db,rpc,loadData,loadMembers});\n'+marker);
 fs.writeFileSync(file, text, 'utf8');
+const appFile = path.join(process.cwd(), 'app.js');
+if (fs.existsSync(appFile)) {
+  let app = fs.readFileSync(appFile, 'utf8');
+  const marker = 'function openPage(id){';
+  if (!app.includes('window.GHADEER_CTX') && app.includes(marker)) {
+    app = app.replace(marker, 'window.GHADEER_CTX=()=>({state,db,rpc,loadData,loadMembers});\n'+marker);
+    fs.writeFileSync(appFile, app, 'utf8');
+  }
+}
