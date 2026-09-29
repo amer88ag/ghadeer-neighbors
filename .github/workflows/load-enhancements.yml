@@ -1,4 +1,4 @@
-name: Validate Ghadeer frontend assets
+name: Build Ghadeer frontend assets
 on:
   push:
     branches: [main]
@@ -11,16 +11,20 @@ on:
       - services-enhancement.js
       - rental-enhancement.js
       - neighbor-connect.js
+      - outing-events-enhancement.js
+      - production-fixes.js
       - build.js
       - vercel.json
       - .github/workflows/load-enhancements.yml
 permissions:
-  contents: read
+  contents: write
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -32,7 +36,8 @@ jobs:
               'index.html', 'app.js', 'build.js', 'enhancements.js',
               'quran-enhancement.js', 'runtime-fix.js',
               'services-enhancement.js', 'rental-enhancement.js',
-              'neighbor-connect.js', 'vercel.json'
+              'neighbor-connect.js', 'outing-events-enhancement.js',
+              'production-fixes.js', 'vercel.json'
           ]
           missing = [p for p in required if not Path(p).is_file()]
           if missing:
@@ -41,12 +46,13 @@ jobs:
           PY
       - name: Validate JavaScript syntax
         run: |
-          for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js; do
+          for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js outing-events-enhancement.js production-fixes.js; do
             node --check "$f"
           done
-      - name: Validate build output and local script references
+      - name: Materialize production build output
+        run: node build.js
+      - name: Validate local script references
         run: |
-          node build.js
           python - <<'PY'
           from pathlib import Path
           import re
@@ -54,7 +60,8 @@ jobs:
           required_scripts = [
               'app.js', 'enhancements.js', 'quran-enhancement.js',
               'runtime-fix.js', 'services-enhancement.js',
-              'rental-enhancement.js', 'neighbor-connect.js'
+              'rental-enhancement.js', 'neighbor-connect.js',
+              'outing-events-enhancement.js', 'production-fixes.js'
           ]
           missing = [s for s in required_scripts if s not in html]
           if missing:
@@ -71,3 +78,14 @@ jobs:
               raise SystemExit('Missing local script files: ' + ', '.join(sorted(set(missing_files))))
           print('Build/reference validation passed.')
           PY
+      - name: Commit generated index
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'No generated changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'build: materialize frontend enhancement scripts'
+          git push
