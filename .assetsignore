@@ -1,0 +1,9 @@
+.git/
+.github/
+migrations/
+worker.js
+wrangler.jsonc
+.assetsignore
+build.js
+README.txt
+CLOUDFLARE_DEPLOY_TRIGGER.txt
