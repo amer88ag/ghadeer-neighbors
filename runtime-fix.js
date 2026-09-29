@@ -35,20 +35,25 @@
   }
   function fixMembersLoader(){
     safe(()=>{
-      if(typeof window.loadMembers!=='function' || typeof db==='undefined' || typeof state==='undefined') return false;
+      if(typeof window.loadMembers!=='function' || typeof rpc!=='function' || typeof state==='undefined') return false;
       if(window.__ghadeerSafeMembersLoader) return true;
       const safeLoadMembers=async function(){
-        if(!db){
+        if(typeof db==='undefined' || !db){
           if(typeof window.toast==='function')window.toast('تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.',false);
           return;
         }
-        const q=db.from('members').select('id,name,active,created_at,last_seen_at').order('id');
-        const {data,error}=await q;
+        // Public browsing must never select private columns from members.
+        // Use the SECURITY DEFINER RPC that exposes only approved public fields.
+        const {data,error}=await rpc('get_public_members');
         if(error){
           if(typeof window.toast==='function')window.toast('تعذر تحميل الجيران: '+error.message,false);
           return;
         }
-        state.members=data||[];
+        let rows=data;
+        if(typeof rows==='string'){
+          try{rows=JSON.parse(rows);}catch(e){rows=[];}
+        }
+        state.members=Array.isArray(rows)?rows:[];
         if(typeof window.fillMemberSelects==='function')window.fillMemberSelects();
         if(typeof window.renderMembers==='function')window.renderMembers();
       };
