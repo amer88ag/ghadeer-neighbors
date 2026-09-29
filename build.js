@@ -17,7 +17,8 @@ const scripts = [
   'production-fixes.js?v=20260929.2',
   'production-bridge.js?v=20260929.2',
   'jobs-realestate-enhancement.js?v=20260929.2',
-  'ui-final-fix.js?v=20260929.1'
+  'ui-final-fix.js?v=20260929.1',
+  'pin-recovery.js?v=20260929.1'
 ];
 
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
@@ -58,4 +59,4 @@ if (fs.existsSync(appFile)) {
 }
 
 fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, and added final UI integrity pass.');
+console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, added final UI integrity pass, and enabled PIN recovery.');
