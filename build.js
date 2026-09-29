@@ -20,7 +20,8 @@ const scripts = [
   'ui-final-fix.js?v=20260929.1',
   'pin-recovery.js?v=20260929.1',
   'member-session.js?v=20260929.1',
-  'neighborhood-news-ticker.js?v=20260929.1'
+  'neighborhood-news-ticker.js?v=20260929.1',
+  'dhikr-ticker.js?v=20260929.1'
 ];
 
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
@@ -57,4 +58,4 @@ if (fs.existsSync(appFile)) {
 }
 
 fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, and neighborhood news ticker.');
+console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, and compact dhikr ticker.');
