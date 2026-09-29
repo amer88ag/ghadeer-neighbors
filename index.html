@@ -154,15 +154,25 @@ async function searchQuran(){await loadQuranLocal();await Promise.all(QURAN_DATA
 function showQuranBookmarks(){if(!QURAN_DATA)return;const items=[];for(const key of QURAN_BOOKMARKS){const [s,a]=key.split(':').map(Number),sur=QURAN_DATA.surahs.find(x=>x.id===s),v=sur?.verses.find(x=>x.id===a);if(sur&&v)items.push({sur,v});}$('quranContent').innerHTML='<div class="quran-title">⭐ المحفوظات</div>'+(items.length?items.map(x=>`<div class="card quran-search-result" onclick="renderQuranSurah(${x.sur.id});setTimeout(()=>document.getElementById('ayah-${x.sur.id}-${x.v.id}')?.scrollIntoView({behavior:'smooth'}),50)"><b>سورة ${esc(x.sur.name)} — الآية ${x.v.id}</b><div class="quran-ayah">${esc(x.v.text)}</div></div>`).join(''):'<div class="card">لا توجد آيات محفوظة.</div>');}
 document.addEventListener('DOMContentLoaded',()=>{if($('startHifzBtn'))$('startHifzBtn').onclick=startHifz;if($('startReadBtn'))$('startReadBtn').onclick=startReadTest;if($('readSurah'))$('readSurah').onchange=updateReadAyahs;if($('quranOpenBtn'))$('quranOpenBtn').onclick=openQuran;if($('quranPrevBtn'))$('quranPrevBtn').onclick=async()=>{await loadQuranLocal();renderQuranSurah(Math.max(1,QURAN_SURAH-1));};if($('quranNextBtn'))$('quranNextBtn').onclick=async()=>{await loadQuranLocal();renderQuranSurah(Math.min(114,QURAN_SURAH+1));};if($('quranBookmarksBtn'))$('quranBookmarksBtn').onclick=showQuranBookmarks;if($('quranSurah'))$('quranSurah').onchange=e=>renderQuranSurah(Number(e.target.value));if($('quranSearch'))$('quranSearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchQuran();});});
 </script><script src="app.js?v=20260929.2"></script><script>document.addEventListener('click',e=>{const a=e.target.closest('a[href^="http"]');if(a){/* external navigation intentionally enabled */}});</script>
-<script src="enhancements.js?v=20260929.1"></script>
-<script src="quran-enhancement.js?v=20260929.1"></script>
-<script src="runtime-fix.js?v=20260929.1"></script>
-<script src="services-enhancement.js?v=20260929.1"></script>
-<script src="rental-enhancement.js?v=20260929.1"></script>
-<script src="neighbor-connect.js?v=20260929.1"></script>
-<script src="outing-events-enhancement.js?v=20260929.1"></script>
-<script src="production-fixes.js?v=20260929.1"></script>
-<script src="production-bridge.js?v=20260929.1"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="jobs-realestate-enhancement.js?v=20260929.2"></script>
 <script src="enhancements.js?v=20260929.2"></script>
 <script src="quran-enhancement.js?v=20260929.2"></script>
 <script src="runtime-fix.js?v=20260929.2"></script>
@@ -172,5 +182,5 @@ document.addEventListener('DOMContentLoaded',()=>{if($('startHifzBtn'))$('startH
 <script src="outing-events-enhancement.js?v=20260929.2"></script>
 <script src="production-fixes.js?v=20260929.2"></script>
 <script src="production-bridge.js?v=20260929.2"></script>
-<script src="jobs-realestate-enhancement.js?v=20260929.2"></script>
+<script src="ui-final-fix.js?v=20260929.1"></script>
 </body></html>
