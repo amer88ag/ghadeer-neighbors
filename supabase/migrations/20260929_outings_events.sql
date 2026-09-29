@@ -1,0 +1,3 @@
+-- Monthly outings analytics + neighborhood events. Applied to production via Supabase migration.
+-- The migration is intentionally idempotent for table/column creation.
+-- See the Supabase migration history for the executed version and function definitions.
