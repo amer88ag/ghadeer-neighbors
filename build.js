@@ -16,7 +16,7 @@ const scripts = [
   'outing-events-enhancement.js?v=20260929.2',
   'production-fixes.js?v=20260929.2',
   'production-bridge.js?v=20260929.2',
-  'jobs-realestate-enhancement.js?v=20260929.2',
+  'jobs-realestate-enhancement.js?v=20260929.1',
   'ui-final-fix.js?v=20260929.1',
   'pin-recovery.js?v=20260929.1',
   'member-session.js?v=20260929.1',
@@ -26,7 +26,8 @@ const scripts = [
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
 
 for (const base of scripts.map(s => s.split('?')[0])) {
-  const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
+  const escapedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`<script\\s+src=["']${escapedBase}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
   let first = true;
   text = text.replace(re, match => {
     if (first) { first = false; return match; }
@@ -36,8 +37,9 @@ for (const base of scripts.map(s => s.split('?')[0])) {
 
 for (const src of scripts) {
   const base = src.split('?')[0];
+  const escapedBase = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   if (!text.includes(`src="${src}"`) && !text.includes(`src='${src}'`)) {
-    const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
+    const re = new RegExp(`<script\\s+src=["']${escapedBase}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
     text = text.replace(re, '');
     text = text.replace('</body>', `<script src="${src}"></script>\n</body>`);
   }
@@ -46,7 +48,7 @@ for (const src of scripts) {
 // Remove the previously added standalone dhikr ticker. The home page already
 // contains the single consolidated reminder/hadith board, so loading the
 // extra ticker created a duplicate reminder screen.
-text = text.replace(/<script\\s+src=["']dhikr-ticker\\.js(?:\\?[^"']*)?["']\\s*><\\/script>/g, '');
+text = text.replace(/<script\s+src=["']dhikr-ticker\.js(?:\?[^"']*)?["']\s*><\/script>/g, '');
 
 text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.4');
 
