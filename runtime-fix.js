@@ -35,20 +35,20 @@
   }
   function fixMembersLoader(){
     safe(()=>{
-      if(typeof window.loadMembers!=='function' || typeof window.table!=='function') return false;
+      if(typeof window.loadMembers!=='function' || typeof db==='undefined' || typeof state==='undefined') return false;
       if(window.__ghadeerSafeMembersLoader) return true;
       const safeLoadMembers=async function(){
-        if(!window.db){
+        if(!db){
           if(typeof window.toast==='function')window.toast('تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.',false);
           return;
         }
-        const q=window.db.from('members').select('id,name,active,created_at,last_seen_at').order('id');
+        const q=db.from('members').select('id,name,active,created_at,last_seen_at').order('id');
         const {data,error}=await q;
         if(error){
           if(typeof window.toast==='function')window.toast('تعذر تحميل الجيران: '+error.message,false);
           return;
         }
-        window.state.members=data||[];
+        state.members=data||[];
         if(typeof window.fillMemberSelects==='function')window.fillMemberSelects();
         if(typeof window.renderMembers==='function')window.renderMembers();
       };
