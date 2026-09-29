@@ -1,5 +1,7 @@
 name: Ghadeer frontend audit
 
+# Keep a main-branch audit trigger so every production source update is revalidated.
+# This comment-only change intentionally triggers a fresh audit and Vercel deployment.
 on:
   push:
     branches: [main]
