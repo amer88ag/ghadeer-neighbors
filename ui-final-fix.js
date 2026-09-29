@@ -22,6 +22,17 @@
   function compactPrayer(){
     const extra=$('ghPrayerExtra');
     if(extra) extra.remove();
+
+    // Keep exactly one prayer card even if another enhancement/runtime script
+    // injects a duplicate copy after the initial page render.
+    const prayerCards=[...document.querySelectorAll('.card')].filter(card=>{
+      const title=card.querySelector('h3');
+      return title && /مواقيت الصلاة/.test(title.textContent||'');
+    });
+    if(prayerCards.length>1){
+      prayerCards.slice(1).forEach(card=>card.remove());
+    }
+
     const card=$('prayerTimesToday')?.closest('.card');
     if(!card)return;
     card.classList.add('gh-prayer-compact');
