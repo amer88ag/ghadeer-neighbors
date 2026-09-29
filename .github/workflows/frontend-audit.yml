@@ -24,9 +24,10 @@ jobs:
         run: node scripts/validate-frontend.js
       - name: Build production output
         run: node build.js
-      - name: Verify build output
+      - name: Verify production output
         run: |
-          test -f dist/index.html
-          test -f dist/app.js
-          grep -q "جيران حي الغدير" dist/index.html
-          test -s dist/app.js
+          test -f index.html
+          test -f app.js
+          grep -q "جيران حي الغدير" index.html
+          test -s app.js
+          node --check app.js
