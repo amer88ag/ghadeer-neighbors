@@ -1,0 +1,5 @@
+Cloudflare Workers production deployment trigger.
+
+This file intentionally contains no runtime code. It forces the connected Cloudflare Workers Build on the existing main branch to rebuild the current production frontend from the repository state.
+
+Target: ghadeer-neighbors.amer88ag.workers.dev
