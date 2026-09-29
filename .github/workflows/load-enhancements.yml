@@ -13,6 +13,7 @@ on:
       - neighbor-connect.js
       - outing-events-enhancement.js
       - production-fixes.js
+      - production-bridge.js
       - build.js
       - vercel.json
       - .github/workflows/load-enhancements.yml
@@ -37,7 +38,7 @@ jobs:
               'quran-enhancement.js', 'runtime-fix.js',
               'services-enhancement.js', 'rental-enhancement.js',
               'neighbor-connect.js', 'outing-events-enhancement.js',
-              'production-fixes.js', 'vercel.json'
+              'production-fixes.js', 'production-bridge.js', 'vercel.json'
           ]
           missing = [p for p in required if not Path(p).is_file()]
           if missing:
@@ -46,7 +47,7 @@ jobs:
           PY
       - name: Validate JavaScript syntax
         run: |
-          for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js outing-events-enhancement.js production-fixes.js; do
+          for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js outing-events-enhancement.js production-fixes.js production-bridge.js; do
             node --check "$f"
           done
       - name: Materialize production build output
@@ -61,7 +62,8 @@ jobs:
               'app.js', 'enhancements.js', 'quran-enhancement.js',
               'runtime-fix.js', 'services-enhancement.js',
               'rental-enhancement.js', 'neighbor-connect.js',
-              'outing-events-enhancement.js', 'production-fixes.js'
+              'outing-events-enhancement.js', 'production-fixes.js',
+              'production-bridge.js'
           ]
           missing = [s for s in required_scripts if s not in html]
           if missing:
