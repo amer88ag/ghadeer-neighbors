@@ -20,8 +20,7 @@ const scripts = [
   'ui-final-fix.js?v=20260929.1',
   'pin-recovery.js?v=20260929.1',
   'member-session.js?v=20260929.1',
-  'neighborhood-news-ticker.js?v=20260929.1',
-  'dhikr-ticker.js?v=20260929.1'
+  'neighborhood-news-ticker.js?v=20260929.1'
 ];
 
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
@@ -44,7 +43,12 @@ for (const src of scripts) {
   }
 }
 
-text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.3');
+// Remove the previously added standalone dhikr ticker. The home page already
+// contains the single consolidated reminder/hadith board, so loading the
+// extra ticker created a duplicate reminder screen.
+text = text.replace(/<script\\s+src=["']dhikr-ticker\\.js(?:\\?[^"']*)?["']\\s*><\\/script>/g, '');
+
+text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.4');
 
 const appFile = path.join(root, 'app.js');
 if (fs.existsSync(appFile)) {
@@ -60,4 +64,4 @@ if (fs.existsSync(appFile)) {
 }
 
 fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, compact dhikr ticker, and restricted public member reads to non-sensitive columns.');
+console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate dhikr ticker, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, and restricted public member reads to non-sensitive columns.');
