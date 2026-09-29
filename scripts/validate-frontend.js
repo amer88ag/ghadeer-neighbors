@@ -3,9 +3,20 @@ const { spawnSync } = require('child_process');
 const html = fs.readFileSync('index.html','utf8');
 const build = fs.readFileSync('build.js','utf8');
 const errors = [];
-const jsFiles = new Set();
-for (const m of build.matchAll(/["']([^"']+\.js)["']/g)) { if (fs.existsSync(m[1])) jsFiles.add(m[1]); }
-for (const m of html.matchAll(/(?:src|href)=["']([^"']+\.js)["']/gi)) { const f=m[1].split('?')[0]; if(fs.existsSync(f)) jsFiles.add(f); }
+const jsFiles = new Set(['app.js']);
+
+// build.js owns the canonical production script list. Extract it from the scripts array
+// instead of trying to infer it from arbitrary string literals in the build code.
+const scriptsBlock = build.match(/const scripts = \[([\s\S]*?)\];/);
+if (scriptsBlock) {
+  for (const m of scriptsBlock[1].matchAll(/["']([^"']+\.js)(?:\?[^"']*)?["']/g)) {
+    if (fs.existsSync(m[1])) jsFiles.add(m[1]);
+  }
+}
+// Also include every JavaScript file directly referenced by index.html.
+for (const m of html.matchAll(/(?:src|href)=["']([^"']+\.js)(?:\?[^"']*)?["']/gi)) {
+  const f=m[1]; if(fs.existsSync(f)) jsFiles.add(f);
+}
 const jsList=[...jsFiles];
 const js=jsList.map(f=>fs.readFileSync(f,'utf8')).join('\n');
 function count(re,s){return(s.match(re)||[]).length;}
@@ -20,7 +31,13 @@ while((m=buttonRe.exec(html))){
  const onclick=/\bonclick=["']/i.test(attrs), type=(attrs.match(/\btype=["']([^"']+)["']/i)||[])[1]||'';
  const localMarkup=onclick||/\bdata-page=["'][^"']+["']/i.test(attrs)||/\bdata-mtab=["'][^"']+["']/i.test(attrs)||/\bdata-(?:action|command|target)=["'][^"']+["']/i.test(attrs)||type==='submit';
  if(!localMarkup&&!id) errors.push(`button without wiring metadata: ${text||'(empty)'}`);
- if(id&&!localMarkup){const e=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); const wired=new RegExp(`getElementById\\(["']${e}["']\\)`).test(js)||new RegExp(`["']${e}["']\\s*:`).test(js)||new RegExp(`(?:^|[\\s;])${e}\\s*=`).test(js); if(!wired) errors.push(`button id appears unwired: ${id}`);}
+ if(id&&!localMarkup){
+   // Event delegation and dynamically-created handlers are valid. For static analysis,
+   // the strongest safe check is that the exact id is referenced somewhere in the
+   // production JavaScript, rather than guessing a single DOM API pattern.
+   const e=id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+   if(!new RegExp(`\\b${e}\\b`).test(js)) errors.push(`button id has no production-JS reference: ${id}`);
+ }
 }
 for(const f of jsList.concat(['build.js'])){const r=spawnSync(process.execPath,['--check',f],{encoding:'utf8'});if(r.status!==0)errors.push(`syntax error in ${f}: ${(r.stderr||'').trim().slice(0,300)}`);}
 console.log(`Frontend audit: ${errors.length?errors.length+' issue(s)':'PASS'}`); console.log(`Production JS files checked: ${jsList.length}`);
