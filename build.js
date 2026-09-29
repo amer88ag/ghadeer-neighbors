@@ -19,12 +19,12 @@ const scripts = [
   'jobs-realestate-enhancement.js?v=20260929.2',
   'ui-final-fix.js?v=20260929.1',
   'pin-recovery.js?v=20260929.1',
-  'member-session.js?v=20260929.1'
+  'member-session.js?v=20260929.1',
+  'neighborhood-news-ticker.js?v=20260929.1'
 ];
 
 if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
 
-// Keep exactly one copy of each enhancement script in the production HTML.
 for (const base of scripts.map(s => s.split('?')[0])) {
   const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
   let first = true;
@@ -37,7 +37,6 @@ for (const base of scripts.map(s => s.split('?')[0])) {
 for (const src of scripts) {
   const base = src.split('?')[0];
   if (!text.includes(`src="${src}"`) && !text.includes(`src='${src}'`)) {
-    // If an older version exists, remove it before appending the canonical version.
     const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
     text = text.replace(re, '');
     text = text.replace('</body>', `<script src="${src}"></script>\n</body>`);
@@ -46,8 +45,6 @@ for (const src of scripts) {
 
 text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.2');
 
-// app.js historically injected enhancements.js itself. Remove that runtime loader in the built copy
-// so each enhancement has one deterministic load path and click handlers do not stack.
 const appFile = path.join(root, 'app.js');
 if (fs.existsSync(appFile)) {
   let app = fs.readFileSync(appFile, 'utf8');
@@ -60,4 +57,4 @@ if (fs.existsSync(appFile)) {
 }
 
 fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, added final UI integrity pass, enabled PIN recovery, and enabled revocable device sessions.');
+console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, and neighborhood news ticker.');
