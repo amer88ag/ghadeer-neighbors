@@ -2,11 +2,28 @@
 (()=>{
   'use strict';
   const $=id=>document.getElementById(id);
+  function injectStyle(){
+    if($('ghFinalUiStyle'))return;
+    const s=document.createElement('style');
+    s.id='ghFinalUiStyle';
+    s.textContent=`
+      .gh-prayer-compact{padding:10px;margin-bottom:10px}
+      .gh-prayer-compact h3{margin:0 0 5px;font-size:15px}
+      .gh-prayer-compact #prayerLocationLabel{font-size:11px;line-height:1.45;margin-bottom:4px}
+      .gh-prayer-main-grid{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px!important;margin-top:5px!important}
+      .gh-prayer-main-grid>div{padding:5px 3px;background:#f4faf6;border:1px solid #dcebe1;border-radius:9px;text-align:center;font-size:11px;line-height:1.35}
+      .gh-prayer-main-grid b{font-size:15px}
+      .gh-prayer-compact .top-actions{margin-top:5px;gap:5px}
+      .gh-prayer-compact .top-actions .btn{padding:7px 9px;font-size:11px}
+      @media(max-width:650px){.gh-prayer-main-grid{grid-template-columns:repeat(5,minmax(48px,1fr))!important;overflow-x:auto}.gh-prayer-main-grid>div{min-width:48px}}
+    `;
+    document.head.appendChild(s);
+  }
   function compactPrayer(){
     const extra=$('ghPrayerExtra');
     if(extra) extra.remove();
     const card=$('prayerTimesToday')?.closest('.card');
-    if(!card) return;
+    if(!card)return;
     card.classList.add('gh-prayer-compact');
     $('prayerTimesToday')?.classList.add('gh-prayer-main-grid');
   }
@@ -17,7 +34,7 @@
       btn.addEventListener('click',e=>{
         const page=btn.dataset.page;
         if(page&&typeof window.openPage==='function'){
-          e.preventDefault(); e.stopPropagation(); window.openPage(page);
+          e.preventDefault(); e.stopImmediatePropagation(); window.openPage(page);
         }
       },true);
     });
@@ -36,7 +53,7 @@
       },true);
     });
   }
-  function run(){compactPrayer();bindNav();bindQuickIcons();}
+  function run(){injectStyle();compactPrayer();bindNav();bindQuickIcons();}
   function boot(){
     run();
     [250,1000,2500].forEach(ms=>setTimeout(run,ms));
