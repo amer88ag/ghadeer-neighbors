@@ -63,3 +63,4 @@
   function boot(){injectStyle();mountWeather();patchPrayer();patchQuran();loadSports();const sv=$('services');if(sv)sv.innerHTML=servicesHtml();setInterval(()=>{if(document.visibilityState==='visible')checkPrayerAlerts()},30000);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+(function(){var s=document.createElement('script');s.src='home-customizer.js?v=20260930';s.defer=false;document.head.appendChild(s);})();
