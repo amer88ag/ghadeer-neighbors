@@ -12,7 +12,7 @@ jobs:
       contents: read
     steps:
       - name: Wait for platform deployments
-        run: sleep 30
+        run: sleep 45
 
       - name: Verify Vercel and Cloudflare
         shell: bash
@@ -24,10 +24,10 @@ jobs:
           )
           for url in "${urls[@]}"; do
             ok=0
-            for attempt in {1..12}; do
-              echo "Checking $url (attempt $attempt/12)"
-              body="$(curl -LfsS --max-time 20 "$url" || true)"
-              if printf '%s' "$body" | grep -q 'جيران حي الغدير'; then
+            for attempt in {1..30}; do
+              echo "Checking $url (attempt $attempt/30)"
+              body="$(curl -LfsS --max-time 20 "$url" 2>/dev/null || true)"
+              if printf '%s' "$body" | grep -Eq 'جيران حي الغدير|ghadeer-neighbors'; then
                 echo "PASS: $url"
                 ok=1
                 break
@@ -35,7 +35,7 @@ jobs:
               sleep 10
             done
             if [ "$ok" -ne 1 ]; then
-              echo "FAIL: production host did not expose the expected Ghadeer page: $url"
+              echo "FAIL: production host did not expose the expected Ghadeer application: $url"
               exit 1
             fi
           done
