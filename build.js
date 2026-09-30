@@ -58,10 +58,11 @@ if (duplicates.length) {
 }
 
 // Build one deterministic browser artifact from the same main-branch source.
-// Vercel serves the root artifact; Cloudflare Worker serves dist/.
+// Vercel serves the repository root; Cloudflare Worker serves dist/.
 if (!deployIndex.includes('runtime-hardening.js')) {
-  const appTag = '<script src="app.js"></script>';
-  if (!deployIndex.includes(appTag)) throw new Error('Could not locate app.js script tag for runtime hardening injection');
+  const appTagPattern = /<script[^>]+src=["']app\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;
+  const appTag = deployIndex.match(appTagPattern)?.[0];
+  if (!appTag) throw new Error('Could not locate app.js script tag for runtime hardening injection');
   deployIndex = deployIndex.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
 }
 
