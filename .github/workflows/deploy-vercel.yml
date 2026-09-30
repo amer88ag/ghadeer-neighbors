@@ -29,7 +29,7 @@ jobs:
       - name: Validate Vercel configuration
         run: |
           test -f vercel.json
-          node -e "const c=require('./vercel.json'); if(c.buildCommand!=='node build.js') process.exit(1); if(c.outputDirectory!=='.') process.exit(1); console.log('Vercel configuration: PASS')"
+          node -e "const c=require('./vercel.json'); if(c.buildCommand!=='node build.js') process.exit(1); if(c.outputDirectory!=='dist') process.exit(1); console.log('Vercel configuration: PASS')"
 
       - name: Deployment mode
         run: |
