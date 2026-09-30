@@ -6,62 +6,63 @@ const file = path.join(root, 'index.html');
 let text = fs.readFileSync(file, 'utf8');
 
 const configScript = `<script>window.GHADEER_SUPABASE_CONFIG={url:"https://xewjakfmdfkbhcnxglct.supabase.co",key:"sb_publishable__i-E8Gi5hcdfNd7gZXa12Q_-ZPSXPUr"};</script>`;
+const version = '20260930.2';
 const scripts = [
-  'enhancements.js?v=20260929.2',
-  'quran-enhancement.js?v=20260929.2',
-  'runtime-fix.js?v=20260929.2',
-  'services-enhancement.js?v=20260929.2',
-  'rental-enhancement.js?v=20260929.2',
-  'neighbor-connect.js?v=20260929.2',
-  'outing-events-enhancement.js?v=20260929.2',
-  'production-fixes.js?v=20260929.2',
-  'production-bridge.js?v=20260929.2',
-  'jobs-realestate-enhancement.js?v=20260929.2',
-  'ui-final-fix.js?v=20260929.1',
-  'pin-recovery.js?v=20260929.1',
-  'member-session.js?v=20260929.1',
-  'neighborhood-news-ticker.js?v=20260929.1'
+  `enhancements.js?v=${version}`,
+  `quran-enhancement.js?v=${version}`,
+  `runtime-fix.js?v=${version}`,
+  `services-enhancement.js?v=${version}`,
+  `rental-enhancement.js?v=${version}`,
+  `neighbor-connect.js?v=${version}`,
+  `outing-events-enhancement.js?v=${version}`,
+  `production-fixes.js?v=${version}`,
+  `production-bridge.js?v=${version}`,
+  `jobs-realestate-enhancement.js?v=${version}`,
+  `ui-final-fix.js?v=${version}`,
+  `pin-recovery.js?v=${version}`,
+  `member-session.js?v=${version}`,
+  `neighborhood-news-ticker.js?v=${version}`
 ];
 
-if (!text.includes('GHADEER_SUPABASE_CONFIG')) text = text.replace('</head>', `${configScript}\n</head>`);
+if (!text.includes('GHADEER_SUPABASE_CONFIG')) {
+  text = text.replace('</head>', `${configScript}\n</head>`);
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+}
 
 for (const base of scripts.map(s => s.split('?')[0])) {
-  const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
+  const escapedBase = escapeRegExp(base);
+  const re = new RegExp(`<script\\s+src=["']${escapedBase}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
   let first = true;
   text = text.replace(re, match => {
-    if (first) { first = false; return match; }
+    if (first) {
+      first = false;
+      return match;
+    }
     return '';
   });
 }
 
 for (const src of scripts) {
   const base = src.split('?')[0];
+  const escapedBase = escapeRegExp(base);
   if (!text.includes(`src="${src}"`) && !text.includes(`src='${src}'`)) {
-    const re = new RegExp(`<script\\s+src=["']${base.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
+    const re = new RegExp(`<script\\s+src=["']${escapedBase}(?:\\?[^"']*)?["']\\s*><\\/script>`, 'g');
     text = text.replace(re, '');
     text = text.replace('</body>', `<script src="${src}"></script>\n</body>`);
   }
 }
 
-// Remove the previously added standalone dhikr ticker. The home page already
-// contains the single consolidated reminder/hadith board, so loading the
-// extra ticker created a duplicate reminder screen.
-text = text.replace(/<script\\s+src=["']dhikr-ticker\\.js(?:\\?[^"']*)?["']\\s*><\\/script>/g, '');
+// Keep one reminder board only; remove the legacy standalone ticker safely.
+text = text.replace(/<script\s+src=["']dhikr-ticker\.js(?:\?[^"']*)?["']\s*><\/script>/g, '');
 
-text = text.replace(/app\.js\?v=[^"']+/g, 'app.js?v=20260929.4');
+// Force browsers to fetch the current application bundle after a deployment.
+text = text.replace(/app\.js\?v=[^"']+/g, `app.js?v=${version}`);
 
-const appFile = path.join(root, 'app.js');
-if (fs.existsSync(appFile)) {
-  let app = fs.readFileSync(appFile, 'utf8');
-  app = app.replace(/\n\/\/ ghadeer-enhancements-loader[\s\S]*?\}\)\(\);\s*$/m, '\n');
-  // Never let the public member-list query fetch pin_hash or other private columns.
-  app = app.replace('table("members",{order:"id"})', 'table("members",{select:"id,name,active",order:"id"})');
-  const marker = 'function openPage(id){';
-  if (!app.includes('window.GHADEER_CTX') && app.includes(marker)) {
-    app = app.replace(marker, 'window.GHADEER_CTX=()=>({state,db,rpc,loadData,loadMembers});\n' + marker);
-  }
-  fs.writeFileSync(appFile, app, 'utf8');
-}
+// Keep the build idempotent: only write when content actually changed.
+const currentIndex = fs.readFileSync(file, 'utf8');
+if (currentIndex !== text) fs.writeFileSync(file, text, 'utf8');
 
-fs.writeFileSync(file, text, 'utf8');
-console.log('Ghadeer production build: deduplicated enhancement scripts, removed duplicate dhikr ticker, removed duplicate runtime loader, enabled PIN recovery, revocable device identity, neighborhood news ticker, and restricted public member reads to non-sensitive columns.');
+console.log(`Ghadeer production build ${version}: validated and materialized frontend enhancement scripts without modifying source JavaScript.`);
