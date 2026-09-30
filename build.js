@@ -22,7 +22,8 @@ const requiredScripts = [
   'pin-recovery.js',
   'member-session.js',
   'neighborhood-news-ticker.js',
-  'runtime-hardening.js'
+  'runtime-hardening.js',
+  'ghadeer-ui-v4.js'
 ];
 
 if (!sourceIndex.includes('GHADEER_SUPABASE_CONFIG')) {
@@ -31,7 +32,9 @@ if (!sourceIndex.includes('GHADEER_SUPABASE_CONFIG')) {
 
 for (const script of requiredScripts) {
   if (script !== 'runtime-hardening.js' && !sourceIndex.includes(script)) {
-    throw new Error(`Missing frontend script reference: ${script}`);
+    // ghadeer-ui-v4 is intentionally injected by this build because it is a
+    // final UI layer and must remain independent from the legacy index markup.
+    if (script !== 'ghadeer-ui-v4.js') throw new Error(`Missing frontend script reference: ${script}`);
   }
   if (!fs.existsSync(path.join(root, script))) {
     throw new Error(`Missing frontend script file: ${script}`);
@@ -64,6 +67,13 @@ if (!deployIndex.includes('runtime-hardening.js')) {
   const appTag = deployIndex.match(appTagPattern)?.[0];
   if (!appTag) throw new Error('Could not locate app.js script tag for runtime hardening injection');
   deployIndex = deployIndex.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
+}
+
+if (!deployIndex.includes('ghadeer-ui-v4.js')) {
+  const appTagPattern = /<script[^>]+src=["']app\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;
+  const appTag = deployIndex.match(appTagPattern)?.[0];
+  if (!appTag) throw new Error('Could not locate app.js script tag for Ghadeer UI v4 injection');
+  deployIndex = deployIndex.replace(appTag, '<script src="ghadeer-ui-v4.js"></script>' + appTag);
 }
 
 const dist = path.join(root, 'dist');
