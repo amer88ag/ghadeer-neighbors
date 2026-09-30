@@ -1,3 +1,8 @@
 name = "ghadeer-neighbors"
+main = "worker.js"
 compatibility_date = "2026-09-30"
-pages_build_output_dir = "."
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
