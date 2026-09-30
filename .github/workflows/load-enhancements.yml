@@ -1,4 +1,4 @@
-name: Build Ghadeer frontend assets
+name: Validate Ghadeer frontend assets
 on:
   push:
     branches: [main]
@@ -18,14 +18,12 @@ on:
       - vercel.json
       - .github/workflows/load-enhancements.yml
 permissions:
-  contents: write
+  contents: read
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -50,7 +48,7 @@ jobs:
           for f in app.js build.js enhancements.js quran-enhancement.js runtime-fix.js services-enhancement.js rental-enhancement.js neighbor-connect.js outing-events-enhancement.js production-fixes.js production-bridge.js; do
             node --check "$f"
           done
-      - name: Materialize production build output
+      - name: Run production build in an isolated checkout
         run: node build.js
       - name: Validate local script references
         run: |
@@ -80,14 +78,5 @@ jobs:
               raise SystemExit('Missing local script files: ' + ', '.join(sorted(set(missing_files))))
           print('Build/reference validation passed.')
           PY
-      - name: Commit generated index
-        run: |
-          if git diff --quiet -- index.html; then
-            echo 'No generated changes to commit.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
-          git commit -m 'build: materialize frontend enhancement scripts'
-          git push
+      - name: Assert working tree was not modified
+        run: git diff --exit-code
