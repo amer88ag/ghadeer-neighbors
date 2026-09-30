@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const go=id=>window.openPage?.(id);
-  const action=a=>{if(a==='services:help'||a==='services:market')return go('ghServicesHub');return go(a)};
+  const action=a=>{if(a==='services:help'||a==='services:market')return go('ghServicesHub');if(a==='aboutProject')return aboutProject();return go(a)};
   const css=`
     #ghV4Home,#ghV4Services,#ghV4More{margin:12px 0}
     .gh4-shell{background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:0 8px 24px #0000000a}
@@ -28,7 +28,7 @@
     <div class="gh4-head"><div><h2>🧰 خدمات الحي</h2><p>كل خدمة في مكان واحد — بدون تكرار.</p></div><button class="btn secondary" data-gh4="ghServicesHub">عرض الكل</button></div>
     <div class="gh4-grid">
       ${tile('🤝','خدمات الجيران','طلب أو عرض خدمة','ghServicesHub')}
-      ${tile('🛍️','سوق الحي','بيع وشراء','ghServicesHub')}
+      ${tile('🛍️','سوق الحي','بيع وشراء','services:market')}
       ${tile('💼','الوظائف','فرص العمل','jobs')}
       ${tile('🏠','العقار','بيع وإيجار','realEstate')}
       ${tile('🎉','المناسبات','فعاليات الحي','neighborhoodEvents')}
@@ -65,6 +65,7 @@
   function more(){let p=$('ghMore');if(!p){p=document.createElement('section');p.id='ghMore';p.className='page';document.querySelector('main.wrap')?.appendChild(p)}p.classList.remove('gh4-hidden');p.innerHTML=`<div class="gh4-shell"><div class="gh4-head"><div><h2>☰ المزيد</h2><p>الإدارة والروابط الثانوية فقط.</p></div><button class="btn secondary" data-gh4="home">الرئيسية</button></div><div class="gh4-more-grid">
     ${tile('🔐','دخول الإدارة','للمخولين فقط','manager')}${tile('🛠️','المطور','إدارة البرنامج','developer')}${tile('💬','الرسائل','التواصل','messages')}${tile('📄','المعلومات','المحتوى والحقوق','aboutProject')}${tile('🚪','خروج','تسجيل الخروج','logout')}
   </div></div>`;bind(p)}
+  function aboutProject(){let p=$('gh4About');if(!p){p=document.createElement('section');p.id='gh4About';p.className='page';document.querySelector('main.wrap')?.appendChild(p)}p.innerHTML=`<div class="gh4-shell"><div class="gh4-head"><div><h2>ℹ️ عن جيران حي الغدير</h2><p>معلومات المشروع والحقوق</p></div><button class="btn secondary" data-gh4="home">الرئيسية</button></div><p>منصة مجتمعية لخدمة سكان حي الغدير بالمحالة، تجمع أخبار الحي وخدماته وفعالياته في واجهة واحدة.</p><p class="muted">© جميع الحقوق محفوظة للمشروع والمحتوى المخصص له.</p></div>`;bind(p);document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));p.classList.add('active')}
   function nav(){const n=document.querySelector('.bottom-nav');if(!n)return;n.className='bottom-nav gh4-nav';n.innerHTML=`<button type="button" data-gh4="home">🏠<br>الرئيسية</button><button type="button" data-gh4="ghServicesHub">🧰<br>الخدمات</button><button type="button" data-gh4="coffee">☕<br>القهوة</button><button type="button" data-gh4="members">👥<br>الجيران</button><button type="button" data-gh4="ghMore">☰<br>المزيد</button>`;bind(n)}
   function dedupeLegacy(){const h=$('home');if(h){h.querySelectorAll('.grid').forEach(g=>{const t=g.textContent||'';if(/الطلعات/.test(t)&&/القرآن/.test(t))g.classList.add('gh4-hidden')})}$('ghNeighborhoodServices')?.classList.add('gh4-hidden')}
   function install(){installStyle();home();services();more();nav();dedupeLegacy()}
