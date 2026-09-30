@@ -15,8 +15,8 @@ if (!deployIndex.includes('GHADEER_SUPABASE_CONFIG')) {
   throw new Error('Missing GHADEER_SUPABASE_CONFIG in index.html');
 }
 
-// Keep the production entrypoint deterministic. Add the latest feature bridges
-// only when they are present and not already referenced by index.html.
+// Keep the production entrypoint deterministic. Add the canonical feature
+// bridges only when they are present and not already referenced by index.html.
 const featureScripts = [
   'ghadeer-ui-v5.js',
   'ghadeer-quran-v5.js',
@@ -24,7 +24,8 @@ const featureScripts = [
   'ghadeer-football-bridge.js',
   'ghadeer-final-labels.js',
   'ghadeer-click-fix-v1.js',
-  'ghadeer-home-customizer-v1.js'
+  'ghadeer-home-customizer-v1.js',
+  'ghadeer-home-widgets-v1.js'
 ];
 
 function injectIfPresent(scriptName) {
