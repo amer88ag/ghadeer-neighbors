@@ -57,31 +57,34 @@ if (duplicates.length) {
   throw new Error(`Duplicate frontend script references: ${duplicates.join(', ')}`);
 }
 
-const platformBuild = process.env.VERCEL === '1' || process.env.CF_PAGES === '1' || process.env.GHADEER_BUILD_INJECT === '1';
-
-if (platformBuild) {
-  if (!deployIndex.includes('runtime-hardening.js')) {
-    const appTag = '<script src="app.js"></script>';
-    if (!deployIndex.includes(appTag)) throw new Error('Could not locate app.js script tag for runtime hardening injection');
-    deployIndex = deployIndex.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
-  }
-
-  const dist = path.join(root, 'dist');
-  fs.rmSync(dist, { recursive: true, force: true });
-  fs.mkdirSync(dist, { recursive: true });
-  fs.writeFileSync(path.join(dist, 'index.html'), deployIndex, 'utf8');
-
-  // The project is intentionally dependency-free at runtime. Copy the static
-  // browser assets only; never publish migrations, CI files, or source control data.
-  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!entry.isFile()) continue;
-    if (entry.name === 'build.js' || entry.name === 'worker.js') continue;
-    if (/^\u2060/.test(entry.name)) continue;
-    if (!/\.(?:js|css)$/i.test(entry.name) && entry.name !== '_redirects') continue;
-    fs.copyFileSync(path.join(root, entry.name), path.join(dist, entry.name));
-  }
-
-  console.log(`Ghadeer production artifact generated in ${dist}.`);
+// Build one deterministic browser artifact from the same main-branch source.
+// Vercel serves the root artifact; Cloudflare Worker serves dist/.
+if (!deployIndex.includes('runtime-hardening.js')) {
+  const appTag = '<script src="app.js"></script>';
+  if (!deployIndex.includes(appTag)) throw new Error('Could not locate app.js script tag for runtime hardening injection');
+  deployIndex = deployIndex.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
 }
 
+const dist = path.join(root, 'dist');
+fs.rmSync(dist, { recursive: true, force: true });
+fs.mkdirSync(dist, { recursive: true });
+fs.writeFileSync(path.join(dist, 'index.html'), deployIndex, 'utf8');
+
+// Copy browser-facing root assets only. Never publish migrations, CI files,
+// .git data, secrets, or source-control configuration as static assets.
+for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+  if (!entry.isFile()) continue;
+  if (entry.name === 'build.js' || entry.name === 'worker.js') continue;
+  if (/^\u2060/.test(entry.name)) continue;
+  if (!/\.(?:js|css)$/i.test(entry.name) && entry.name !== '_redirects') continue;
+  fs.copyFileSync(path.join(root, entry.name), path.join(dist, entry.name));
+}
+
+// Vercel's existing production project serves the repository root. Materialize
+// the generated index there only in Vercel's ephemeral build workspace.
+if (process.env.VERCEL === '1') {
+  fs.writeFileSync(indexPath, deployIndex, 'utf8');
+}
+
+console.log(`Ghadeer production artifact generated in ${dist}.`);
 console.log('Ghadeer production build validation passed.');
