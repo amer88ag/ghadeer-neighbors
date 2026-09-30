@@ -25,7 +25,8 @@ const featureScripts = [
   'ghadeer-final-labels.js',
   'ghadeer-click-fix-v1.js',
   'ghadeer-home-customizer-v1.js',
-  'ghadeer-home-widgets-v1.js'
+  'ghadeer-home-widgets-v1.js',
+  'ghadeer-navigation-fix-v1.js'
 ];
 
 function injectIfPresent(scriptName) {
