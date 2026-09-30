@@ -20,8 +20,6 @@ jobs:
           node-version: 22
 
       - name: Validate production build
-        env:
-          GHADEER_BUILD_INJECT: "1"
         run: |
           node build.js
           test -f dist/index.html
@@ -31,9 +29,9 @@ jobs:
       - name: Validate Vercel configuration
         run: |
           test -f vercel.json
-          node -e "const c=require('./vercel.json'); if(c.buildCommand!=='node build.js') process.exit(1); if(c.outputDirectory!=='dist') process.exit(1); console.log('Vercel configuration: PASS')"
+          node -e "const c=require('./vercel.json'); if(c.buildCommand!=='node build.js') process.exit(1); if(c.outputDirectory!=='.') process.exit(1); console.log('Vercel configuration: PASS')"
 
       - name: Deployment mode
         run: |
           echo "Vercel production deployment is kept on the connected Vercel↔GitHub integration."
-          echo "The release gate validates the exact shared dist artifact without requiring a stored CLI token."
+          echo "The release gate validates the shared artifact without requiring a stored CLI token."
