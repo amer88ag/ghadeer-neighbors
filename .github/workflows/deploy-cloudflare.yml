@@ -1,4 +1,4 @@
-name: Deploy Ghadeer to Cloudflare Pages
+name: Ghadeer Cloudflare release gate
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,17 +22,14 @@ jobs:
       - name: Validate production build
         run: node build.js
 
-      - name: Validate Cloudflare credentials
-        env:
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID }}
+      - name: Validate Cloudflare configuration
         run: |
-          test -n "$CF_API_TOKEN" || { echo "Missing Cloudflare API token secret. Expected CLOUDFLARE_API_TOKEN (or legacy CF_API_TOKEN)."; exit 1; }
-          test -n "$CF_ACCOUNT_ID" || { echo "Missing Cloudflare account ID secret. Expected CLOUDFLARE_ACCOUNT_ID (or legacy CF_ACCOUNT_ID)."; exit 1; }
+          test -f wrangler.toml
+          grep -q '^name = "ghadeer-neighbors"' wrangler.toml
+          grep -q '^pages_build_output_dir = "."' wrangler.toml
+          echo "Cloudflare configuration: PASS"
 
-      - name: Deploy to Cloudflare Pages production
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID }}
+      - name: Deployment mode
         run: |
-          npx --yes wrangler@latest pages deploy . --project-name=ghadeer-neighbors
+          echo "Cloudflare deployment is kept on the connected Cloudflare↔GitHub Production integration."
+          echo "This workflow is a release gate only, so missing CLI secrets cannot create a false failed deployment."
