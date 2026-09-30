@@ -7,95 +7,36 @@ const sourceIndex = fs.readFileSync(indexPath, 'utf8');
 let deployIndex = sourceIndex;
 
 const requiredScripts = [
-  'app.js',
-  'enhancements.js',
-  'quran-enhancement.js',
-  'runtime-fix.js',
-  'services-enhancement.js',
-  'rental-enhancement.js',
-  'neighbor-connect.js',
-  'outing-events-enhancement.js',
-  'production-fixes.js',
-  'production-bridge.js',
-  'jobs-realestate-enhancement.js',
-  'ui-final-fix.js',
-  'pin-recovery.js',
-  'member-session.js',
-  'neighborhood-news-ticker.js',
-  'runtime-hardening.js',
-  'ghadeer-ui-v4.js'
+  'app.js','enhancements.js','quran-enhancement.js','runtime-fix.js','services-enhancement.js',
+  'rental-enhancement.js','neighbor-connect.js','outing-events-enhancement.js','production-fixes.js',
+  'production-bridge.js','jobs-realestate-enhancement.js','ui-final-fix.js','pin-recovery.js',
+  'member-session.js','neighborhood-news-ticker.js','runtime-hardening.js','ghadeer-ui-v4.js',
+  'ghadeer-quran-v5.js','ghadeer-final-labels.js'
 ];
 
-if (!sourceIndex.includes('GHADEER_SUPABASE_CONFIG')) {
-  throw new Error('Missing GHADEER_SUPABASE_CONFIG in index.html');
-}
-
+if (!sourceIndex.includes('GHADEER_SUPABASE_CONFIG')) throw new Error('Missing GHADEER_SUPABASE_CONFIG in index.html');
 for (const script of requiredScripts) {
-  if (script !== 'runtime-hardening.js' && !sourceIndex.includes(script)) {
-    // ghadeer-ui-v4 is intentionally injected by this build because it is a
-    // final UI layer and must remain independent from the legacy index markup.
-    if (script !== 'ghadeer-ui-v4.js') throw new Error(`Missing frontend script reference: ${script}`);
-  }
-  if (!fs.existsSync(path.join(root, script))) {
-    throw new Error(`Missing frontend script file: ${script}`);
-  }
+  if (!sourceIndex.includes(script) && !['runtime-hardening.js','ghadeer-ui-v4.js','ghadeer-quran-v5.js','ghadeer-final-labels.js'].includes(script)) throw new Error(`Missing frontend script reference: ${script}`);
+  if (!fs.existsSync(path.join(root, script))) throw new Error(`Missing frontend script file: ${script}`);
 }
 
-const localScripts = [...sourceIndex.matchAll(/<script[^>]+src=["']([^"']+)["']/g)]
-  .map(match => match[1].split('?')[0])
-  .filter(src => src && !/^(https?:)?\/\//.test(src));
+const localScripts=[...sourceIndex.matchAll(/<script[^>]+src=["']([^"']+)["']/g)].map(m=>m[1].split('?')[0]).filter(src=>src&&!/^(https?:)?\/\//.test(src));
+for(const src of localScripts) if(!fs.existsSync(path.join(root,src))) throw new Error(`Missing local script file referenced by index.html: ${src}`);
+const scriptTags=[...sourceIndex.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/g)].map(m=>m[1].split('?')[0]);
+const counts=new Map();for(const src of scriptTags)counts.set(src,(counts.get(src)||0)+1);
+const duplicates=[...counts.entries()].filter(([,count])=>count>1).map(([src])=>src);if(duplicates.length)throw new Error(`Duplicate frontend script references: ${duplicates.join(', ')}`);
 
-for (const src of localScripts) {
-  if (!fs.existsSync(path.join(root, src))) {
-    throw new Error(`Missing local script file referenced by index.html: ${src}`);
-  }
+function injectAfterRuntime(tag){if(!deployIndex.includes(tag)){const p=/<script[^>]+src=["']runtime-hardening\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;const m=deployIndex.match(p);if(!m)throw new Error('Could not locate runtime-hardening.js script tag');deployIndex=deployIndex.replace(m[0],m[0]+`<script src="${tag}"></script>`);}}
+if(!deployIndex.includes('runtime-hardening.js')){const p=/<script[^>]+src=["']app\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;const m=deployIndex.match(p);if(!m)throw new Error('Could not locate app.js script tag');deployIndex=deployIndex.replace(m[0],'<script src="runtime-hardening.js"></script>'+m[0]);}
+injectAfterRuntime('ghadeer-ui-v4.js');
+injectAfterRuntime('ghadeer-quran-v5.js');
+injectAfterRuntime('ghadeer-final-labels.js');
+
+const dist=path.join(root,'dist');fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
+for(const entry of fs.readdirSync(root,{withFileTypes:true})){
+ if(!entry.isFile()||entry.name==='build.js'||entry.name==='worker.js'||/^\u2060/.test(entry.name))continue;
+ if(!/\.(?:js|css)$/i.test(entry.name)&&entry.name!=='_redirects')continue;
+ fs.copyFileSync(path.join(root,entry.name),path.join(dist,entry.name));
 }
-
-const scriptTags = [...sourceIndex.matchAll(/<script[^>]+src=["']([^"']+)["'][^>]*><\/script>/g)]
-  .map(match => match[1].split('?')[0]);
-const counts = new Map();
-for (const src of scriptTags) counts.set(src, (counts.get(src) || 0) + 1);
-const duplicates = [...counts.entries()].filter(([, count]) => count > 1).map(([src]) => src);
-if (duplicates.length) {
-  throw new Error(`Duplicate frontend script references: ${duplicates.join(', ')}`);
-}
-
-// Build one deterministic browser artifact from the same main-branch source.
-// Vercel serves the repository root; Cloudflare Worker serves dist/.
-if (!deployIndex.includes('runtime-hardening.js')) {
-  const appTagPattern = /<script[^>]+src=["']app\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;
-  const appTag = deployIndex.match(appTagPattern)?.[0];
-  if (!appTag) throw new Error('Could not locate app.js script tag for runtime hardening injection');
-  deployIndex = deployIndex.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
-}
-
-if (!deployIndex.includes('ghadeer-ui-v4.js')) {
-  const appTagPattern = /<script[^>]+src=["']app\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;
-  const appTag = deployIndex.match(appTagPattern)?.[0];
-  if (!appTag) throw new Error('Could not locate app.js script tag for Ghadeer UI v4 injection');
-  deployIndex = deployIndex.replace(appTag, '<script src="ghadeer-ui-v4.js"></script>' + appTag);
-}
-
-const dist = path.join(root, 'dist');
-fs.rmSync(dist, { recursive: true, force: true });
-fs.mkdirSync(dist, { recursive: true });
-fs.writeFileSync(path.join(dist, 'index.html'), deployIndex, 'utf8');
-
-// Copy browser-facing root assets only. Never publish migrations, CI files,
-// .git data, secrets, or source-control configuration as static assets.
-for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
-  if (!entry.isFile()) continue;
-  if (entry.name === 'build.js' || entry.name === 'worker.js') continue;
-  if (/^\u2060/.test(entry.name)) continue;
-  if (!/\.(?:js|css)$/i.test(entry.name) && entry.name !== '_redirects') continue;
-  fs.copyFileSync(path.join(root, entry.name), path.join(dist, entry.name));
-}
-
-// Vercel's existing production project serves the repository root. Materialize
-// the generated index there only in Vercel's ephemeral build workspace.
-if (process.env.VERCEL === '1') {
-  fs.writeFileSync(indexPath, deployIndex, 'utf8');
-}
-
-console.log(`Ghadeer production artifact generated in ${dist}.`);
-console.log('Ghadeer production build validation passed.');
+if(process.env.VERCEL==='1')fs.writeFileSync(indexPath,deployIndex,'utf8');
+console.log(`Ghadeer production artifact generated in ${dist}.`);console.log('Ghadeer production build validation passed.');
