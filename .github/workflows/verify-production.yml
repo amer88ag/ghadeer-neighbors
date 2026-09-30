@@ -1,0 +1,41 @@
+name: Verify Ghadeer production on both hosts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Wait for platform deployments
+        run: sleep 30
+
+      - name: Verify Vercel and Cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://ghadeer-neighbors.vercel.app/"
+            "https://ghadeer-neighbors.amer88ag.workers.dev/"
+          )
+          for url in "${urls[@]}"; do
+            ok=0
+            for attempt in {1..12}; do
+              echo "Checking $url (attempt $attempt/12)"
+              body="$(curl -LfsS --max-time 20 "$url" || true)"
+              if printf '%s' "$body" | grep -q 'جيران حي الغدير'; then
+                echo "PASS: $url"
+                ok=1
+                break
+              fi
+              sleep 10
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "FAIL: production host did not expose the expected Ghadeer page: $url"
+              exit 1
+            fi
+          done
