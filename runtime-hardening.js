@@ -18,4 +18,16 @@
     }
     return nativeFetch(input,init);
   };
+  // Load the UI layer from the same repository artifact so Vercel and Cloudflare
+  // receive the identical interface without duplicating script tags in index.html.
+  function loadUiV3(){
+    if(document.querySelector('script[data-ghadeer-ui-v3]'))return;
+    const s=document.createElement('script');
+    s.src='/ghadeer-ui-v3.js?v=20260930.1';
+    s.defer=true;
+    s.dataset.ghadeerUiV3='1';
+    document.head.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadUiV3,{once:true});
+  else loadUiV3();
 })();
