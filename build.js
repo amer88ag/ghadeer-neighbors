@@ -3,7 +3,7 @@ const path = require('path');
 
 const root = process.cwd();
 const indexPath = path.join(root, 'index.html');
-const index = fs.readFileSync(indexPath, 'utf8');
+let index = fs.readFileSync(indexPath, 'utf8');
 
 const requiredScripts = [
   'app.js',
@@ -20,7 +20,8 @@ const requiredScripts = [
   'ui-final-fix.js',
   'pin-recovery.js',
   'member-session.js',
-  'neighborhood-news-ticker.js'
+  'neighborhood-news-ticker.js',
+  'runtime-hardening.js'
 ];
 
 if (!index.includes('GHADEER_SUPABASE_CONFIG')) {
@@ -28,7 +29,7 @@ if (!index.includes('GHADEER_SUPABASE_CONFIG')) {
 }
 
 for (const script of requiredScripts) {
-  if (!index.includes(script)) {
+  if (script !== 'runtime-hardening.js' && !index.includes(script)) {
     throw new Error(`Missing frontend script reference: ${script}`);
   }
   if (!fs.existsSync(path.join(root, script))) {
@@ -55,7 +56,18 @@ if (duplicates.length) {
   throw new Error(`Duplicate frontend script references: ${duplicates.join(', ')}`);
 }
 
-// Production build is intentionally non-mutating. Vercel serves the repository
-// root directly, so changing source files during build can create divergent
-// artifacts and was a root cause of the previous deployment loop.
-console.log('Ghadeer production build validation passed. Source tree left unchanged.');
+// Inject the runtime hardening layer only inside platform build environments.
+// The repository source remains unchanged; Vercel/Cloudflare receive the same
+// generated page from main without requiring a second source tree.
+const platformBuild = process.env.VERCEL === '1' || process.env.CF_PAGES === '1' || process.env.GHADEER_BUILD_INJECT === '1';
+if (platformBuild && !index.includes('runtime-hardening.js')) {
+  const appTag = '<script src="app.js"></script>';
+  if (!index.includes(appTag)) throw new Error('Could not locate app.js script tag for runtime hardening injection');
+  index = index.replace(appTag, '<script src="runtime-hardening.js"></script>' + appTag);
+  fs.writeFileSync(indexPath, index, 'utf8');
+  console.log('Ghadeer runtime hardening injected for production platform build.');
+}
+
+// Production build validates the complete source tree. Platform builds may
+// materialize the runtime injection in the ephemeral build workspace only.
+console.log('Ghadeer production build validation passed.');
