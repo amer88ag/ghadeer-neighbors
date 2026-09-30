@@ -10,19 +10,35 @@ const jsFiles = new Set(['app.js']);
 const scriptsBlock = build.match(/const scripts = \[([\s\S]*?)\];/);
 if (scriptsBlock) {
   for (const m of scriptsBlock[1].matchAll(/["']([^"']+\.js)(?:\?[^"']*)?["']/g)) {
-    if (fs.existsSync(m[1])) jsFiles.add(m[1]);
+    const file = m[1];
+    if (!fs.existsSync(file)) {
+      errors.push(`missing canonical production script: ${file}`);
+      continue;
+    }
+    jsFiles.add(file);
   }
+} else {
+  errors.push('build.js does not expose the canonical scripts array');
 }
+
 // Also include every JavaScript file directly referenced by index.html.
 for (const m of html.matchAll(/(?:src|href)=["']([^"']+\.js)(?:\?[^"']*)?["']/gi)) {
-  const f=m[1]; if(fs.existsSync(f)) jsFiles.add(f);
+  const f = m[1];
+  if (!fs.existsSync(f)) {
+    // External CDN scripts are valid; only local relative files are checked here.
+    if (!/^https?:\/\//i.test(f) && !f.startsWith('//')) errors.push(`missing HTML script: ${f}`);
+    continue;
+  }
+  jsFiles.add(f);
 }
+
 const jsList=[...jsFiles];
 const js=jsList.map(f=>fs.readFileSync(f,'utf8')).join('\n');
 function count(re,s){return(s.match(re)||[]).length;}
 const ids=[...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]);
 const seen=new Map(); for(const id of ids) seen.set(id,(seen.get(id)||0)+1);
 for(const [id,n] of seen) if(n>1) errors.push(`duplicate id: ${id} (${n})`);
+
 const runtimeReplacedIds=new Set(['homePrayerBtn','prayerRefreshBtn','startHifzBtn','startReadBtn','quranOpenBtn','quranPrevBtn','quranNextBtn','quranBookmarksBtn','checkHifzBtn','showHifzBtn','recordReadBtn','showReadTextBtn']);
 const buttonRe=/<button\b([^>]*)>([\s\S]*?)<\/button>/gi; let m;
 while((m=buttonRe.exec(html))){
@@ -39,7 +55,16 @@ while((m=buttonRe.exec(html))){
    if(!new RegExp(`\\b${e}\\b`).test(js)) errors.push(`button id has no production-JS reference: ${id}`);
  }
 }
-for(const f of jsList.concat(['build.js'])){const r=spawnSync(process.execPath,['--check',f],{encoding:'utf8'});if(r.status!==0)errors.push(`syntax error in ${f}: ${(r.stderr||'').trim().slice(0,300)}`);}
-console.log(`Frontend audit: ${errors.length?errors.length+' issue(s)':'PASS'}`); console.log(`Production JS files checked: ${jsList.length}`);
+
+for(const f of jsList.concat(['build.js'])){
+  const r=spawnSync(process.execPath,['--check',f],{encoding:'utf8'});
+  if(r.status!==0)errors.push(`syntax error in ${f}: ${(r.stderr||'').trim().slice(0,300)}`);
+}
+
+console.log(`Frontend audit: ${errors.length?errors.length+' issue(s)':'PASS'}`);
+console.log(`Production JS files checked: ${jsList.length}`);
 if(errors.length){for(const e of errors)console.error(' - '+e);process.exit(1);}
-console.log(`Static buttons checked: ${count(/<button\b/gi,html)}`); console.log(`HTML ids checked: ${ids.length}`); console.log('JavaScript syntax: PASS'); console.log('Production build wiring: PASS');
+console.log(`Static buttons checked: ${count(/<button\b/gi,html)}`);
+console.log(`HTML ids checked: ${ids.length}`);
+console.log('JavaScript syntax: PASS');
+console.log('Production build wiring: PASS');
