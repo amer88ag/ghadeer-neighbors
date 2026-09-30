@@ -1,4 +1,4 @@
-name: Deploy Ghadeer to Vercel
+name: Ghadeer Vercel release gate
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -22,12 +22,12 @@ jobs:
       - name: Validate production build
         run: node build.js
 
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Validate Vercel configuration
         run: |
-          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
-          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
-          npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"
+          test -f vercel.json
+          node -e "const c=require('./vercel.json'); if(c.buildCommand!=='node build.js') process.exit(1); if(c.outputDirectory!=='.') process.exit(1); console.log('Vercel configuration: PASS')"
+
+      - name: Deployment mode
+        run: |
+          echo "Vercel deployment is kept on the connected Vercel↔GitHub Production integration."
+          echo "This workflow is a release gate only, so missing CLI secrets cannot create a false failed deployment."
