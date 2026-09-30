@@ -44,12 +44,13 @@
     const anchor=p.querySelector('.hadith-board')||p.querySelector('.hero');anchor?anchor.insertAdjacentElement('afterend',old):p.appendChild(old);bind(old)
   }
   function services(){const p=$('ghServicesHub');if(!p)return;let body=p.querySelector('#ghServicesHub-body')||p;body.innerHTML=`
-    <div class="gh4-shell"><div class="gh4-head"><div><h2>🧰 خدمات الحي</h2><p>الوظائف ضمن الخدمات، والطلعات في قسمها الخاص.</p></div><button class="btn secondary" data-gh4="home">الرئيسية</button></div>
+    <div class="gh4-shell"><div class="gh4-head"><div><h2>🧰 خدمات الحي</h2><p>الوظائف، السكن، وتواصل الجيران ضمن الخدمات — بدون تكرار.</p></div><button class="btn secondary" data-gh4="home">الرئيسية</button></div>
     <div class="gh4-grid">
       ${tile('🤝','خدمات الجيران','طلبات وعروض','services:help')}
+      ${tile('🏠','سكن الحي','السكن والعقار','realEstate')}
+      ${tile('💬','تواصل الجيران','تواصل ورسائل الحي','messages')}
       ${tile('🛍️','سوق الحي','منتجات وأغراض','services:market')}
       ${tile('💼','الوظائف','حكومي وخاص','jobs')}
-      ${tile('🏠','العقار','بيع وإيجار','realEstate')}
       ${tile('🎉','مناسبات الحي','فعاليات','neighborhoodEvents')}
       ${tile('⚽','كرة الحي','مباريات','ghFootball')}
       ${tile('📖','القرآن والأذكار','مصحف وتلاوة','dhikr')}
@@ -57,7 +58,6 @@
       ${tile('❤️','تفقد جار','مساعدة','neighborCheck')}
       ${tile('📢','الإعلانات','إعلانات الحي','messages')}
       ${tile('🔎','المفقودات','بحث وإبلاغ','messages')}
-      ${tile('💬','الرسائل','تواصل','messages')}
     </div>
     <div class="gh4-feature"><button class="gh4-mini" data-gh4="homePrayer"><b>🕌 الصلاة</b><small>مواقيت الصلاة</small></button><button class="gh4-mini" data-gh4="homeWeather"><b>🌤️ الطقس</b><small>طقس أبها</small></button></div></div>`;
     bind(p)
