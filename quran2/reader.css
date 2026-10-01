@@ -1,0 +1,1 @@
+.quran2-reader{min-height:100%;touch-action:manipulation;user-select:none;-webkit-user-select:none}.quran2-reader__toolbar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}.quran2-reader__page{line-height:2;overflow:auto}.quran2-reader button{min-height:44px;min-width:44px}.quran2-reader[data-contrast="true"]{filter:contrast(1.15)}
