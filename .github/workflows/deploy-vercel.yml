@@ -1,8 +1,6 @@
 name: Ghadeer Vercel release gate
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -19,12 +17,14 @@ jobs:
         with:
           node-version: 22
 
+      - name: Repository release audit
+        run: node scripts/release-audit.js
+
       - name: Validate production build
         run: |
           node build.js
           test -f dist/index.html
           test -f dist/app.js
-          test -f dist/runtime-hardening.js
 
       - name: Validate Vercel configuration
         run: |
@@ -33,5 +33,4 @@ jobs:
 
       - name: Deployment mode
         run: |
-          echo "Vercel production deployment is kept on the connected Vercel↔GitHub integration."
-          echo "The release gate validates the shared artifact without requiring a stored CLI token."
+          echo "Validation only. Production deployment is intentionally manual and is not triggered by this workflow."
