@@ -4,15 +4,16 @@ const registry=new Map();
 const ROLE_ALIASES=Object.freeze({
  'core':'core','basic':'core','primary':'core','أساسي':'core','خدمات الحي الأساسية':'core',
  'home':'home','house':'home','maintenance':'home','منزل':'home','المنزل والصيانة':'home',
- 'car':'car','cars':'car','transport':'transport','سيارات':'car','النقل':'transport','السيارات والنقل':'car',
+ 'car':'car','cars':'car','سيارات':'car','السيارات والنقل':'car',
+ 'transport':'transport','النقل':'transport',
  'family':'family','education':'family','family_education':'family','الأسرة':'family','التعليم':'family','الأسرة والتعليم':'family',
  'shopping':'shopping','food':'shopping','market':'shopping','التسوق':'shopping','الطعام':'shopping','التسوق والطعام':'shopping',
  'agri':'agri','agriculture':'agri','farm':'agri','المزارع':'agri','الحدائق':'agri','المزارع والحدائق':'agri',
  'tech':'tech','digital':'tech','technology':'tech','التقنية':'tech','الخدمات الرقمية':'tech','التقنية والخدمات الرقمية':'tech',
  'events':'events','hospitality':'events','المناسبات':'events','الضيافة':'events','المناسبات والضيافة':'events',
  'pets':'pets','animals':'pets','الحيوانات':'pets',
- 'professional':'professional','business':'professional','real_estate':'professional','المهنية':'professional','العقارية':'professional','الخدمات المهنية والعقارية':'professional',
- 'safety':'safety','emergency':'safety','السلامة':'safety','المساعدة':'safety','السلامة والمساعدة':'safety'
+ 'professional':'professional','business':'professional','real_estate':'professional','pro':'professional','المهنية':'professional','العقارية':'professional','الخدمات المهنية والعقارية':'professional',
+ 'safety':'safety','emergency':'safety','help':'safety','السلامة':'safety','المساعدة':'safety','السلامة والمساعدة':'safety'
 });
 function normalizeRole(value){const raw=String(value??'').trim();if(!raw)return 'other';const key=raw.toLowerCase().replace(/[\sـ]+/g,'_');return ROLE_ALIASES[key]||ROLE_ALIASES[raw]||'other'}
 function keyOf(x){return String(x?.serviceKey||'').trim()}
