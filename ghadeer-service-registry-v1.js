@@ -21,6 +21,19 @@ function register(def){const k=keyOf(def);if(!k)throw new Error('serviceKey is r
 function get(k){return registry.get(String(k||''))||null}
 function list(){return [...registry.values()]}
 function byRole(role){const canonical=normalizeRole(role);return list().filter(x=>x.role===canonical)}
-function validate(){const errors=[];for(const d of registry.values()){if(!d.entry||!d.ownerPage)errors.push(`${d.serviceKey}: missing entry/ownerPage`);if(!d.lifecycle||!['draft','ui','connected','tested','verified'].includes(d.lifecycle))errors.push(`${d.serviceKey}: invalid lifecycle`);if(!d.role||d.role==='other')errors.push(`${d.serviceKey}: missing canonical role`)}return {ok:errors.length===0,errors}}
+function validate(){
+ const errors=[],keys=new Set(),routes=new Map(),entries=new Map(),owners=new Map();
+ for(const d of registry.values()){
+   const k=keyOf(d);
+   if(keys.has(k))errors.push(`${k}: duplicate serviceKey`); else keys.add(k);
+   for(const field of ['name','role','category','route','entry','ownerPage','lifecycle'])if(!String(d[field]??'').trim())errors.push(`${k}: missing ${field}`);
+   if(d.role==='other')errors.push(`${k}: missing canonical role`);
+   if(!['draft','ui','connected','tested','verified'].includes(d.lifecycle))errors.push(`${k}: invalid lifecycle`);
+   if(d.route){const prior=routes.get(d.route);if(prior&&prior!==k)errors.push(`${k}: duplicate route ${d.route} also used by ${prior}`);else routes.set(d.route,k)}
+   if(d.entry){const prior=entries.get(d.entry);if(prior&&prior!==k)errors.push(`${k}: duplicate entry ${d.entry} also owned by ${prior}`);else entries.set(d.entry,k)}
+   if(d.ownerPage){const prior=owners.get(d.ownerPage);if(prior&&prior!==k)errors.push(`${k}: conflicting ownerPage ${d.ownerPage} also used by ${prior}`);else owners.set(d.ownerPage,k)}
+ }
+ return {ok:errors.length===0,errors};
+}
 window.GhadeerServiceRegistry={register,get,list,byRole,normalizeRole,roles:ROLE_ALIASES,validate};
 })();
