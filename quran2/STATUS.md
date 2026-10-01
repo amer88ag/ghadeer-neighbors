@@ -9,7 +9,7 @@ Legend: 🟢 implemented in repository, 🟡 partial/scaffold, 🔴 not implemen
 - Audio: 🟢 ayah playback URL + speed control; full ayah sync/repeat still 🔴
 - Search: 🟢 provider-backed search UI
 - Bookmarks: 🟡 local bookmark wiring; durable model integration still pending
-- Offline: 🔴 full 114-surah download/runtime not verified
+- Offline implementation: 🟡 114-surah IndexedDB download/verification flow implemented; browser runtime and offline reload test pending
 - Tafsir: 🔴 verified tafsir provider not configured
 - Tajweed: 🔴 verified rule provider not configured
 - Hifz/review: 🟡 state model exists; full learning flow not verified
