@@ -4,7 +4,7 @@ const registry=new Map();
 const ROLE_ALIASES=Object.freeze({
  'core':'core','basic':'core','primary':'core','أساسي':'core','خدمات الحي الأساسية':'core',
  'home':'home','house':'home','maintenance':'home','منزل':'home','المنزل والصيانة':'home',
- 'car':'car','cars':'car','سيارات':'car','السيارات والنقل':'car',
+ 'car':'transport','cars':'transport','سيارات':'transport','السيارات والنقل':'transport',
  'transport':'transport','النقل':'transport',
  'family':'family','education':'family','family_education':'family','الأسرة':'family','التعليم':'family','الأسرة والتعليم':'family',
  'shopping':'shopping','food':'shopping','market':'shopping','التسوق':'shopping','الطعام':'shopping','التسوق والطعام':'shopping',
