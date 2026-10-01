@@ -1,17 +1,17 @@
-/* Ghadeer Service Refactor Plan v1 — plan only.
- * Converts the dependency risk matrix into explicit next actions.
+/* Ghadeer Service Refactor Plan v1 — reversible planning gate.
  * No files, routes, RPCs, data, permissions, or services are modified.
  */
 (()=>{'use strict';
 function run(){
- const matrix=window.GhadeerServiceDependencyRiskMatrix;
- const manifest=window.GhadeerServiceManifest;
- if(!matrix||!manifest)return {ok:false,reason:'risk-matrix-or-manifest-unavailable'};
- const rows=matrix.rows.map(r=>{
-   const action=r.risk==='SAFE'?'PREPARE_ISOLATED_REFACTOR':r.risk==='REVIEW'?'MAP_UNRESOLVED_DEPENDENCIES':'DO_NOT_TOUCH';
-   return Object.freeze({serviceKey:r.serviceKey,risk:r.risk,blockers:r.blockers,reviews:r.reviews,nextAction:action});
+ const pre=window.GhadeerServicePreflight;
+ const map=window.GhadeerServiceExecutionMap;
+ if(!pre||!map)return {ok:false,reason:'preflight-or-execution-map-unavailable'};
+ const rows=(pre.rows||[]).map(p=>{
+  const m=(map.rows||[]).find(x=>x.serviceKey===p.serviceKey);
+  const steps=p.decision==='ALLOW_REFACTOR_REVIEW'?["snapshot-current-boundary","verify-route-and-public-api","verify-ui-actions","verify-backend-contract","prepare-isolated-adapter","run-static-regression","run-runtime-smoke","compare-before-after","rollback-if-any-failure"]:["resolve-hold-reason","re-run-preflight"];
+  return Object.freeze({serviceKey:p.serviceKey,decision:p.decision,risk:p.risk,steps,rollbackRequired:true,mutationsAllowed:false,route:m?.route||p.route||''});
  });
- const result=Object.freeze({ok:true,total:rows.length,prepare:rows.filter(r=>r.nextAction==='PREPARE_ISOLATED_REFACTOR').length,review:rows.filter(r=>r.nextAction==='MAP_UNRESOLVED_DEPENDENCIES').length,blocked:rows.filter(r=>r.nextAction==='DO_NOT_TOUCH').length,rows,generatedAt:new Date().toISOString()});
+ const result=Object.freeze({ok:true,total:rows.length,candidates:rows.filter(x=>x.decision==='ALLOW_REFACTOR_REVIEW').length,holds:rows.filter(x=>x.decision==='HOLD').length,rows,generatedAt:new Date().toISOString()});
  window.GhadeerServiceRefactorPlan=result;return result;
 }
 window.GhadeerBuildServiceRefactorPlan=run;
