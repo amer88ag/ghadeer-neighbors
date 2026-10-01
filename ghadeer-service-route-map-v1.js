@@ -4,8 +4,8 @@ const norm=s=>String(s||'').replace(/[\sـ]/g,'').replace(/[أإآ]/g,'ا').repl
 const slug=s=>norm(s).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,70)||'service';
 const keyFor=(role,name)=>`svc_${slug(role)}_${slug(name)}`;
 function build(){
- const R=window.GhadeerServiceRegistry,C=window.GhadeerServicesV6?.catalog;
- if(!R||!Array.isArray(C))return;
+ const R=window.GhadeerServiceRegistry,C=window.GhadeerServicesV6?.catalog,E=window.GhadeerServiceEntries;
+ if(!R||!Array.isArray(C)||!E)return;
  const routes={},seenRoutes=new Set(),seenKeys=new Set();
  for(const x of C){
    const role=R.normalizeRole(x.role??x.category??x.cat);
@@ -13,14 +13,17 @@ function build(){
    const route=`/services/${slug(role)}/${slug(x.name)}`;
    if(seenKeys.has(serviceKey))throw new Error('Duplicate serviceKey: '+serviceKey);
    if(seenRoutes.has(route))throw new Error('Duplicate service route: '+route);
-   const def={serviceKey,name:x.name,role,category:role,route,entry:'GhadeerServicesV6',ownerPage:'services',lifecycle:'ui'};
-   R.register(def);
+   const entry=E.register(serviceKey).entry;
+   const def={serviceKey,name:x.name,icon:x.icon,role,category:role,description:x.desc,route,entry,ownerPage:'services',lifecycle:'ui'};
+   if(!R.get(serviceKey))R.register(def);else if(R.get(serviceKey).entry!==entry)throw new Error('Entry mismatch: '+serviceKey);
    seenKeys.add(serviceKey);seenRoutes.add(route);routes[serviceKey]=def;
  }
- const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',role:'faith',category:'faith',route:'/quran2',entry:'GhadeerQuran2Module',ownerPage:'quran2',lifecycle:'ui'};
+ const quranEntry='GhadeerQuran2Module';
+ const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',icon:'📖',role:'faith',category:'faith',route:'/quran2',entry:quranEntry,ownerPage:'quran2',lifecycle:'ui'};
  if(seenKeys.has(quran.serviceKey))throw new Error('Duplicate serviceKey: '+quran.serviceKey);
  if(seenRoutes.has(quran.route))throw new Error('Duplicate service route: '+quran.route);
- R.register(quran);routes[quran.serviceKey]=quran;
+ if(!R.get(quran.serviceKey))R.register(quran);
+ routes[quran.serviceKey]=quran;
  const validation=R.validate();
  if(!validation.ok)throw new Error('Service Registry validation failed: '+validation.errors.join('; '));
  window.GhadeerServiceRoutes=Object.freeze(routes);
