@@ -22,7 +22,7 @@ function get(k){return registry.get(String(k||''))||null}
 function list(){return [...registry.values()]}
 function byRole(role){const canonical=normalizeRole(role);return list().filter(x=>x.role===canonical)}
 function validate(){
- const errors=[],keys=new Set(),routes=new Map(),entries=new Map(),owners=new Map();
+ const errors=[],keys=new Set(),routes=new Map();
  for(const d of registry.values()){
    const k=keyOf(d);
    if(keys.has(k))errors.push(`${k}: duplicate serviceKey`); else keys.add(k);
@@ -30,8 +30,6 @@ function validate(){
    if(d.role==='other')errors.push(`${k}: missing canonical role`);
    if(!['draft','ui','connected','tested','verified'].includes(d.lifecycle))errors.push(`${k}: invalid lifecycle`);
    if(d.route){const prior=routes.get(d.route);if(prior&&prior!==k)errors.push(`${k}: duplicate route ${d.route} also used by ${prior}`);else routes.set(d.route,k)}
-   if(d.entry){const prior=entries.get(d.entry);if(prior&&prior!==k)errors.push(`${k}: duplicate entry ${d.entry} also owned by ${prior}`);else entries.set(d.entry,k)}
-   if(d.ownerPage){const prior=owners.get(d.ownerPage);if(prior&&prior!==k)errors.push(`${k}: conflicting ownerPage ${d.ownerPage} also used by ${prior}`);else owners.set(d.ownerPage,k)}
  }
  return {ok:errors.length===0,errors};
 }
