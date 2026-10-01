@@ -1,4 +1,4 @@
-/* Canonical service routing bridge — maps service identities to existing app modules without replacing the app router. */
+/* Canonical service routing bridge — quran2 is the new canonical Quran module; legacy V5 remains compatibility-only until V2 is verified. */
 (()=>{'use strict';
 const routes=new Map([
  ['سكن الحي',{kind:'page',keys:['housing','residential','sakan']}],
@@ -8,29 +8,17 @@ const routes=new Map([
  ['مناسبات الحي',{kind:'page',keys:['events','occasions']}],
  ['أخبار الحي',{kind:'page',keys:['news','announcements']}],
  ['كورة حي الغدير',{kind:'module',module:'football'}],
- ['وردي',{kind:'module',module:'quran'}],
- ['القرآن',{kind:'module',module:'quran'}],
+ ['وردي',{kind:'module',module:'quran2'}],
+ ['القرآن',{kind:'module',module:'quran2'}],
  ['الطقس',{kind:'module',module:'weather'}],
  ['مواقيت الصلاة',{kind:'module',module:'prayer'}],
  ['الذكر',{kind:'module',module:'dhikr'}]
 ]);
 function candidates(key){return routes.get(key)?.keys||[]}
-function pageOpen(keys){
- const fnNames=['openPage','navigateTo','goToPage','showPage'];
- for(const n of fnNames){const fn=window[n];if(typeof fn!=='function')continue;for(const k of keys){try{fn(k);return true}catch(_){}}}
- for(const k of keys){const el=document.getElementById(k);if(!el)continue;document.querySelectorAll('.page.active').forEach(x=>x.classList.remove('active'));el.classList.add('active');return true}
- return false
-}
-function moduleOpen(module){
- const candidatesByModule={
-  football:[['GhadeerFootballV2','open'],['GhadeerFootball','open'],['GhadeerFootballV2','show'],['GhadeerFootball','show']],
-  quran:[['GhadeerQuranV5','open'],['GhadeerQuran','open'],['GhadeerQuranV5','show']],
-  weather:[['GhadeerWeather','open'],['GhadeerWeather','show']],
-  prayer:[['GhadeerPrayer','open'],['GhadeerPrayer','show']],
-  dhikr:[['GhadeerDhikr','open'],['GhadeerDhikr','show']]
- };
- for(const [obj,method] of (candidatesByModule[module]||[])){const api=window[obj];if(api&&typeof api[method]==='function'){try{api[method]();return true}catch(_){}}}
- return false
-}
-window.GhadeerServiceRoutes={routes,resolve(name){return routes.get(String(name||''))||null},open(name,fallback){const r=routes.get(String(name||''));if(r?.kind==='module'&&moduleOpen(r.module))return true;if(r?.kind==='page'&&pageOpen(candidates(name)))return true;return typeof fallback==='function'?fallback():false}};
+function pageOpen(keys){const fnNames=['openPage','navigateTo','goToPage','showPage'];for(const n of fnNames){const fn=window[n];if(typeof fn!=='function')continue;for(const k of keys){try{fn(k);return true}catch(_){}}}for(const k of keys){const el=document.getElementById(k);if(!el)continue;document.querySelectorAll('.page.active').forEach(x=>x.classList.remove('active'));el.classList.add('active');return true}return false}
+async function moduleOpen(module){
+ if(module==='quran2'){try{const q=window.GhadeerQuran2Module;if(q&&typeof q.mount==='function'){await q.mount();return true}}catch(error){console.error('[Ghadeer] Quran V2 mount failed',error)}const legacy=window.GhadeerQuranV5;if(legacy&&typeof legacy.open==='function'){try{legacy.open();return true}catch(_){} }return false}
+ const candidatesByModule={football:[['GhadeerFootballV2','open'],['GhadeerFootball','open'],['GhadeerFootballV2','show'],['GhadeerFootball','show']],weather:[['GhadeerWeather','open'],['GhadeerWeather','show']],prayer:[['GhadeerPrayer','open'],['GhadeerPrayer','show']],dhikr:[['GhadeerDhikr','open'],['GhadeerDhikr','show']]};
+ for(const [obj,method] of (candidatesByModule[module]||[])){const api=window[obj];if(api&&typeof api[method]==='function'){try{api[method]();return true}catch(_){}}}return false}
+window.GhadeerServiceRoutes={routes,resolve(name){return routes.get(String(name||''))||null},open(name,fallback){const r=routes.get(String(name||''));if(r?.kind==='module'){const result=moduleOpen(r.module);if(result&&typeof result.then==='function')return result;if(result)return true}if(r?.kind==='page'&&pageOpen(candidates(name)))return true;return typeof fallback==='function'?fallback():false}};
 })();
