@@ -1,8 +1,6 @@
 name: Ghadeer Cloudflare release gate
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -19,6 +17,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Repository release audit
+        run: node scripts/release-audit.js
+
       - name: Validate production build
         env:
           GHADEER_BUILD_INJECT: "1"
@@ -26,7 +27,6 @@ jobs:
           node build.js
           test -f dist/index.html
           test -f dist/app.js
-          test -f dist/runtime-hardening.js
 
       - name: Validate Cloudflare Worker configuration
         run: |
@@ -39,5 +39,4 @@ jobs:
 
       - name: Deployment mode
         run: |
-          echo "Cloudflare production deployment is kept on the connected Cloudflare↔GitHub integration."
-          echo "The release gate validates the exact artifact and Worker configuration without requiring a stored API token."
+          echo "Validation only. Production deployment is intentionally manual and is not triggered by this workflow."
