@@ -20,6 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Repository release audit
+        run: node scripts/release-audit.js
       - name: Audit frontend wiring and icons
         run: node scripts/validate-frontend.js
       - name: Validate every JavaScript source file
