@@ -19,15 +19,42 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - name: Audit frontend wiring and icons
         run: node scripts/validate-frontend.js
-      - name: Build production output
-        run: node build.js
-      - name: Verify production output
+      - name: Validate every JavaScript source file
+        shell: bash
         run: |
-          test -f index.html
-          test -f app.js
-          grep -q "جيران حي الغدير" index.html
-          test -s app.js
-          node --check app.js
+          set -euo pipefail
+          while IFS= read -r -d '' f; do
+            echo "Checking $f"
+            node --check "$f"
+          done < <(find . -maxdepth 1 -type f -name '*.js' -print0 | sort -z)
+      - name: Build production artifact
+        run: node build.js
+      - name: Verify production artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f dist/app.js
+          test -s dist/app.js
+          grep -q "جيران حي الغدير" dist/index.html
+          node --check dist/app.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('dist/index.html').read_text(encoding='utf-8')
+          srcs = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html)
+          local = [s.split('?', 1)[0] for s in srcs if not s.startswith(('http://','https://','//'))]
+          missing = sorted({s for s in local if not Path('dist', s).is_file()})
+          if missing:
+              raise SystemExit('Missing local production assets: ' + ', '.join(missing))
+          counts = {}
+          for s in local:
+              counts[s] = counts.get(s, 0) + 1
+          duplicate = sorted(s for s,n in counts.items() if n > 1)
+          if duplicate:
+              raise SystemExit('Duplicate production script references: ' + ', '.join(duplicate))
+          print(f'Production asset validation passed: {len(local)} local scripts.')
+          PY
