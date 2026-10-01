@@ -5,7 +5,19 @@ function go(key){
  if(key==='home') return window.GhadeerUIv5?.home?.();
  if(key==='services'||key==='services:help'||key==='services:market') return window.GhadeerUIv5?.services?.();
  if(key==='football'||['spl','uel','world','king','super','ghadeer'].includes(key)) return window.GhadeerFootballV1?.render?.(key==='football'?'spl':key);
- if(key==='wardi'||['read','recite','tajweed','tafsir','adhkar','hifz','marks','download'].includes(key)) { window.GhadeerUIv5?.wardi?.(); setTimeout(()=>{const ids={tajweed:'ghq5Taj',tafsir:'ghq5Taf',adhkar:'ghq5Dh',hifz:'ghq5Hifz',marks:'ghq5Marks',download:'ghq5Download'};const b=document.getElementById(ids[key]);if(b)b.click()},250); return; }
+ if(key==='wardi'||['read','recite','tajweed','tafsir','adhkar','hifz','marks','download'].includes(key)) {
+   const module=window.GhadeerQuran2Module;
+   if(!module?.mount) return window.openPage?.('quran2');
+   return Promise.resolve(module.mount()).then(()=>{
+     if(key==='wardi'||key==='read'||key==='recite') return;
+     const ids={tajweed:'tajweed',tafsir:'tafsir',hifz:'hifz',marks:'bookmark',download:'offline'};
+     const action=ids[key];
+     const root=document.getElementById('quran2-root');
+     if(!action||!root)return;
+     const button=root.querySelector(`[data-q2="${action}"]`);
+     if(button)button.click();
+   });
+ }
  if(key==='more') return window.openPage?.('more')||window.GhadeerUIv5?.install?.();
  if(key==='logout') return window.logout?.()||window.signOut?.();
  if(map[key]) return window.openPage?.(map[key]);
