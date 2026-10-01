@@ -13,16 +13,19 @@ function build(){
    const route=`/services/${slug(role)}/${slug(x.name)}`;
    if(seenKeys.has(serviceKey))throw new Error('Duplicate serviceKey: '+serviceKey);
    if(seenRoutes.has(route))throw new Error('Duplicate service route: '+route);
-   seenKeys.add(serviceKey);seenRoutes.add(route);
-   routes[serviceKey]={serviceKey,name:x.name,role,category:role,route,entry:'GhadeerServicesV6',ownerPage:'services',lifecycle:'ui'};
+   const def={serviceKey,name:x.name,role,category:role,route,entry:'GhadeerServicesV6',ownerPage:'services',lifecycle:'ui'};
+   R.register(def);
+   seenKeys.add(serviceKey);seenRoutes.add(route);routes[serviceKey]=def;
  }
- const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',role:'core',category:'core',route:'/quran2',entry:'GhadeerQuran2Module',ownerPage:'quran2',lifecycle:'draft'};
- if(!seenKeys.has(quran.serviceKey))routes[quran.serviceKey]=quran;
- else throw new Error('Duplicate serviceKey: '+quran.serviceKey);
+ const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',role:'faith',category:'faith',route:'/quran2',entry:'GhadeerQuran2Module',ownerPage:'quran2',lifecycle:'ui'};
+ if(seenKeys.has(quran.serviceKey))throw new Error('Duplicate serviceKey: '+quran.serviceKey);
  if(seenRoutes.has(quran.route))throw new Error('Duplicate service route: '+quran.route);
+ R.register(quran);routes[quran.serviceKey]=quran;
+ const validation=R.validate();
+ if(!validation.ok)throw new Error('Service Registry validation failed: '+validation.errors.join('; '));
  window.GhadeerServiceRoutes=Object.freeze(routes);
  window.GhadeerResolveServiceRoute=k=>window.GhadeerServiceRoutes[String(k||'')]||null;
- console.info('[Ghadeer] service routes',Object.keys(routes).length);
+ console.info('[Ghadeer] canonical service routes',Object.keys(routes).length);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(build,0),{once:true});else setTimeout(build,0);
 })();
