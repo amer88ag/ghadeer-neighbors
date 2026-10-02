@@ -2,7 +2,11 @@
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id);
-const go=id=>{if(typeof window.openPage==='function')window.openPage(id);};
+const go=id=>{
+  const R=window.GHADEER_SERVICE_ROUTES;
+  if(R?.has?.(id)) return R.open(id);
+  if(typeof window.openPage==='function') return window.openPage(id);
+};
 function ensureMorePage(){
   if($('more')) return;
   const main=document.querySelector('main.wrap'); if(!main)return;
@@ -64,6 +68,6 @@ function patchPageChange(){
   if(window.__ghadeerPagePatched)return;const original=window.openPage;if(typeof original!=='function')return;window.__ghadeerPagePatched=true;
   window.openPage=function(id){const result=original.apply(this,arguments);setTimeout(()=>{window.dispatchEvent(new Event('ghadeer:pagechange'));ensureMorePage();installWeatherLauncher();moveFooter();},30);return result;};
 }
-function boot(){ensureMorePage();normalizeNav();patchPageChange();installWeatherLauncher();moveFooter();const obs=new MutationObserver(()=>{if($('ghTempChip'))installWeatherLauncher();});obs.observe(document.body,{childList:true,subtree:true});setTimeout(()=>window.dispatchEvent(new Event('ghadeer:pagechange')),50);}
+function boot(){ensureMorePage();normalizeNav();patchPageChange();installWeatherLauncher();moveFooter();setTimeout(()=>window.dispatchEvent(new Event('ghadeer:pagechange')),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
