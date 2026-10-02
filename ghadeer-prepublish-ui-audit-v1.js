@@ -13,7 +13,8 @@ const srcs=[...index.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1]
 const duplicateSrc=[...new Set(srcs.filter((x,i)=>srcs.indexOf(x)!==i))];
 if(duplicateSrc.length)errors.push(`duplicate-script-src:${duplicateSrc.join(',')}`);
 const routes=['services','coffee','outings','football','wardi','news','members','more'];
-for(const r of routes)if(!ui.includes(`data-gh5="${r}"`))errors.push(`missing-ui-route:${r}`);
+const routeEvidence={services:/tile\([^\n]+,'services'\)/,coffee:/tile\([^\n]+,'coffee'\)/,outings:/tile\([^\n]+,'outings'\)/,football:/tile\([^\n]+,'football'\)/,wardi:/tile\([^\n]+,'wardi'\)/,news:/tile\([^\n]+,'news'\)/,members:/data-gh5=\"members\"/,more:/data-gh5=\"more\"/};
+for(const r of routes)if(!routeEvidence[r].test(ui))errors.push(`missing-ui-route:${r}`);
 if(!/let installed=false;/.test(ui)||!/if\(installed\)return;installed=true;/.test(ui))errors.push('ui-install-not-idempotent');
 if(!/dataset\.gh5Bound/.test(ui))errors.push('ui-handler-dedup-missing');
 if(!/dataset\.moreFix/.test(nav)||!/dataset\.actionsBound/.test(nav))errors.push('navigation-handler-dedup-missing');
