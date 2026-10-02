@@ -1,0 +1,26 @@
+/* Ghadeer prepublish UI audit v1 — static checks only; never deploys or mutates data. */
+'use strict';
+const fs=require('fs'), path=require('path');
+const root=process.cwd();
+const read=f=>fs.readFileSync(path.join(root,f),'utf8');
+const errors=[];
+const index=read('index.html');
+const ui=read('ghadeer-ui-v5.js');
+const nav=read('ghadeer-navigation-fix-v1.js');
+const required=['ghadeer-ui-v5.js','ghadeer-navigation-fix-v1.js','ghadeer-service-action-map-v1.js','ghadeer-service-backend-integration-audit-v1.js','ghadeer-service-action-backend-contract-v1.js','ghadeer-service-backend-declaration-audit-v1.js','ghadeer-ui-integrity-audit-v1.js','ghadeer-ui-interaction-matrix-v1.js','ghadeer-ui-release-gate-v1.js','ghadeer-service-route-target-audit-v1.js'];
+for(const f of required)if(!fs.existsSync(path.join(root,f)))errors.push(`missing:${f}`);
+const srcs=[...index.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)].map(m=>m[1].split('?')[0]).filter(Boolean);
+const duplicateSrc=[...new Set(srcs.filter((x,i)=>srcs.indexOf(x)!==i))];
+if(duplicateSrc.length)errors.push(`duplicate-script-src:${duplicateSrc.join(',')}`);
+const routes=['services','coffee','outings','football','wardi','news','members','more'];
+for(const r of routes)if(!ui.includes(`data-gh5="${r}"`))errors.push(`missing-ui-route:${r}`);
+if(!/let installed=false;/.test(ui)||!/if\(installed\)return;installed=true;/.test(ui))errors.push('ui-install-not-idempotent');
+if(!/dataset\.gh5Bound/.test(ui))errors.push('ui-handler-dedup-missing');
+if(!/dataset\.moreFix/.test(nav)||!/dataset\.actionsBound/.test(nav))errors.push('navigation-handler-dedup-missing');
+if(/\[500,1200,2500,4500\]/.test(nav))errors.push('legacy-navigation-timers-present');
+if(/\[800,1800,3500\]/.test(ui))errors.push('legacy-ui-install-timers-present');
+if(!/releaseAuthorized/.test(read('ghadeer-service-action-backend-contract-v1.js')))errors.push('action-backend-gate-missing');
+if(!/backendUnverified/.test(read('ghadeer-service-backend-declaration-audit-v1.js')))errors.push('backend-declaration-gate-missing');
+const result={ok:errors.length===0,deployPerformed:false,mutationExecuted:false,errors,duplicateScriptSrc:duplicateSrc,checkedRoutes:routes};
+console.log(JSON.stringify(result,null,2));
+if(!result.ok)process.exitCode=1;
