@@ -1,4 +1,4 @@
-/* Ghadeer — canonical icon/route registry v3
+/* Ghadeer — canonical icon/route registry v4
    ONE source of truth for every clickable icon/control.
    All UI click targets resolve here before reaching legacy handlers. */
 (()=>{
@@ -77,11 +77,12 @@
   }
 
   function targetFor(event){
-    const el=event.target?.closest?.('#gh5Home .gh5-tile[data-gh5],.gh5-shell .gh5-tile[data-gh5],.gh5-nav [data-gh5],.bottom-nav [data-gh5],[data-service-route],[data-route],#developerAccessBtn,#ghTempChip');
+    const el=event.target?.closest?.('#gh5Home .gh5-tile[data-gh5],.gh5-shell .gh5-tile[data-gh5],.gh5-nav [data-gh5],.bottom-nav [data-gh5],[data-service-route],[data-route],[data-gh-target="#__developer"],[data-gh-target="__developer"],#developerAccessBtn,#ghTempChip');
     if(!el||el.dataset?.ghCanonicalBypass==='1')return null;
     if(el.closest('.gh5-remove,[data-custom-add],[data-custom-reset],[data-custom-done]'))return null;
     const raw=el.dataset?.gh5||el.dataset?.serviceRoute||el.dataset?.route;
     if(raw)return {el,key:raw};
+    if(el.dataset?.ghTarget==='__developer')return {el,key:'developer'};
     if(el.id==='developerAccessBtn')return {el,key:'developer'};
     if(el.id==='ghTempChip')return {el,key:'weather'};
     return null;
@@ -100,7 +101,7 @@
   }
 
   if(!document.documentElement.dataset.ghCanonicalClickRouter){
-    document.documentElement.dataset.ghCanonicalClickRouter='3';
+    document.documentElement.dataset.ghCanonicalClickRouter='4';
     document.addEventListener('click',event=>{
       if(document.body.classList.contains('gh5-editing'))return;
       const target=targetFor(event); if(!target)return;
@@ -116,5 +117,5 @@
     },true);
   }
 
-  window.GHADEER_ICON_ROUTES=Object.freeze({definitions,open,keyFor:el=>el?.dataset?.gh5||el?.dataset?.serviceRoute||el?.dataset?.route||null,audit});
+  window.GHADEER_ICON_ROUTES=Object.freeze({definitions,open,keyFor:el=>el?.dataset?.gh5||el?.dataset?.serviceRoute||el?.dataset?.route||el?.dataset?.ghTarget||null,audit});
 })();
