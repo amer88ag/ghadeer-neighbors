@@ -8,10 +8,11 @@ const map={
   coffee:'coffee',outings:'outings',neighbors:'neighbors',members:'neighbors',messages:'messages',
   neighborCheck:'neighbor-check',housing:'housing',realEstate:'housing',market:'market',jobs:'jobs',
   occasions:'occasions',neighborhoodEvents:'occasions',lost:'lost',announcements:'announcements',news:'news',
-  hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',developer:'developer',manager:'manager',
-  more:'more',settings:'settings',aboutProject:'aboutProject',logout:'logout'
+  hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',
+  football:'football',wardi:'wardi',
+  developer:'developer',manager:'manager',more:'more',settings:'settings',aboutProject:'aboutProject',logout:'logout'
 };
-const generic=new Set(['services','services:help','services:market','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','quran']);
+const generic=new Set(['services','services:help','services:market','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','prayer','weather','quran']);
 function activate(id){
   const el=document.getElementById(id);
   if(!el)return false;
@@ -52,7 +53,11 @@ function openSpecial(key){
     return true;
   }
   if(key==='football'){
-    if(typeof window.GhadeerFootballV2?.renderLeague==='function')return !!window.GhadeerFootballV2.renderLeague('spl');
+    if(typeof window.GhadeerFootballV2?.renderLeague==='function'){
+      if(typeof window.openPage==='function'&&document.getElementById('ghFootball'))window.openPage('ghFootball');
+      return !!window.GhadeerFootballV2.renderLeague('spl');
+    }
+    return false;
   }
   if(key==='wardi'||['read','recite','tajweed','tafsir','adhkar','hifz','marks','download'].includes(key)){
     const m=window.GhadeerQuran2Module;
@@ -71,4 +76,22 @@ Object.entries(map).forEach(([key,pageId])=>{
     throw new Error('Service page is not registered: '+key+' (#'+pageId+')');
   });
 });
+
+// Home tiles are generated dynamically by the home customizer. They did not
+// have a canonical click binding, so football/wardi (and every registered
+// service tile) could appear correct while doing nothing. Delegate one click
+// handler from the route layer so generated tiles always use the same route.
+if(!document.documentElement.dataset.ghRouteTileClicks){
+  document.documentElement.dataset.ghRouteTileClicks='1';
+  document.addEventListener('click',(event)=>{
+    if(document.body.classList.contains('gh5-editing'))return;
+    const tile=event.target.closest?.('#gh5Home .gh5-tile[data-gh5]');
+    if(!tile)return;
+    const key=String(tile.dataset.gh5||'').trim();
+    if(!key||!R.has(key))return;
+    event.preventDefault();
+    event.stopPropagation();
+    try{R.open(key)}catch(error){console.error('[Ghadeer] home tile route failed',key,error)}
+  },true);
+}
 })();
