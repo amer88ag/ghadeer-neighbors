@@ -22,6 +22,8 @@ jobs:
           node-version: 22
       - name: Repository release audit
         run: node scripts/release-audit.js
+      - name: Audit canonical layer architecture
+        run: node scripts/layer-audit.js
       - name: Audit frontend wiring and icons
         run: node scripts/validate-frontend.js
       - name: Validate every JavaScript source file
