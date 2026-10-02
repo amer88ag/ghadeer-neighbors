@@ -1,19 +1,22 @@
-/* Ghadeer Action→Backend Contract v1 — audit only, fail-closed. */
+/* Ghadeer Action→Backend Contract v2 — audit only, fail-closed.
+ * Navigation-only actions do not require a backend. Service/mutation actions do,
+ * and the backend must be explicitly declared by data-backend/data-rpc/data-handler.
+ */
 (()=>{'use strict';
  const norm=v=>String(v??'').trim();
  function run(){
   const actionMap=window.GhadeerServiceActionMap;
-  const backendAudit=window.GhadeerServiceBackendIntegrationAudit;
+  const classification=window.GhadeerServiceActionClassification;
   const base={ok:false,releaseAuthorized:false,mutationExecuted:false,generatedAt:new Date().toISOString()};
-  if(!actionMap)return window.GhadeerServiceActionBackendContract=Object.freeze({...base,reason:'action-map-unavailable'});
-  const actions=Array.isArray(actionMap.actions)?actionMap.actions:[];
-  const missing=actions.filter(a=>!norm(a.serviceKey)||!norm(a.actionKey)||(!norm(a.backend)&&!norm(a.rpc)&&!norm(a.handler)));
-  const keys=actions.map(a=>`${norm(a.serviceKey)}:${norm(a.actionKey)}`).filter(Boolean);
-  const dup=[...new Set(keys.filter((v,i)=>keys.indexOf(v)!==i))];
-  const backendOk=backendAudit?.ok===true;
-  const ok=actions.length>0&&missing.length===0&&dup.length===0&&backendOk;
-  return window.GhadeerServiceActionBackendContract=Object.freeze({...base,ok,releaseAuthorized:ok,totalActions:actions.length,missingBackend:missing.map(a=>({serviceKey:a.serviceKey||'',actionKey:a.actionKey||''})),duplicateActions:dup,backendAuditOk:backendOk,reason:ok?'PASS':'HOLD'});
+  if(!actionMap||!classification)return window.GhadeerServiceActionBackendContract=Object.freeze({...base,reason:'action-audit-input-unavailable'});
+  const rows=Array.isArray(actionMap.rows)?actionMap.rows:[];
+  const classified=Array.isArray(classification.rows)?classification.rows:[];
+  const needsBackend=new Set(['service','mutation']);
+  const missing=classified.filter(a=>needsBackend.has(a.category)&&!norm(a.backend)&&!norm(a.rpc)&&!norm(a.handler));
+  const duplicates=Array.isArray(actionMap.duplicateActionGroups)?actionMap.duplicateActionGroups:[];
+  const ok=rows.length>0&&missing.length===0&&duplicates.length===0;
+  return window.GhadeerServiceActionBackendContract=Object.freeze({...base,ok,releaseAuthorized:ok,totalActions:rows.length,backendRequired:classified.filter(a=>needsBackend.has(a.category)).length,missingBackend:missing.map(a=>({serviceKey:a.serviceKey||'',actionKey:a.actionKey||'',category:a.category})),duplicateActionGroups:duplicates.length,reason:ok?'PASS':'HOLD'});
  }
  window.GhadeerBuildServiceActionBackendContract=run;
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,300),{once:true});else setTimeout(run,300);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(run,350),{once:true});else setTimeout(run,350);
 })();
