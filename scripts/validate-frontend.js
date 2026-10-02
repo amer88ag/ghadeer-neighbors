@@ -27,6 +27,22 @@ for (const m of html.matchAll(/(?:src|href)=["']([^"']+\.js)(?:\?[^"']*)?["']/gi
   else errors.push(`HTML references missing JavaScript file: ${f}`);
 }
 
+// Canonical icon/service routing contract: exactly one click authority.
+const iconRegistry = 'ghadeer-icon-route-registry-v1.js';
+const routeAdapter = 'service-route-adapter.js';
+if (!fs.existsSync(iconRegistry)) errors.push(`missing canonical icon registry: ${iconRegistry}`);
+else {
+  const s = fs.readFileSync(iconRegistry, 'utf8');
+  if (!/GHADEER_ICON_ROUTES/.test(s) || !/UNREGISTERED ICON\/SERVICE/.test(s) || !/function audit\(/.test(s)) {
+    errors.push('canonical icon registry is missing required open/audit contract');
+  }
+}
+if (fs.existsSync(routeAdapter)) {
+  const s = fs.readFileSync(routeAdapter, 'utf8');
+  if (/addEventListener\s*\(\s*['"]click['"]/.test(s)) errors.push('service-route-adapter must not install a competing click listener');
+}
+if (!scriptsBlock?.[1]?.includes(iconRegistry)) errors.push('build.js must include the canonical icon registry');
+
 const jsList = [...jsFiles];
 const js = jsList.map(f => fs.readFileSync(f, 'utf8')).join('\n');
 function count(re, s) { return (s.match(re) || []).length; }
@@ -77,5 +93,6 @@ if (errors.length) {
 }
 console.log(`Static buttons checked: ${count(/<button\b/gi, html)}`);
 console.log(`HTML ids checked: ${ids.length}`);
+console.log('Canonical icon routing contract: PASS');
 console.log('JavaScript syntax: PASS');
 console.log('Production build wiring: PASS');
