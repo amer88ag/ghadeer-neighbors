@@ -51,7 +51,8 @@ function installWeatherLauncher(){
   const head=header.querySelector('.appbar-head');const right=header.querySelector('.appbar-login');
   chip.className='gh-temp-square';chip.title='الطقس — اضغط لفتح التفاصيل';chip.setAttribute('aria-label','فتح الطقس');
   chip.style.cssText='width:42px;height:42px;min-width:42px;padding:0;border-radius:11px;border:1px solid #ffffffaa;background:#fff;color:#176b45;font-size:20px;font-weight:900;display:grid;place-items:center;box-shadow:0 2px 8px #0002;cursor:pointer';
-  if(head&&right){const box=document.createElement('div');box.id='ghWeatherHeaderBox';box.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0';head.insertBefore(box,right);box.appendChild(chip);box.appendChild(right);}
+  let box=$('ghWeatherHeaderBox');if(!box){box=document.createElement('div');box.id='ghWeatherHeaderBox';box.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0';if(head&&right)head.insertBefore(box,right);}
+  if(box)box.appendChild(chip); if(right&&box&&!box.contains(right))box.appendChild(right);
   chip.onclick=showWeather;
 }
 function moveFooter(){
@@ -61,8 +62,8 @@ function moveFooter(){
 }
 function patchPageChange(){
   if(window.__ghadeerPagePatched)return;const original=window.openPage;if(typeof original!=='function')return;window.__ghadeerPagePatched=true;
-  window.openPage=function(id){const result=original.apply(this,arguments);setTimeout(()=>window.dispatchEvent(new Event('ghadeer:pagechange')),0);return result;};
+  window.openPage=function(id){const result=original.apply(this,arguments);setTimeout(()=>{window.dispatchEvent(new Event('ghadeer:pagechange'));ensureMorePage();installWeatherLauncher();moveFooter();},30);return result;};
 }
-function boot(){ensureMorePage();normalizeNav();patchPageChange();installWeatherLauncher();moveFooter();setTimeout(()=>window.dispatchEvent(new Event('ghadeer:pagechange')),50);}
+function boot(){ensureMorePage();normalizeNav();patchPageChange();installWeatherLauncher();moveFooter();const obs=new MutationObserver(()=>{if($('ghTempChip'))installWeatherLauncher();});obs.observe(document.body,{childList:true,subtree:true});setTimeout(()=>window.dispatchEvent(new Event('ghadeer:pagechange')),50);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
