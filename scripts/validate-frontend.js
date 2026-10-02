@@ -47,6 +47,20 @@ const jsList = [...jsFiles];
 const js = jsList.map(f => fs.readFileSync(f, 'utf8')).join('\n');
 function count(re, s) { return (s.match(re) || []).length; }
 
+// A single global capture-phase click router owns navigation. Other production
+// scripts may bind local controls, but they must not intercept document-level
+// clicks or stop the canonical router before it runs.
+for (const f of jsList) {
+  if (f === iconRegistry) continue;
+  const s = fs.readFileSync(f, 'utf8');
+  if (/document\.addEventListener\s*\(\s*['"]click['"]/.test(s)) {
+    errors.push(`competing global click listener in production script: ${f}`);
+  }
+  if (/document\.addEventListener\s*\(\s*['"]click['"][\s\S]{0,1200}stopImmediatePropagation\s*\(/.test(s)) {
+    errors.push(`global click router/stopImmediatePropagation detected: ${f}`);
+  }
+}
+
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m => m[1]);
 const seen = new Map();
 for (const id of ids) seen.set(id, (seen.get(id) || 0) + 1);
