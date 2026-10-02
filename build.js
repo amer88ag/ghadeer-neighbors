@@ -6,19 +6,19 @@ const dist=path.join(root,'dist');
 if(!fs.existsSync(indexPath))throw new Error('Missing index.html');
 let deployIndex=fs.readFileSync(indexPath,'utf8');
 if(!deployIndex.includes('GHADEER_SUPABASE_CONFIG'))throw new Error('Missing GHADEER_SUPABASE_CONFIG in index.html');
-// Production injection: canonical registry/entry/route layers + application bootstrap + Quran V2 entrypoint. Legacy Quran V5 and Football V1 are excluded from production.
-const featureScripts=['app.js','ghadeer-service-registry-v1.js','ghadeer-ui-v5.js','ghadeer-football-v2.js','ghadeer-football-bridge.js','ghadeer-final-labels.js','ghadeer-click-fix-v1.js','ghadeer-home-customizer-v1.js','ghadeer-home-widgets-v2.js','ghadeer-navigation-fix-v1.js','ghadeer-services-v6.js','ghadeer-service-entry-map-v1.js','ghadeer-service-route-map-v1.js','ghadeer-service-route-bridge-v1.js','ghadeer-service-registry-adapter-v1.js','ghadeer-service-audit-v1.js','quran2/index.js'];
+// Production injection: public-members bridge before application bootstrap, then canonical registry/entry/route layers + Quran V2 entrypoint. Legacy Quran V5 and Football V1 are excluded from production.
+const featureScripts=['ghadeer-members-public-bridge-v1.js','app.js','ghadeer-service-registry-v1.js','ghadeer-ui-v5.js','ghadeer-football-v2.js','ghadeer-football-bridge.js','ghadeer-final-labels.js','ghadeer-click-fix-v1.js','ghadeer-home-customizer-v1.js','ghadeer-home-widgets-v2.js','ghadeer-navigation-fix-v1.js','ghadeer-services-v6.js','ghadeer-service-entry-map-v1.js','ghadeer-service-route-map-v1.js','ghadeer-service-route-bridge-v1.js','ghadeer-service-registry-adapter-v1.js','ghadeer-service-audit-v1.js','quran2/index.js'];
 const excludedFromProduction=new Set(['ghadeer-quran-v5.js','ghadeer-football-v1.js']);
-function injectIfPresent(scriptName){const filePath=path.join(root,scriptName);if(!fs.existsSync(filePath)||deployIndex.includes(`src="${scriptName}"`))return;const marker=/<script[^>]+src=["']runtime-hardening\.js(?:\?[^"']*)?["'][^>]*><\/script>/i;const match=deployIndex.match(marker);if(match)deployIndex=deployIndex.replace(match[0],`${match[0]}<script src="${scriptName}"></script>`);else deployIndex=deployIndex.replace(/<\/body>/i,`<script src="${scriptName}"></script></body>`)}
+function injectIfPresent(scriptName){const filePath=path.join(root,scriptName);if(!fs.existsSync(filePath)||deployIndex.includes(`src="${scriptName}"`))return;const marker=/<script[^>]+src=["']runtime-hardening\\.js(?:\\?[^"']*)?["'][^>]*><\\/script>/i;const match=deployIndex.match(marker);if(match)deployIndex=deployIndex.replace(match[0],`${match[0]}<script src="${scriptName}"></script>`);else deployIndex=deployIndex.replace(/<\\/body>/i,`<script src="${scriptName}"></script></body>`)}
 for(const script of featureScripts)injectIfPresent(script);
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
-function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
+function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
 // Copy only root assets actually referenced by the production HTML. This keeps unused/legacy source files out of dist.
 const referencedRootAssets=new Set();
 for(const match of deployIndex.matchAll(/<(?:script[^>]+src|link[^>]+href)=["']([^"']+)["']/gi)){
   const asset=String(match[1]).split(/[?#]/,1)[0];
   if(!asset||asset.startsWith('/')||asset.startsWith('./')===false||asset.includes('://'))continue;
-  const relative=asset.replace(/^\.\//,'');
+  const relative=asset.replace(/^\\.\\//,'');
   if(relative.includes('/'))continue;
   if(excludedFromProduction.has(relative))continue;
   const filePath=path.join(root,relative);
