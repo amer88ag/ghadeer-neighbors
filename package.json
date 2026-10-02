@@ -7,6 +7,6 @@
   },
   "scripts": {
     "build": "node build.js",
-    "test:ui": "node ghadeer-prepublish-ui-audit-v1.js"
+    "test:ui": "node ghadeer-prepublish-ui-audit-v1.js && node ghadeer-layer-conflict-audit-v1.js"
   }
 }
