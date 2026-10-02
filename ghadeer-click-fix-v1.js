@@ -34,9 +34,8 @@ window.GhadeerDialog={confirm:dialogConfirm};
 if(typeof window.managerDeleteNeighborCheck==='function'){
  const original=window.managerDeleteNeighborCheck;
  window.managerDeleteNeighborCheck=async function(id){
-   if(!window.state?.manager)return;
    if(!(await dialogConfirm('سيتم حذف حالة التفقد نهائيًا. هل تريد المتابعة؟','حذف حالة التفقد')))return;
-   return original.call(this,id,true);
+   return original.call(this,id);
  };
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();window.GhadeerClickFix={go};
