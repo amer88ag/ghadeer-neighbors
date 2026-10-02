@@ -13,7 +13,7 @@ function alreadyReferenced(scriptName){const normalized=String(scriptName).repla
 function injectIfPresent(scriptName){const filePath=path.join(root,scriptName);if(!fs.existsSync(filePath)||alreadyReferenced(scriptName))return;const marker=/<script[^>]+src=["']runtime-hardening\\.js(?:\\?[^"']*)?["'][^>]*><\\/script>/i;const match=deployIndex.match(marker);if(match)deployIndex=deployIndex.replace(match[0],`${match[0]}<script src="${scriptName}"></script>`);else deployIndex=deployIndex.replace(/<\\/body>/i,`<script src="${scriptName}"></script></body>`)}
 for(const script of featureScripts)injectIfPresent(script);
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
-function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,dst);else if(/\\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
+function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
 const referencedRootAssets=new Set();
 for(const match of deployIndex.matchAll(/<(?:script[^>]+src|link[^>]+href)=["']([^"']+)["']/gi)){
   const asset=String(match[1]).split(/[?#]/,1)[0];
