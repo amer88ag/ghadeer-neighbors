@@ -3,8 +3,15 @@
 'use strict';
 const R=window.GHADEER_SERVICE_ROUTES;
 if(!R)throw new Error('GHADEER_SERVICE_ROUTES is not loaded');
-const map={services:'services',coffee:'coffee',outings:'outings',neighbors:'neighbors',messages:'messages',neighborCheck:'neighbor-check',housing:'housing',market:'market',jobs:'jobs',occasions:'occasions',lost:'lost',announcements:'announcements',news:'news',hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',developer:'developer',more:'more',home:'home'};
-const generic=new Set(['services','coffee','outings','neighbors','messages','neighborCheck','housing','market','jobs','occasions','lost','announcements','news','hadith','quran']);
+const map={
+  home:'home',services:'services','services:help':'services','services:market':'market',
+  coffee:'coffee',outings:'outings',neighbors:'neighbors',members:'neighbors',messages:'messages',
+  neighborCheck:'neighbor-check',housing:'housing',realEstate:'housing',market:'market',jobs:'jobs',
+  occasions:'occasions',neighborhoodEvents:'occasions',lost:'lost',announcements:'announcements',news:'news',
+  hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',developer:'developer',manager:'manager',
+  more:'more',settings:'settings',aboutProject:'aboutProject',logout:'logout'
+};
+const generic=new Set(['services','services:help','services:market','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','quran']);
 function activate(id){
   const el=document.getElementById(id);
   if(!el)return false;
@@ -27,33 +34,41 @@ function openSpecial(key){
     if(typeof window.GhadeerUIv5?.more==='function'){window.GhadeerUIv5.more();return true;}
     if(typeof window.openPage==='function'){window.openPage('more');return true;}
   }
+  if(key==='settings'||key==='aboutProject'){
+    if(typeof window.openPage==='function'&&document.getElementById(key)){window.openPage(key);return true;}
+  }
+  if(key==='logout'){
+    if(typeof window.logout==='function'){window.logout();return true;}
+    if(typeof window.signOut==='function'){window.signOut();return true;}
+  }
   if(key==='weather'){
-    document.getElementById('ghTempChip')?.click();return true;
+    const chip=document.getElementById('ghTempChip');
+    if(chip){chip.click();return true;}
+    document.querySelector('.gh-final-weather')?.click();return true;
   }
   if(key==='prayer'){
-    const box=document.querySelector('.gh-home-widgets');
-    box?.scrollIntoView({behavior:'smooth',block:'start'});
+    document.querySelector('.gh-home-widgets')?.scrollIntoView({behavior:'smooth',block:'start'});
     if(typeof window.loadPrayerByMemberLocation==='function')window.loadPrayerByMemberLocation();
     return true;
   }
   if(key==='football'){
     if(typeof window.GhadeerFootballV2?.renderLeague==='function')return !!window.GhadeerFootballV2.renderLeague('spl');
   }
-  if(key==='wardi'){
+  if(key==='wardi'||['read','recite','tajweed','tafsir','adhkar','hifz','marks','download'].includes(key)){
     const m=window.GhadeerQuran2Module;
     if(typeof m?.mount==='function'){Promise.resolve(m.mount()).catch(console.error);return true;}
-    if(typeof window.openPage==='function'){window.openPage('quran2');return true;}
+    if(typeof window.openPage==='function'&&document.getElementById('quran2')){window.openPage('quran2');return true;}
   }
   return false;
 }
-Object.keys(map).forEach(k=>{
- R.register(k,()=>{
-  if(openSpecial(k))return true;
-  const pageId=map[k];
-  if(!generic.has(k) && activate(pageId))return true;
-  if(activate(pageId))return true;
-  if(typeof window.openPage==='function' && document.getElementById(pageId))return window.openPage(pageId),true;
-  throw new Error('Service page is not registered: '+k+' (#'+pageId+')');
- });
+Object.entries(map).forEach(([key,pageId])=>{
+  R.register(key,()=>{
+    if(openSpecial(key))return true;
+    if(activate(pageId))return true;
+    if(generic.has(key)&&typeof window.openPage==='function'&&document.getElementById(pageId)){
+      window.openPage(pageId);return true;
+    }
+    throw new Error('Service page is not registered: '+key+' (#'+pageId+')');
+  });
 });
 })();
