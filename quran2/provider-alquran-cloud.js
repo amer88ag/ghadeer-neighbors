@@ -1,6 +1,9 @@
 /* Quran V2 provider adapter: verified Uthmani edition with full-dataset caching. */
 (function(){'use strict';
 const API='https://api.alquran.cloud/v1',EDITION='quran-uthmani-quran-academy',AUDIO='ar.alafasy',DB='ghadeer-quran2-cache-v2',STORE='quran';
+// One-time migration cleanup: remove the retired Quran v5 browser database and its local bookmarks.
+try{if('indexedDB'in window)window.indexedDB.deleteDatabase('ghadeer-quran-v5')}catch(_){ }
+try{['gh_q5_bookmarks','gh_q5_progress','gh_q5_position','gh_q5_manifest'].forEach(k=>window.localStorage?.removeItem(k))}catch(_){ }
 const openDb=()=>new Promise((resolve,reject)=>{if(!('indexedDB'in window))return resolve(null);const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(STORE))r.result.createObjectStore(STORE)};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
 async function read(key){try{const db=await openDb();if(!db)return null;return await new Promise((res,rej)=>{const t=db.transaction(STORE,'readonly'),q=t.objectStore(STORE).get(key);q.onsuccess=()=>res(q.result||null);q.onerror=()=>rej(q.error)})}catch(_){return null}}
 async function write(key,value){try{const db=await openDb();if(!db)return;await new Promise((res,rej)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(value,key);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(_){} }
