@@ -1,9 +1,4 @@
 (()=>{
-  document.addEventListener('click',e=>{
-    const b=e.target.closest('[data-gh-target="__developer"]');
-    if(b) document.getElementById('developerAccessBtn')?.click();
-  });
-
   // Public browsing must not query the protected members table directly.
   // Use the existing SECURITY DEFINER RPC which returns only id/name/active.
   try{
