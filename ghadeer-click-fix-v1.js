@@ -1,6 +1,6 @@
 /* Ghadeer click fix v1 — final delegated router, loaded after all legacy UI layers. */
 (()=>{'use strict';
-const map={realEstate:'realEstate',messages:'messages',jobs:'jobs',neighborhoodEvents:'neighborhoodEvents',news:'news',neighborCheck:'neighborCheck',lost:'lost',coffee:'coffee',outings:'outings',members:'members',manager:'manager',developer:'developer',settings:'settings',aboutProject:'aboutProject'};
+const map={realEstate:'realEstate',messages:'messages',announcements:'messages',jobs:'jobs',neighborhoodEvents:'neighborhoodEvents',news:'news',neighborCheck:'neighborCheck',lost:'lost',coffee:'coffee',outings:'outings',members:'members',manager:'manager',developer:'developer',settings:'settings',aboutProject:'aboutProject'};
 function go(key){
  if(key==='home') return window.GhadeerUIv5?.home?.();
  if(key==='services'||key==='services:help'||key==='services:market') return window.GhadeerUIv5?.services?.();
