@@ -19,7 +19,7 @@ function build(){
    seenKeys.add(serviceKey);seenRoutes.add(route);routes[serviceKey]=def;
  }
  const quranEntry='GhadeerQuran2Module';
- const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',icon:'📖',role:'digital',category:'digital',route:'/quran2',entry:quranEntry,ownerPage:'quran2',lifecycle:'ui'};
+ const quran={serviceKey:'svc_quran2',name:'القرآن الكريم',icon:'📖',role:'digital',category:'digital',route:'/quran2',entry:quranEntry,ownerPage:'quran2',lifecycle:'ui'};
  if(seenKeys.has(quran.serviceKey))throw new Error('Duplicate serviceKey: '+quran.serviceKey);
  if(seenRoutes.has(quran.route))throw new Error('Duplicate service route: '+quran.route);
  if(!R.get(quran.serviceKey))R.register(quran);
