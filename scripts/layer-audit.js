@@ -5,8 +5,6 @@ const root = process.cwd();
 const build = fs.readFileSync(path.join(root, 'build.js'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-// These files are historical implementations superseded by the canonical v6 service
-// catalog / v5 UI / canonical icon-route registry. They must never enter production.
 const legacy = [
   'ghadeer-services-v2.js',
   'ghadeer-services-v3.js',
@@ -19,14 +17,11 @@ const legacy = [
 
 const errors = [];
 for (const file of legacy) {
-  if (build.includes(`'${file}'`) || build.includes(`"${file}"`)) {
-    errors.push(`legacy layer is still in build.js: ${file}`);
-  }
+  if (build.includes(`'${file}'`) || build.includes(`"${file}"`)) errors.push(`legacy layer is still in build.js: ${file}`);
   const tag = new RegExp(`<script[^>]+src=[\\"'](?:\\./)?${file.replace('.', '\\.')}(?:[?#][^\\"']*)?[\\"']`, 'i');
   if (tag.test(index)) errors.push(`legacy layer is directly referenced by index.html: ${file}`);
 }
 
-// Only the canonical icon router may own the global capture-phase click contract.
 const canonical = 'ghadeer-icon-route-registry-v1.js';
 if (!build.includes(canonical)) errors.push(`canonical icon router missing from build.js: ${canonical}`);
 
@@ -38,12 +33,14 @@ const productionScripts = [
   'ghadeer-service-route-map-v1.js',
   'ghadeer-services-v6.js',
   'ghadeer-ui-v5.js',
-  'ghadeer-final-ui-v6.js'
+  'ghadeer-final-ui-v6.js',
+  'ghadeer-member-home-v1.js'
 ];
 
 for (const file of productionScripts) {
   const p = path.join(root, file);
   if (!fs.existsSync(p)) errors.push(`canonical production layer missing: ${file}`);
+  if (!build.includes(file)) errors.push(`canonical layer not wired into build.js: ${file}`);
 }
 
 const routerText = fs.readFileSync(path.join(root, canonical), 'utf8');
