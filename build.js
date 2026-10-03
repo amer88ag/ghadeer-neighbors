@@ -22,6 +22,8 @@ for(const script of featureScripts)injectIfPresent(script);
 const legacyHome=/<section id=[\"']home[\"'][^>]*>[\s\S]*?<\/section>\s*/i;
 if(!deployIndex.includes('ghadeer-live-home-v5.js'))throw new Error('Live Home v5 is not included');
 if(legacyHome.test(deployIndex))deployIndex=deployIndex.replace(legacyHome,'');
+// The bottom navigation must target the new canonical live-home route.
+deployIndex=deployIndex.replace(/data-page=[\"']home[\"']/gi,'data-page="live-home"');
 if(/<section id=[\"']home[\"'][^>]*>/i.test(deployIndex))throw new Error('Legacy home markup survived production migration');
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
 function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
