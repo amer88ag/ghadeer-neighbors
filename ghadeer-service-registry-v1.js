@@ -1,9 +1,9 @@
-/* Ghadeer Service Registry v3 — canonical identity, six-category taxonomy and ownership layer. */
+/* Ghadeer Service Registry v4 — canonical identity, six-category taxonomy and ownership layer. */
 (()=>{'use strict';
 const registry=new Map();
 const ROLE_ALIASES=Object.freeze({
  'core':'community','basic':'community','primary':'community','أساسي':'community','خدمات الحي الأساسية':'community','community':'community','society':'community','المجتمع':'community','خدمات المجتمع':'community',
- 'quran':'digital','faith':'digital','quran2':'digital','القرآن':'digital','القران':'digital','وردِي':'digital','وردي':'digital','العبادات':'digital',
+ 'quran':'digital','faith':'digital','quran2':'digital','القرآن':'digital','القران':'digital','العبادات':'digital',
  'home':'daily','house':'daily','maintenance':'daily','منزل':'daily','المنزل والصيانة':'daily','daily':'daily','life':'daily','الحياة اليومية':'daily',
  'car':'daily','cars':'daily','سيارات':'daily','السيارات والنقل':'daily','transport':'daily','النقل':'daily','family':'daily','education':'daily','family_education':'daily','الأسرة':'daily','التعليم':'daily','الأسرة والتعليم':'daily','agri':'daily','agriculture':'daily','farm':'daily','المزارع':'daily','الحدائق':'daily','المزارع والحدائق':'daily','pets':'daily','animals':'daily','الحيوانات':'daily','safety':'daily','emergency':'daily','help':'daily','السلامة':'daily','المساعدة':'daily','السلامة والمساعدة':'daily',
  'shopping':'commerce','food':'commerce','market':'commerce','التسوق':'commerce','الطعام':'commerce','التسوق والطعام':'commerce','commerce':'commerce','التجارة':'commerce','التجارة والتسوق':'commerce',
