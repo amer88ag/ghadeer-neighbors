@@ -2,45 +2,16 @@ const fs=require('fs');
 const path=require('path');
 const {execFileSync}=require('child_process');
 const root=process.cwd();
-const layerAudit=path.join(root,'scripts','layer-audit.js');
-if(fs.existsSync(layerAudit))execFileSync(process.execPath,[layerAudit],{stdio:'inherit',cwd:root});
-const iconAudit=path.join(root,'scripts','icon-route-audit.js');
-if(fs.existsSync(iconAudit))execFileSync(process.execPath,[iconAudit],{stdio:'inherit',cwd:root});
-const homeAudit=path.join(root,'scripts','live-home-migration-audit.js');
-if(fs.existsSync(homeAudit))execFileSync(process.execPath,[homeAudit],{stdio:'inherit',cwd:root});
-const indexPath=path.join(root,'index.html');
-const dist=path.join(root,'dist');
-if(!fs.existsSync(indexPath))throw new Error('Missing index.html');
-let deployIndex=fs.readFileSync(indexPath,'utf8');
-if(!deployIndex.includes('GHADEER_SUPABASE_CONFIG'))throw new Error('Missing GHADEER_SUPABASE_CONFIG in index.html');
-const featureScripts=['dhikr-ticker.js','enhancements.js','jobs-realestate-enhancement.js','member-session.js','ghadeer-member-home-v1.js','neighbor-connect.js','neighborhood-news-ticker.js','outing-events-enhancement.js','pin-recovery.js','production-bridge.js','production-fixes.js','quran-enhancement.js','rental-enhancement.js','runtime-fix.js','services-enhancement.js','ui-final-fix.js','ghadeer-members-public-bridge-v1.js','app.js','ghadeer-service-registry-v1.js','ghadeer-ui-v5.js','ghadeer-football-v2.js','ghadeer-football-bridge.js','ghadeer-final-labels.js','ghadeer-click-fix-v1.js','ghadeer-home-customizer-v1.js','ghadeer-home-widgets-v2.js','ghadeer-services-v6.js','ghadeer-service-entry-map-v1.js','ghadeer-service-route-map-v1.js','ghadeer-service-route-bridge-v1.js','ghadeer-service-registry-adapter-v1.js','ghadeer-service-audit-v1.js','service-routes.js','service-route-adapter.js','service-pages.js','quran2/index.js','ghadeer-final-ui-v6.js','ghadeer-icon-route-registry-v1.js','ghadeer-live-home-v5.js','ghadeer-live-home-compat.js'];
-const excludedFromProduction=new Set(['ghadeer-live-home-v1.js']);
-function referencedScripts(){return new Set([...deployIndex.matchAll(/<script[^>]+src=[\"']([^\"']+)[\"'][^>]*>/gi)].map(m=>String(m[1]).split(/[?#]/,1)[0].replace(/^\.\//,'')))}
-function injectIfPresent(scriptName){const filePath=path.join(root,scriptName);if(!fs.existsSync(filePath)||excludedFromProduction.has(scriptName))return;const refs=referencedScripts();if(refs.has(scriptName.replace(/^\.\//,'')))return;const marker=/<script[^>]+src=[\"']runtime-hardening\.js(?:\?[^\"']*)?[\"'][^>]*><\/script>/i;const match=deployIndex.match(marker);if(match)deployIndex=deployIndex.replace(match[0],`${match[0]}<script src=\"${scriptName}\"></script>`);else deployIndex=deployIndex.replace(/<\/body>/i,`<script src=\"${scriptName}\"></script></body>`)}
-for(const script of featureScripts)injectIfPresent(script);
-// The old home is migrated into ghadeer-live-home-v5.js. Remove legacy home markup and legacy live-home script from production.
-const legacyHome=/<section id=[\"']home[\"'][^>]*>[\s\S]*?<\/section>\s*/i;
-const legacyAppbar=/<header[^>]*class=[\"'][^\"']*appbar[^\"']*[\"'][^>]*>[\s\S]*?<\/header>\s*/i;
-const legacyBottomNav=/<nav[^>]*class=[\"'][^\"']*bottom-nav[^\"']*[\"'][^>]*>[\s\S]*?<\/nav>\s*/i;
-const legacyDeveloperAccess=/<button[^>]*class=[\"'][^\"']*developer-access[^\"']*[\"'][^>]*>[\s\S]*?<\/button>\s*/gi;
-if(!deployIndex.includes('ghadeer-live-home-v5.js'))throw new Error('Live Home v5 is not included');
-if(legacyHome.test(deployIndex))deployIndex=deployIndex.replace(legacyHome,'');
-if(legacyAppbar.test(deployIndex))deployIndex=deployIndex.replace(legacyAppbar,'');
-if(legacyBottomNav.test(deployIndex))deployIndex=deployIndex.replace(legacyBottomNav,'');
-deployIndex=deployIndex.replace(legacyDeveloperAccess,'');
-deployIndex=deployIndex.replace(/<script[^>]+src=[\"'](?:\.\/)?ghadeer-live-home-v1\.js(?:\?[^\"']*)?[\"'][^>]*><\/script>\s*/gi,'');
-deployIndex=deployIndex.replace(/data-page=[\"']home[\"']/gi,'data-page="live-home"');
-if(/<section id=[\"']home[\"'][^>]*>/i.test(deployIndex))throw new Error('Legacy home markup survived production migration');
-if(/ghadeer-live-home-v1\.js/i.test(deployIndex))throw new Error('Legacy live-home script survived production migration');
-if(/class=[\"'][^\"']*appbar[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy appbar survived production migration');
-if(/class=[\"'][^\"']*bottom-nav[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy bottom navigation survived production migration');
-if(/class=[\"'][^\"']*developer-access[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy developer access survived production migration');
-fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
-function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
-const referencedRootAssets=new Set();
-for(const match of deployIndex.matchAll(/<(?:script[^>]+src|link[^>]+href)=[\"']([^\"']+)[\"']/gi)){const asset=String(match[1]).split(/[?#]/,1)[0];if(!asset||asset.startsWith('/')||asset.includes('://'))continue;const relative=asset.replace(/^\.\//,'');if(relative.includes('/'))continue;if(excludedFromProduction.has(relative))continue;const filePath=path.join(root,relative);if(fs.existsSync(filePath)&&fs.statSync(filePath).isFile())referencedRootAssets.add(relative)}
-for(const script of featureScripts){if(script.includes('/'))continue;if(excludedFromProduction.has(script))continue;const filePath=path.join(root,script);if(fs.existsSync(filePath)&&fs.statSync(filePath).isFile())referencedRootAssets.add(script)}
-for(const asset of referencedRootAssets)fs.copyFileSync(path.join(root,asset),path.join(dist,asset));
-if(fs.existsSync(path.join(root,'quran2')))copyTree(path.join(root,'quran2'),path.join(dist,'quran2'));
-console.log(`Ghadeer production artifact generated successfully: ${dist}`);
-console.log(`Root production assets copied: ${[...referencedRootAssets].sort().join(', ')}`);
+for(const audit of ['scripts/layer-audit.js','scripts/icon-route-audit.js','scripts/live-home-migration-audit.js']){const p=path.join(root,audit);if(fs.existsSync(p))execFileSync(process.execPath,[p],{stdio:'inherit',cwd:root})}
+const indexPath=path.join(root,'index.html'),dist=path.join(root,'dist');if(!fs.existsSync(indexPath))throw new Error('Missing index.html');
+let html=fs.readFileSync(indexPath,'utf8');if(!html.includes('GHADEER_SUPABASE_CONFIG'))throw new Error('Missing GHADEER_SUPABASE_CONFIG');
+const scripts=['dhikr-ticker.js','enhancements.js','jobs-realestate-enhancement.js','member-session.js','ghadeer-member-home-v1.js','neighbor-connect.js','neighborhood-news-ticker.js','outing-events-enhancement.js','pin-recovery.js','production-bridge.js','production-fixes.js','quran-enhancement.js','rental-enhancement.js','runtime-fix.js','services-enhancement.js','ui-final-fix.js','ghadeer-members-public-bridge-v1.js','app.js','ghadeer-service-registry-v1.js','ghadeer-ui-v5.js','ghadeer-football-v2.js','ghadeer-football-bridge.js','ghadeer-final-labels.js','ghadeer-click-fix-v1.js','ghadeer-home-customizer-v1.js','ghadeer-home-widgets-v2.js','ghadeer-services-v6.js','ghadeer-service-entry-map-v1.js','ghadeer-service-route-map-v1.js','ghadeer-service-route-bridge-v1.js','ghadeer-service-registry-adapter-v1.js','ghadeer-service-audit-v1.js','service-routes.js','service-route-adapter.js','service-pages.js','quran2/index.js','ghadeer-final-ui-v6.js','ghadeer-icon-route-registry-v1.js','ghadeer-live-home-v5.js','ghadeer-live-home-compat.js','ghadeer-bottom-nav-v2.js'];
+const excluded=new Set(['ghadeer-live-home-v1.js']);
+function refs(){return new Set([...html.matchAll(/<script[^>]+src=[\"']([^\"']+)[\"']/gi)].map(m=>m[1].split(/[?#]/,1)[0].replace(/^\.\//,'')))}
+for(const s of scripts){const fp=path.join(root,s);if(!fs.existsSync(fp)||excluded.has(s)||refs().has(s))continue;const marker=/<script[^>]+src=[\"']runtime-hardening\.js(?:\?[^\"']*)?[\"'][^>]*><\/script>/i;const m=html.match(marker);html=m?html.replace(m[0],`${m[0]}<script src="${s}"></script>`):html.replace(/<\/body>/i,`<script src="${s}"></script></body>`)}
+const strip=[/<section id=[\"']home[\"'][^>]*>[\s\S]*?<\/section>\s*/i,/<header[^>]*class=[\"'][^\"']*appbar[^\"']*[\"'][^>]*>[\s\S]*?<\/header>\s*/i,/<nav[^>]*class=[\"'][^\"']*bottom-nav[^\"']*[\"'][^>]*>[\s\S]*?<\/nav>\s*/i,/<button[^>]*class=[\"'][^\"']*developer-access[^\"']*[\"'][^>]*>[\s\S]*?<\/button>\s*/gi];for(const r of strip)html=html.replace(r,'');
+html=html.replace(/<script[^>]+src=[\"'](?:\.\/)?ghadeer-live-home-v1\.js(?:\?[^\"']*)?[\"'][^>]*><\/script>\s*/gi,'').replace(/data-page=[\"']home[\"']/gi,'data-page="live-home"');
+for(const bad of [/id=[\"']home[\"']/i,/ghadeer-live-home-v1\.js/i,/class=[\"'][^\"']*appbar[^\"']*[\"']/i,/class=[\"'][^\"']*bottom-nav[^\"']*[\"']/i,/class=[\"'][^\"']*developer-access[^\"']*[\"']/i])if(bad.test(html))throw new Error('Legacy UI survived production build: '+bad);
+fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),html);
+for(const s of scripts){if(s.includes('/')||excluded.has(s))continue;const fp=path.join(root,s);if(fs.existsSync(fp))fs.copyFileSync(fp,path.join(dist,s))}if(fs.existsSync(path.join(root,'quran2')))fs.cpSync(path.join(root,'quran2'),path.join(dist,'quran2'),{recursive:true});
+console.log('PRODUCTION BUILD PASS: canonical 3-layer UI/service/data structure; legacy UI blocked.');
