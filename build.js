@@ -6,6 +6,8 @@ const layerAudit=path.join(root,'scripts','layer-audit.js');
 if(fs.existsSync(layerAudit))execFileSync(process.execPath,[layerAudit],{stdio:'inherit',cwd:root});
 const iconAudit=path.join(root,'scripts','icon-route-audit.js');
 if(fs.existsSync(iconAudit))execFileSync(process.execPath,[iconAudit],{stdio:'inherit',cwd:root});
+const homeAudit=path.join(root,'scripts','live-home-migration-audit.js');
+if(fs.existsSync(homeAudit))execFileSync(process.execPath,[homeAudit],{stdio:'inherit',cwd:root});
 const indexPath=path.join(root,'index.html');
 const dist=path.join(root,'dist');
 if(!fs.existsSync(indexPath))throw new Error('Missing index.html');
