@@ -2,11 +2,12 @@
 (()=>{
  'use strict';
  function apply(){
-  document.querySelectorAll('.gh4-tile,.gh-v3-tile,.q5-card').forEach(el=>{
+  document.querySelectorAll('.gh4-tile,.gh-v3-tile,.q5-card,.lh5-tile[data-service="wardi"],.lh5-tile[data-service="quran"]').forEach(el=>{
    const text=(el.textContent||'').trim();
-   if(text.includes('القرآن والأذكار')||text==='القرآن'||text.includes('القرآن')||el.dataset.ghadeerWardi==='1'){
-    const b=el.querySelector('b'); if(b)b.textContent='القرآن الكريم';
+   if(text.includes('القرآن والأذكار')||text==='القرآن'||text.includes('القرآن')||el.dataset.ghadeerWardi==='1'||el.dataset.service==='wardi'||el.dataset.service==='quran'){
+    const b=el.querySelector('b,.lh5-label'); if(b)b.textContent='القرآن الكريم';
     const small=el.querySelector('small'); if(small)small.textContent='المصحف • التلاوة • التجويد • الحفظ';
+    if(el.dataset.service==='wardi')el.dataset.service='quran';
     el.dataset.ghadeerQuran='1';
     delete el.dataset.ghadeerWardi;
    }
