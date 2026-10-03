@@ -1,18 +1,27 @@
-/* Ghadeer final labels — one canonical Quran entry named Wardi. */
+/* Ghadeer final canonical labels/fixes — Quran is always Quran, never Wardi. */
 (()=>{
  'use strict';
- function apply(){
-  document.querySelectorAll('.gh4-tile,.gh-v3-tile,.q5-card').forEach(el=>{
+ const apply=()=>{
+  // Canonical Quran naming everywhere in the rendered UI.
+  document.querySelectorAll('.gh4-tile,.gh-v3-tile,.q5-card,.lh5-tile,[data-service]').forEach(el=>{
+   const key=el.dataset?.service||el.dataset?.gh5||el.dataset?.route||'';
    const text=(el.textContent||'').trim();
-   if(text.includes('القرآن والأذكار')||text==='القرآن'||text.includes('القرآن')){
-    const b=el.querySelector('b'); if(b)b.textContent='وردي';
-    const small=el.querySelector('small'); if(small)small.textContent='المصحف وخدمات التلاوة والحفظ';
-    el.dataset.ghadeerWardi='1';
+   if(key==='wardi'||key==='quran'||/وردي/.test(text)||/القرآن والأذكار/.test(text)||text==='القرآن'){
+    const label=el.querySelector('.lh5-label,b,small');
+    if(label && el.classList.contains('lh5-tile')) label.textContent='القرآن';
+    else if(label && /وردي|القرآن/.test(label.textContent||'')) label.textContent='القرآن';
+    el.dataset.service='quran';
+    el.dataset.gh5='quran';
+    el.dataset.quranCanonical='1';
    }
   });
   const page=document.getElementById('dhikr');
-  if(page){const h=page.querySelector('h2');if(h&&/القرآن/.test(h.textContent))h.textContent='📖 وردي';}
- }
- function boot(){apply();[300,900,1800,3500,6000].forEach(x=>setTimeout(apply,x))}
+  if(page){const h=page.querySelector('h2');if(h&&/وردي|القرآن/.test(h.textContent||''))h.textContent='📖 القرآن الكريم';}
+  // Remove the old green animated prayer progress bar; prayer times are data, not a decorative animation.
+  document.querySelectorAll('.lh5-progress').forEach(el=>el.remove());
+  // The live-home contains a legacy duplicate bottom bar. Keep one canonical bottom nav only.
+  document.querySelectorAll('#ghLiveHome .lh5-bottom').forEach(el=>el.remove());
+ };
+ const boot=()=>{apply();[100,400,1000,2000,4000,7000].forEach(x=>setTimeout(apply,x));};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
