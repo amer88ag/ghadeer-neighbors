@@ -20,12 +20,21 @@ function injectIfPresent(scriptName){const filePath=path.join(root,scriptName);i
 for(const script of featureScripts)injectIfPresent(script);
 // The old home is migrated into ghadeer-live-home-v5.js. Remove legacy home markup and legacy live-home script from production.
 const legacyHome=/<section id=[\"']home[\"'][^>]*>[\s\S]*?<\/section>\s*/i;
+const legacyAppbar=/<header[^>]*class=[\"'][^\"']*appbar[^\"']*[\"'][^>]*>[\s\S]*?<\/header>\s*/i;
+const legacyBottomNav=/<nav[^>]*class=[\"'][^\"']*bottom-nav[^\"']*[\"'][^>]*>[\s\S]*?<\/nav>\s*/i;
+const legacyDeveloperAccess=/<button[^>]*class=[\"'][^\"']*developer-access[^\"']*[\"'][^>]*>[\s\S]*?<\/button>\s*/gi;
 if(!deployIndex.includes('ghadeer-live-home-v5.js'))throw new Error('Live Home v5 is not included');
 if(legacyHome.test(deployIndex))deployIndex=deployIndex.replace(legacyHome,'');
+if(legacyAppbar.test(deployIndex))deployIndex=deployIndex.replace(legacyAppbar,'');
+if(legacyBottomNav.test(deployIndex))deployIndex=deployIndex.replace(legacyBottomNav,'');
+deployIndex=deployIndex.replace(legacyDeveloperAccess,'');
 deployIndex=deployIndex.replace(/<script[^>]+src=[\"'](?:\.\/)?ghadeer-live-home-v1\.js(?:\?[^\"']*)?[\"'][^>]*><\/script>\s*/gi,'');
 deployIndex=deployIndex.replace(/data-page=[\"']home[\"']/gi,'data-page="live-home"');
 if(/<section id=[\"']home[\"'][^>]*>/i.test(deployIndex))throw new Error('Legacy home markup survived production migration');
 if(/ghadeer-live-home-v1\.js/i.test(deployIndex))throw new Error('Legacy live-home script survived production migration');
+if(/class=[\"'][^\"']*appbar[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy appbar survived production migration');
+if(/class=[\"'][^\"']*bottom-nav[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy bottom navigation survived production migration');
+if(/class=[\"'][^\"']*developer-access[^\"']*[\"']/i.test(deployIndex))throw new Error('Legacy developer access survived production migration');
 fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});fs.writeFileSync(path.join(dist,'index.html'),deployIndex,'utf8');
 function copyTree(src,dst){fs.mkdirSync(dst,{recursive:true});for(const entry of fs.readdirSync(src,{withFileTypes:true})){const s=path.join(src,entry.name),d=path.join(dst,entry.name);if(entry.isDirectory())copyTree(s,d);else if(/\.(?:js|css|html|json|txt|md)$/i.test(entry.name)||entry.name==='_redirects')fs.copyFileSync(s,d)}}
 const referencedRootAssets=new Set();
