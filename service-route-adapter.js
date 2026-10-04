@@ -14,7 +14,7 @@ const map={
   hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',football:'football',wardi:'wardi',
   developer:'developer',manager:'manager',more:'more',settings:'settings',aboutProject:'aboutProject',logout:'logout'
 };
-const generic=new Set(['services','services:help','services:market','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','prayer','weather','quran']);
+const generic=new Set(['services','services:help','services:market','help','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','prayer','weather','quran']);
 function activate(id){const el=document.getElementById(id);if(!el)return false;document.querySelectorAll('.page.active').forEach(x=>x.classList.remove('active'));el.classList.add('active');const loader=window.GHADEER_INDEPENDENT_SERVICE_LOADERS?.[id];if(typeof loader==='function')loader();window.scrollTo({top:0,behavior:'smooth'});return true;}
 function openSpecial(key){
   if(key==='developer'){if(typeof window.showManagerLogin==='function'){window.showManagerLogin();return true;}return false;}
