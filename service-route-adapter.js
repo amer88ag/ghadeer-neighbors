@@ -8,10 +8,10 @@ const R=window.GHADEER_SERVICE_ROUTES;
 if(!R)throw new Error('GHADEER_SERVICE_ROUTES is not loaded');
 const map={
   home:'home',services:'services','services:help':'help','services:market':'market',
-  coffee:'coffee',outings:'outings',neighbors:'neighbors',members:'neighbors',messages:'messages',
+  help:'help',coffee:'coffee',outings:'outings',neighbors:'neighbors',members:'neighbors',messages:'messages',
   neighborCheck:'neighbor-check',housing:'housing',realEstate:'housing',market:'market',jobs:'jobs',
   occasions:'occasions',neighborhoodEvents:'occasions',lost:'lost',announcements:'announcements',news:'news',
-  hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran',football:'football',wardi:'wardi',
+  hadith:'hadith',prayer:'prayer',weather:'weather',quran:'quran2',football:'football',wardi:'quran2',
   developer:'developer',manager:'manager',more:'more',settings:'settings',aboutProject:'aboutProject',logout:'logout'
 };
 const generic=new Set(['services','services:help','services:market','help','coffee','outings','neighbors','members','messages','neighborCheck','housing','realEstate','market','jobs','occasions','neighborhoodEvents','lost','announcements','news','hadith','prayer','weather','quran']);
