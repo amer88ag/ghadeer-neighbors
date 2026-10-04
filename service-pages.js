@@ -10,7 +10,7 @@ const defs={
  housing:{title:'🏠 سكن الحي',table:'neighbor_market',columns:'id,member_name,kind,title,description,status,created_at',filter:r=>r.status==='open'&&['housing','rental','rent','سكن','إيجار'].includes(String(r.kind||'').toLowerCase())},
  occasions:{title:'🎉 مناسبات الحي',rpc:'get_neighborhood_events',rpcShape:'events',empty:'لا توجد مناسبات عامة حاليًا.'},
  announcements:{title:'📣 إعلانات الحي',table:'announcements',columns:'id,title,message,sender_name,created_at,occasion_type,is_occasion,scheduled_at',filter:r=>r.is_occasion!==true},
- news:{title:'📰 أخبار الحي',table:'announcements',columns:'id,title,message,sender_name,created_at,occasion_type,is_occasion,scheduled_at',filter:r=>r.is_occasion!==true,empty:'لا توجد أخبار منشورة حاليًا.'},
+ news:{title:'📰 أخبار الحي',table:null,empty:'خدمة الأخبار موجودة في واجهة جيران، لكن مصدر بيانات الأخبار الأصلي يحتاج تحديده قبل تفعيل العرض.'},
  // لا توجد جداول community_lost_items/community_opportunities في قاعدة جيران المستقلة؛ لا نستبدلها بجدول آخر بالتخمين.
  lost:{title:'🔎 المفقودات',table:null,empty:'خدمة المفقودات موجودة في واجهة جيران، لكن مصدر بياناتها يحتاج ربطًا بجدول جيران الصحيح قبل تفعيل العرض.'},
  jobs:{title:'💼 الوظائف',table:null,empty:'خدمة الوظائف موجودة في واجهة جيران، لكن مصدر بياناتها يحتاج ربطًا بمصدر جيران الصحيح قبل تفعيل العرض.'},
