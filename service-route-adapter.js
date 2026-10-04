@@ -7,7 +7,7 @@
 const R=window.GHADEER_SERVICE_ROUTES;
 if(!R)throw new Error('GHADEER_SERVICE_ROUTES is not loaded');
 const map={
-  home:'home',services:'services','services:help':'services','services:market':'market',
+  home:'home',services:'services','services:help':'help','services:market':'market',
   coffee:'coffee',outings:'outings',neighbors:'neighbors',members:'neighbors',messages:'messages',
   neighborCheck:'neighbor-check',housing:'housing',realEstate:'housing',market:'market',jobs:'jobs',
   occasions:'occasions',neighborhoodEvents:'occasions',lost:'lost',announcements:'announcements',news:'news',
