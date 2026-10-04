@@ -6,11 +6,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const cfg=window.GHADEER_SUPABASE_CONFIG;
 const client=(window.supabase&&cfg)?window.supabase.createClient(cfg.url,cfg.key):null;
 const defs={
- market:{title:'🛍️ سوق الحي',table:'community_listings',columns:'id,title,description,price,status,created_at,community_id,category,listing_type',filter:r=>r.status==='active'||r.status==='published'},
- housing:{title:'🏠 سكن الحي',table:'community_listings',columns:'id,title,description,price,status,created_at,community_id,category,listing_type,kind',filter:r=>['housing','rental','rent','سكن','إيجار'].includes(String(r.kind||'').toLowerCase())||['housing','rental','rent','سكن','إيجار'].includes(String(r.listing_type||'').toLowerCase())},
- occasions:{title:'🎉 مناسبات الحي',table:'community_events',columns:'id,title,description,event_type,status,created_at,starts_at,ends_at,community_id,location',filter:r=>r.status!=='cancelled'},
- announcements:{title:'📣 إعلانات الحي',table:'community_requests',columns:'id,title,description,body,category,status,created_at,community_id',filter:r=>['announcement','announcements','إعلان','اعلان'].includes(String(r.category||'').toLowerCase())},
- news:{title:'📰 أخبار الحي',table:'community_requests',columns:'id,title,description,body,category,status,created_at,community_id',filter:r=>['news','خبر','أخبار','اخبار'].includes(String(r.category||'').toLowerCase())},
+ market:{title:'🛍️ سوق الحي',table:'community_listings',columns:'id,title,description,price,status,created_at,community_id,kind',filter:r=>r.status==='active'||r.status==='published'},
+ housing:{title:'🏠 سكن الحي',table:'community_listings',columns:'id,title,description,price,status,created_at,community_id,kind',filter:r=>['housing','rental','rent','سكن','إيجار'].includes(String(r.kind||'').toLowerCase())},
+ occasions:{title:'🎉 مناسبات الحي',table:'community_events',columns:'id,title,description,event_type,status,created_at,starts_at,ends_at,community_id',filter:r=>r.status!=='cancelled'},
+ announcements:{title:'📣 إعلانات الحي',table:'community_requests',columns:'id,title,description,category,status,created_at,community_id',filter:r=>['announcement','announcements','إعلان','اعلان'].includes(String(r.category||'').toLowerCase())},
+ news:{title:'📰 أخبار الحي',table:'community_requests',columns:'id,title,description,category,status,created_at,community_id',filter:r=>['news','خبر','أخبار','اخبار'].includes(String(r.category||'').toLowerCase())},
  // لا توجد جداول community_lost_items/community_opportunities في قاعدة جيران المستقلة؛ لا نستبدلها بجدول آخر بالتخمين.
  lost:{title:'🔎 المفقودات',table:null,empty:'خدمة المفقودات موجودة في واجهة جيران، لكن مصدر بياناتها يحتاج ربطًا بجدول جيران الصحيح قبل تفعيل العرض.'},
  jobs:{title:'💼 الوظائف',table:null,empty:'خدمة الوظائف موجودة في واجهة جيران، لكن مصدر بياناتها يحتاج ربطًا بمصدر جيران الصحيح قبل تفعيل العرض.'},
