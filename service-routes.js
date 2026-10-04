@@ -3,7 +3,7 @@
 (function(){
   'use strict';
   const routes=Object.freeze({
-    home:'home',liveHome:'live-home',services:'services',coffee:'coffee',neighbors:'neighbors',more:'more',
+    home:'home',liveHome:'live-home',services:'services',help:'help',coffee:'coffee',neighbors:'neighbors',more:'more',
     housing:'housing',market:'market',jobs:'jobs',occasions:'occasions',outings:'outings',lost:'lost',
     announcements:'announcements',news:'news',messages:'messages',neighborCheck:'neighbor-check',hadith:'hadith',
     prayer:'prayer',weather:'weather',quran:'quran2',football:'football',wardi:'quran2',developer:'developer',
