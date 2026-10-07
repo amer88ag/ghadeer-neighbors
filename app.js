@@ -329,6 +329,8 @@ function normalizeDigits(value){
 }
 function showMemberAuth(){
   fillMemberSelects();
+  const authMember=$('authMember');
+  if(authMember && state.member?.id) authMember.value=String(state.member.id);
   const m=$('memberAuthModal'); if(m)m.classList.remove('hidden');
   const st=$('authStatus'); if(st){st.textContent='';st.className='status';}
   const pin=$('authPin'); if(pin){pin.value='';setTimeout(()=>pin.focus(),50);}
