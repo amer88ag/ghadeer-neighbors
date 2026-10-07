@@ -32,7 +32,9 @@ function currentDateISO(){ return new Intl.DateTimeFormat("en-CA",{timeZone:"Asi
 
 async function loadMembers(){
   if(!db){toast("تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.",false); return;}
-  const {data,error}=await table("members",{order:"id"});
+  // Public directory: never read the protected members table from the browser.
+  // The public_members view exposes only id/name/active.
+  const {data,error}=await db.from("public_members").select("id,name,active").order("id");
   if(error){toast("تعذر تحميل الجيران: "+error.message,false); return;}
   state.members=data||[];
   fillMemberSelects();
@@ -674,5 +676,4 @@ document.addEventListener("DOMContentLoaded",async()=>{
   }
 });
 
-// ghadeer-enhancements-loader
-(function(){var s=document.createElement('script');s.src='enhancements.js?v=20260928';s.defer=false;document.head.appendChild(s);})();
+
