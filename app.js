@@ -13,7 +13,8 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
-// Safe fallback for elements removed from the production build.\nconst $safe = id => document.getElementById(id) || document.createElement("div");
+// Safe fallback for elements removed from the production build.
+const $safe = id => document.getElementById(id) || document.createElement("div");
 const bindEl = (id, event, fn) => { const el=$(id); if(el) el[event]=fn; };
 window.GHADEER_CTX = () => ({ db, rpc, table, state, loadMembers, loadData, memberName, toast, openPage });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
