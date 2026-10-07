@@ -53,15 +53,37 @@ The inspected RPCs are executable by `anon`. This is **not yet classified as a d
 
 However, this is a security-review item: every exposed RPC must be verified to enforce its authorization before any state-changing operation.
 
-## Phase 1 gate
+## Final security decisions for Phase 1
 
-The branch is **NOT ready for Preview yet**.
+### `accept_program_terms`
+**Decision: FIX NOW — applied in live Supabase and recorded in migration.**
 
-Required before Preview:
-1. Finish the source-level initialization audit.
-2. Complete the decision table for any newly discovered file/function.
-3. Verify all state-changing RPC authorization paths.
-4. Verify final build output and script order.
-5. Only then run Preview functional tests.
+The previous function accepted `p_member_id` and `p_member_name` without proving control of the member PIN. It has been replaced with a five-argument function that verifies the active member, member name, and `p_pin` before recording acceptance. `app.js` now supplies the current authenticated member PIN.
 
-No Production deployment or database migration is authorized by this phase.
+### PIN brute-force protection
+**Decision: FIX NOW — applied in live Supabase and recorded in migration.**
+
+No dedicated login-attempt/lockout table existed before this change. `member_login` and `manager_pin_login` were therefore vulnerable to repeated guessing. A database-side `login_attempt_limits` table and throttling were added. Failed attempts are counted per member or for the manager globally; after 8 failures within the active window the key is locked for 15 minutes. Successful authentication clears the limiter.
+
+The limiter table has RLS enabled and no direct `anon`/authenticated privileges.
+
+## Phase 1 gate status
+
+**SOURCE CHECK: PASS**
+- Direct `$("refreshBtn").onclick` binding: **0 occurrences**.
+- Guarded `bindEl(...)` calls in `app.js`: **42 occurrences**.
+- `GHADEER_CTX`: defined and its required consumers were checked.
+- Member-auth preselection: implemented.
+
+**DATABASE CHECK: PASS for the Phase 1 security items above**
+- `accept_program_terms`: now requires PIN.
+- `member_login`: throttled.
+- `manager_pin_login`: throttled.
+- `login_attempt_limits`: exists with RLS enabled and no direct client privileges.
+
+**DECISION TABLE: CLOSED for current branch changes.**
+
+### Remaining gate before Preview
+The remaining non-security gate is a final build/source-order check. After that check, Preview may be opened. Production remains paused.
+
+No Production deployment is authorized by this phase.
