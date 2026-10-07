@@ -60,7 +60,6 @@
     window.ensureQuranSurahLoaded=async function(id){try{const u='https://api.quran.com/api/v4/verses/by_chapter/'+id+'?language=ar&words=false&fields=text_uthmani&per_page=300';const j=await fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Quran '+r.status);return r.json()});const s=(window.QURAN_DATA?.surahs||[]).find(x=>x.id===Number(id));if(s){s.verses=(j.verses||[]).map(v=>({id:Number(v.verse_number||v.id),text:String(v.text_uthmani||'')}));s.total_verses=s.verses.length;return s;}return oldEnsure(id);}catch(e){return oldEnsure(id)}};
   }
 
-  function boot(){injectStyle();mountWeather();patchPrayer();patchQuran();loadSports();const sv=$('services');if(sv)sv.innerHTML=servicesHtml();setInterval(()=>{if(document.visibilityState==='visible')checkPrayerAlerts()},30000);}
+  function boot(){injectStyle();mountWeather();patchPrayer();patchQuran();loadSports();const sv=$('services');if(sv&&typeof servicesHtml==='function')sv.innerHTML=servicesHtml();setInterval(()=>{if(document.visibilityState==='visible')checkPrayerAlerts()},30000);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
-(function(){var s=document.createElement('script');s.src='home-customizer.js?v=20260930';s.defer=false;document.head.appendChild(s);})();
