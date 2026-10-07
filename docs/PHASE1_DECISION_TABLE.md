@@ -81,8 +81,7 @@ Production: **paused**
 5. `manager_set_member_pin`
 6. `manager_swap_coffee_dates`
 7. `manager_swap_outing_dates`
-8. `manager_set_member_pin`
-9. `manager_update_member_profile`
+8. `manager_update_member_profile`
 10. `manager_update_outing_assignment`
 
 السبب: بعض مسارات الواجهة المشرفة ترسل PIN المشرف في `p_manager_pin`. إدخال حارس المدير في هذه الدوال كان سيحسب PIN المشرف كمحاولة مدير فاشلة وقد يقفل مدير النظام الحقيقي.
