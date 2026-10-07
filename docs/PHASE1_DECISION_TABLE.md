@@ -104,3 +104,17 @@ The first bypass path, `issue_member_device_token`, has been converted to consum
 
 ### Main compatibility decision
 The four-argument `accept_program_terms` compatibility function intentionally rejects old clients with `تحديث الصفحة مطلوب قبل تسجيل الموافقة`. This prevents unauthenticated/forged acceptance but temporarily blocks new acceptance on the currently published `main` client until the branch is published. This is an explicit short-lived security-over-availability decision and must be removed after the new client is live.
+
+### Public login execution privilege correction — 2026-10-07
+**Decision: KEEP EXECUTE public on the two login entry points.**
+
+The browser client in both `main` and the Phase 1 branch calls `member_login(bigint,text)` and `manager_pin_login(text)` directly. Revoking `anon` execution from these two entry points breaks login before the function can enforce its internal throttling/authentication logic. The live signatures were verified as:
+- `member_login(p_member_id bigint, p_pin text)`
+- `manager_pin_login(p_pin text)`
+
+Execution was restored to `anon, authenticated` for these two signatures. This is intentional. The security boundary is the non-throwing, throttled verifier itself; other functions that independently compare stored PIN hashes remain the refactor target.
+
+**Do not revoke client execution from these two entry points again.** The remaining centralization work must remove direct PIN comparisons from downstream functions rather than hide the login entry points.
+
+### Group 2 — manager-only verification
+The manager-only group is being handled separately from mixed manager/supervisor functions. Mixed functions are explicitly excluded from automated replacement and will be reviewed one by one. No Preview or Production deployment is allowed until this group and the remaining groups pass the direct-comparison and failure-path checks.
