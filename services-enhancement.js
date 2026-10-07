@@ -30,9 +30,8 @@ async function loadMembers(){
     if(fromState.length)members=fromState;
     else{
       const c=client();if(!c)throw Error('database');
-      const r=await c.rpc('get_public_members');if(r.error)throw r.error;
-      let rows=r.data;if(typeof rows==='string'){try{rows=JSON.parse(rows)}catch(e){rows=[]}}
-      members=Array.isArray(rows)?rows.filter(m=>m.active!==false):[];
+      const r=await c.from('public_members').select('id,name,active').order('id');if(r.error)throw r.error;
+      members=Array.isArray(r.data)?r.data.filter(m=>m.active!==false):[];
     }
     const current=Number(getState()?.member?.id)||Number(el.value)||0;
     el.innerHTML='<option value="">اختر اسمك</option>'+members.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
