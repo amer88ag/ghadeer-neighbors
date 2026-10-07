@@ -17,7 +17,7 @@ const defs={
  jobs:{title:'💼 الوظائف',table:null,empty:'خدمة الوظائف موجودة في واجهة جيران، لكن مصدر بياناتها يحتاج ربطًا بمصدر جيران الصحيح قبل تفعيل العرض.'},
  'neighbor-check':{title:'❤️ تفقد جار',table:'neighbor_check_ins',columns:'id,reporter_member_id,target_member_id,category,details,visibility,status,created_at,updated_at,closed_at',empty:'لا توجد سجلات تفقد عامة متاحة.'},
  messages:{title:'💬 تواصل الجيران',table:'neighbor_messages',columns:'id,conversation_id,sender_id,body,created_at,read_at',empty:'الرسائل خاصة وتتطلب تسجيل الدخول.'},
- neighbors:{title:'👥 الجيران',rpc:'get_public_members',rpcShape:'members',filter:r=>r.active!==false,empty:'لا يوجد أعضاء متاحون للعرض.'}
+ neighbors:{title:'👥 الجيران',table:'public_members',columns:'id,name,active',filter:r=>r.active!==false,empty:'لا يوجد أعضاء متاحون للعرض.'}
 };
 function page(id){let el=$(id);if(el)return el;el=document.createElement('section');el.id=id;el.className='page';document.querySelector('main.wrap')?.appendChild(el);return el;}
 function frame(d,id){const el=page(id);el.innerHTML='<div class="hero"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><h2>'+d.title+'</h2><p class="muted">مسار مستقل للخدمة وبياناتها.</p></div><button class="btn secondary" type="button" data-back>↩️ رجوع</button></div></div><div class="card"><div id="svcStatus-'+id+'" class="status">جارٍ تحميل البيانات…</div><div id="svcList-'+id+'"></div></div>';el.querySelector('[data-back]').onclick=()=>window.openPage?.('home');return el;}
