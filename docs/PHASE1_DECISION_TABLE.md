@@ -1,120 +1,122 @@
-# Phase 1 — Decision Table
+# المرحلة الأولى (Phase 1) — جدول القرارات
 
 Repository: `amer88ag/ghadeer-neighbors`  
 Branch: `cleanup-phase1-critical-fixes`  
 Base: `main`  
 Production: **paused**
 
-This table records the current decision for every file changed by the branch, based on source inspection and the live Supabase read-only checks.
+هذه الوثيقة تفصل **المرحلة الأولى الأمنية الحالية** عن **P1** اللاحقة الخاصة بإعادة بناء واجهة المستخدم.
 
-| File | Decision | Evidence / reason | Next action |
-|---|---|---|---|
-| `app.js` | KEEP + refine | Initialization had unsafe optional-element bindings; the branch now uses guarded bindings and wraps initialization. `GHADEER_CTX` is required by `outing-events-enhancement.js`. Member-auth preselection was also corrected. | Continue source-level runtime audit before Preview. |
-| `enhancements.js` | KEEP | Removed a loader for missing `home-customizer.js` and guarded `servicesHtml`. Both changes prevent a missing dependency from breaking enhancement startup. | Verify final build script order. |
-| `quran-enhancement.js` | KEEP | Legacy Quran controls may not exist in the production-built page; guards prevent null-element failures. | Verify whether this module should remain in the final build or be isolated later. |
-| `production-bridge.js` | KEEP WITH REVIEW | Uses `public_members`, which is a real live view exposing only `id,name,active`. | Confirm whether this bridge is still required after final build audit. |
-| `runtime-fix.js` | KEEP WITH REVIEW | Same public-member source correction; must not become a second competing initialization layer. | Trace load order and remove duplication if it is redundant. |
-| `service-pages.js` | KEEP WITH REVIEW | Member source now points to the real `public_members` view. | Verify that this module does not independently initialize or overwrite core state. |
-| `services-enhancement.js` | KEEP WITH REVIEW | Member source correction is consistent with the live view. | Verify load order and duplicated member loading. |
-| `scripts/sql/phase1-isolation-check.sql` | KEEP | Read-only diagnostic only. No DDL/DML. | Keep as audit evidence; update if additional checks are required. |
-| `docs/PHASE1_TEST_PLAN.md` | KEEP | Defines safe functional testing order and DB safety rules. | Execute only after source and DB checks reach the required gate. |
-| `vercel.json` | KEEP TEMPORARILY | Production is explicitly skipped; Preview is allowed by configuration. | Do not trigger Preview until Phase 1 gate is complete. |
+## تغييرات الفرع وقرارها
 
-## Live database findings
+| الملف | القرار | السبب |
+|---|---|---|
+| `app.js` | KEEP | إصلاح انهيار التهيئة بسبب عناصر اختيارية، إضافة bindings محمية، تعريف `GHADEER_CTX`، وتصحيح اختيار العضو الحالي. |
+| `enhancements.js` | KEEP | إزالة loader لملف غير موجود وحماية `servicesHtml`. |
+| `quran-enhancement.js` | KEEP WITH REVIEW | حماية عناصر Quran القديمة التي قد لا تكون موجودة في البناء النهائي. |
+| `production-bridge.js` | KEEP WITH REVIEW | استخدام `public_members` الحقيقي بدل مصدر أعضاء غير موجود. |
+| `runtime-fix.js` | KEEP WITH REVIEW | نفس تصحيح مصدر الأعضاء؛ يحتاج مراجعة ترتيب التحميل لاحقًا. |
+| `service-pages.js` | KEEP WITH REVIEW | استخدام `public_members`. |
+| `services-enhancement.js` | KEEP WITH REVIEW | استخدام `public_members`. |
+| `scripts/sql/phase1-isolation-check.sql` | KEEP | فحص تشخيصي فقط. |
+| `docs/PHASE1_TEST_PLAN.md` | KEEP | خطة الاختبار الآمن. |
+| `vercel.json` | KEEP TEMPORARILY | يمنع Production ويسمح بـ Preview فقط بعد إغلاق بوابة المرحلة الأولى. |
 
-Project: `xewjakfmdfkbhcnxglct`
+## نتائج قاعدة البيانات
 
-### 1. Core tables
-The following live tables have RLS enabled:
-- `members`
-- `coffee_schedule`
-- `outings_schedule`
-- `group_messages`
-- `announcements`
-- `member_permissions`
-- `neighbor_check_ins`
-- `outings_schedule`
+- `public_members` **view** وليست table، وتعرض `id,name,active` للأعضاء النشطين.
+- لا توجد توسعة لصلاحيات القراءة العامة.
+- `login_attempt_limits` مفعلة مع RLS ولا توجد لها صلاحيات مباشرة للعميل.
+- نقاط الدخول المركزية:
+  - `member_login(bigint,text)`
+  - `manager_pin_login(text)`
+- تم الإبقاء عمدًا على EXECUTE لـ `anon, authenticated` على نقطتي الدخول المركزيتين؛ إخفاؤهما يكسر تسجيل الدخول الحي. الحماية تتم داخل الدالة مع throttling وعدم رمي استثناء في مسار فشل المصادقة.
 
-`public_members` is a **view**, not a table. Its definition exposes only:
-`id, name, active` from active members.
+## حماية PIN للمدير — قرار المرحلة الأولى
 
-### 2. Public member access
-The live database still has a public SELECT policy on `members` for active members, while the application now reads `public_members`.
+تم إنشاء الحارس الداخلي:
 
-Decision: **do not widen permissions**. The application should continue using the restricted view unless a later security review proves a better design.
+`public._manager_pin_ok(text)`
 
-### 3. RPC existence and signatures
-The required outing/event/neighbor RPCs queried from the application exist in the live database, and their actual argument names/types were inspected.
+وتم إلغاء EXECUTE عنه من `PUBLIC`, `anon`, و`authenticated`.
 
-Important result: the RPC layer is real; it must be matched exactly from the live signatures rather than inferred from migration filenames.
+### Manager-only
 
-### 4. RPC execution privilege
-The inspected RPCs are executable by `anon`. This is **not yet classified as a defect by itself**, because the inspected SECURITY DEFINER functions perform PIN/role validation internally.
+تمت إضافة الحارس إلى مجموعة المدير فقط، مع الحفاظ على التواقيع والصلاحيات الحالية وعدم تغيير واجهة RPC.
 
-However, this is a security-review item: every exposed RPC must be verified to enforce its authorization before any state-changing operation.
+ومن ضمنها:
+- `manager_add_member` (4 args)
+- `manager_remove_supervisor`
+- `manager_restore_backup`
+- `manager_set_member_permissions`
+- `manager_update_member_name`
+- وبقية دوال المدير التي تم تصنيفها كـ manager-only.
 
-## Final security decisions for Phase 1
+### دوال المدير الحساسة المتاحة للعميل
 
-### `accept_program_terms`
-**Decision: FIX NOW — applied in live Supabase and recorded in migration.**
+تمت إضافة الحارس أيضًا إلى:
+- `manager_set_manager_pin`
+- `manager_set_neighbor_profiles_enabled`
 
-The previous function accepted `p_member_id` and `p_member_name` without proving control of the member PIN. It has been replaced with a five-argument function that verifies the active member, member name, and `p_pin` before recording acceptance. `app.js` now supplies the current authenticated member PIN.
+وهما كانتا نقطتي تغيير فعليتين متاحتين للـ anon وتتحققان من PIN مباشرة.
 
-### PIN brute-force protection
-**Decision: FIX NOW — applied in live Supabase and recorded in migration.**
+### الدوال المختلطة — لا تُحوّل آليًا
 
-No dedicated login-attempt/lockout table existed before this change. `member_login` and `manager_pin_login` were therefore vulnerable to repeated guessing. A database-side `login_attempt_limits` table and throttling were added. Failed attempts are counted per member or for the manager globally; after 8 failures within the active window the key is locked for 15 minutes. Successful authentication clears the limiter.
+الدوال العشر التالية **مختلطة manager/supervisor** ولذلك لا يدخلها حارس المدير:
 
-The limiter table has RLS enabled and no direct `anon`/authenticated privileges.
+1. `manager_add_member` (5 args)
+2. `manager_delete_member`
+3. `manager_randomize_outing_plan`
+4. `manager_randomize_outings`
+5. `manager_set_member_pin`
+6. `manager_swap_coffee_dates`
+7. `manager_swap_outing_dates`
+8. `manager_update_coffee_assignment`
+9. `manager_update_member_profile`
+10. `manager_update_outing_assignment`
 
-## Phase 1 gate status
+السبب: بعض مسارات الواجهة المشرفة ترسل PIN المشرف في `p_manager_pin`. إدخال حارس المدير في هذه الدوال كان سيحسب PIN المشرف كمحاولة مدير فاشلة وقد يقفل مدير النظام الحقيقي.
 
-**SOURCE CHECK: PASS**
-- Direct `$("refreshBtn").onclick` binding: **0 occurrences**.
-- Guarded `bindEl(...)` calls in `app.js`: **42 occurrences**.
-- `GHADEER_CTX`: defined and its required consumers were checked.
-- Member-auth preselection: implemented.
+**القرار:** تأجيل هذه المجموعة إلى P1، مع تصميم حارس مختلط مستقل، ويفضل أن ترسل الواجهة `member_id` للمشرف حتى يصبح throttling مرتبطًا بالمستخدم بدل عداد عام.
 
-**DATABASE CHECK: PASS for the Phase 1 security items above**
-- `accept_program_terms`: now requires PIN.
-- `member_login`: throttled.
-- `manager_pin_login`: throttled.
-- `login_attempt_limits`: exists with RLS enabled and no direct client privileges.
+## العضو والمشرف
 
-**DECISION TABLE: CLOSED for current branch changes.**
+لم تُجرَ إعادة مركزية شاملة لكل دوال PIN الخاصة بالعضو والمشرف في هذه المرحلة.
 
-### Remaining gate before Preview
-The remaining non-security gate is a final build/source-order check. After that check, Preview may be opened. Production remains paused.
+**القرار:** تأجيلها إلى P1 بعد تحديد مسارات الاستدعاء الفعلية، وعدم تغيير دوال حية بصورة عمياء.
 
-No Production deployment is authorized by this phase.
+## الدوال الحساسة غير المتاحة للعميل
 
-## Central PIN verification — current status
+تمت مراجعة:
+- `manager_delete_all_program_data`
+- `manager_restore_baseline`
+- `manager_set_program_pause`
 
-**Decision: KEEP PHASE 1 OPEN.** PostgreSQL rolls back writes made in the same transaction when an uncaught exception is raised; therefore a failed-attempt counter cannot be made durable by a helper alone if the caller subsequently raises. This is a database transaction constraint, not a UI issue.
+ولا يوجد لها مسار تنفيذ مباشر من `anon/authenticated` في الفحص الحالي. لذلك لا تحتاج تغييرًا تشغيليًا في هذه المرحلة؛ تبقى ضمن المراجعة المستقبلية.
 
-The central entry points remain:
-- member: `member_login(bigint,text)`
-- manager: `manager_pin_login(text)`
+## الاختبار الأخير المؤجل
 
-Client execution privileges for both central entry points were revoked from `anon` and `authenticated`; they are internal database helpers.
+باقي الاختبار الحاسم هو **اختبار القفل الحقيقي للمدير**:
 
-The first bypass path, `issue_member_device_token`, has been converted to consume `member_login` and return `success:false` instead of raising after failed authentication. Its token-generation `crypt(token,gen_salt('bf'))` remains unchanged because that is token hashing, not PIN verification.
+1. 8 محاولات PIN خاطئة.
+2. التأكد من ظهور قفل 15 دقيقة.
+3. تجربة PIN المدير الصحيح من الموقع الحي أثناء القفل — يجب أن يُرفض.
+4. بعد انتهاء 15 دقيقة — يجب أن يُقبل.
+5. حذف صف عداد المدير فقط بعد الاختبار.
+6. اختبار دخول عضو وخروجه.
 
-**Not yet closed:** all remaining functions that compare member/manager PINs directly must be converted to the two central entry points, and authentication-failure branches must return a normal failure result rather than raise. No Preview until the direct-PIN verification query returns zero rows and the 9-attempt test succeeds on a clearly identified test member.
+هذا الاختبار مؤجل إلى نافذة زمنية يختارها المستخدم لأنه يؤثر فعليًا على دخول المدير لمدة القفل.
 
-### Main compatibility decision
-The four-argument `accept_program_terms` compatibility function intentionally rejects old clients with `تحديث الصفحة مطلوب قبل تسجيل الموافقة`. This prevents unauthenticated/forged acceptance but temporarily blocks new acceptance on the currently published `main` client until the branch is published. This is an explicit short-lived security-over-availability decision and must be removed after the new client is live.
+## قرار الإغلاق
 
-### Public login execution privilege correction — 2026-10-07
-**Decision: KEEP EXECUTE public on the two login entry points.**
+**المرحلة الأولى (Phase 1): OPEN — بانتظار اختبار القفل الحقيقي فقط.**
 
-The browser client in both `main` and the Phase 1 branch calls `member_login(bigint,text)` and `manager_pin_login(text)` directly. Revoking `anon` execution from these two entry points breaks login before the function can enforce its internal throttling/authentication logic. The live signatures were verified as:
-- `member_login(p_member_id bigint, p_pin text)`
-- `manager_pin_login(p_pin text)`
+بعد نجاح الاختبار:
+- تُسجل نتيجة الاختبار هنا.
+- تُغلق المرحلة الأولى رسميًا.
+- تبقى قائمة المختلطة العشر والمجموعة العضو/المشرف مؤجلة إلى P1.
+- تُجرى بوابة المصدر والبناء النهائية.
+- بعدها فقط يُفتح Preview.
 
-Execution was restored to `anon, authenticated` for these two signatures. This is intentional. The security boundary is the non-throwing, throttled verifier itself; other functions that independently compare stored PIN hashes remain the refactor target.
-
-**Do not revoke client execution from these two entry points again.** The remaining centralization work must remove direct PIN comparisons from downstream functions rather than hide the login entry points.
-
-### Group 2 — manager-only verification
-The manager-only group is being handled separately from mixed manager/supervisor functions. Mixed functions are explicitly excluded from automated replacement and will be reviewed one by one. No Preview or Production deployment is allowed until this group and the remaining groups pass the direct-comparison and failure-path checks.
+**Production remains paused.**  
+لا Merge إلى `main` ولا نشر Production قبل اجتياز الاختبارات النهائية.
