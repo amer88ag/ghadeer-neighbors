@@ -373,7 +373,7 @@ async function ensureAcceptance(){
 }
 async function acceptTerms(){
   if(!$("acceptCheck").checked){toast("يرجى تأكيد قراءة الشروط.",false);return;}
-  const {error}=await rpc("accept_program_terms",{p_member_id:state.member.id,p_member_name:state.member.name,p_version:"1.0",p_user_agent:navigator.userAgent.slice(0,500)});
+  const {error}=await rpc("accept_program_terms",{p_member_id:state.member.id,p_member_name:state.member.name,p_version:"1.0",p_user_agent:navigator.userAgent.slice(0,500),p_pin:state.pin});
   if(error){toast("تعذر تسجيل الموافقة: "+error.message,false);return;}
   $("acceptModal").classList.add("hidden"); toast("تم تسجيل الموافقة.");
 }
