@@ -4,13 +4,9 @@
   try{
     loadMembers = async function loadMembersPublicSafe(){
       if(!db){toast('تعذر تشغيل قاعدة البيانات. أعد تحميل الصفحة.',false);return;}
-      const {data,error}=await rpc('get_public_members');
+      const {data,error}=await db.from('public_members').select('id,name,active').order('id');
       if(error){toast('تعذر تحميل الجيران: '+error.message,false);return;}
-      let rows=data;
-      if(typeof rows==='string'){
-        try{rows=JSON.parse(rows);}catch(e){rows=[];}
-      }
-      state.members=Array.isArray(rows)?rows:[];
+      state.members=Array.isArray(data)?data:[];
       fillMemberSelects();
       renderMembers();
     };
