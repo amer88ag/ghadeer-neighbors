@@ -13,6 +13,8 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
+const bind = (id, event, fn) => { const el=$(id); if(el) el[event]=fn; };
+window.GHADEER_CTX = () => ({ db, rpc, table, state, loadMembers, loadData, memberName, toast, openPage });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString("ar-SA",{weekday:"short",year:"numeric",month:"short",day:"numeric"}) : "—";
 const fmtTime = t => t ? String(t).slice(0,5) : "—";
@@ -653,17 +655,18 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if($('topMemberAccessBtn'))$('topMemberAccessBtn').onclick=showMemberAuth;
   if($('showManagerFromHomeBtn'))$('showManagerFromHomeBtn').onclick=showManagerLogin;
   if($('developerAccessBtn'))$('developerAccessBtn').onclick=showManagerLogin;
-  $("acceptTermsBtn").onclick=acceptTerms;$("rejectTermsBtn").onclick=()=>logout();
-  $("refreshBtn").onclick=async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");};
-  $("logoutBtn").onclick=logout;
-  if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn").parentElement.appendChild(ownPinBtn); }$("memberSearch").oninput=renderMembers; renderNeighborCheckMembers();
-  $("apologizeCoffeeBtn").onclick=()=>apologizeCoffee(false);$("undoApologyBtn").onclick=()=>apologizeCoffee(true);
-  $("createNeighborCheckBtn").onclick=createNeighborCheck;
-  $("sendMessageBtn").onclick=sendMessage;$("suggestionBtn").onclick=submitSuggestion;
-  $("createOutingPlanBtn").onclick=createOutingPlan;$("saveProfileBtn").onclick=saveMemberProfile;$("randomPlanBtn").onclick=randomizePlan;$("managerApprovePlanBtn").onclick=()=>approvePlan("manager");$("supervisorApprovePlanBtn").onclick=()=>approvePlan("supervisor");$("createOccasionBtn").onclick=createOccasion;$("updateOccasionBtn").onclick=updateOccasion;$("deleteOccasionBtn").onclick=deleteOccasion;$("occasionId").onchange=fillOccasionSelect;$("createManagerMessageBtn").onclick=createManagerMessage;$("updateManagerMessageBtn").onclick=updateManagerMessage;$("deleteManagerMessageBtn").onclick=deleteManagerMessage;$("managerMessageId").onchange=fillManagerMessageSelect;$("saveCoffeeBtn").onclick=saveCoffee;$("createCoffeeBtn").onclick=createCoffee;$("deleteCoffeeBtn").onclick=deleteCoffee;$("swapCoffeeBtn").onclick=swapCoffee;$("saveOutingBtn").onclick=saveOuting;$("createOutingBtn").onclick=createOuting;$("deleteOutingBtn").onclick=deleteOuting;$("swapOutingBtn").onclick=swapOuting;
-  $("addMemberBtn").onclick=addMember;$("changeMemberPinBtn").onclick=changeMemberPin; if($("changeMemberPinBtn")) $("changeMemberPinBtn").onclick=changeMemberPin;$("savePermBtn").onclick=savePermissions;$("saveRulesBtn").onclick=saveRules;$("changeManagerPinBtn").onclick=changeManagerPin;$("scheduleNotifyBtn").onclick=scheduleNotification;
-  $("statsBtn").onclick=managerStats;$("backupBtn").onclick=makeBackup;$("restoreFile").onchange=e=>restoreBackupFile(e.target.files[0]);
-  $("mcId").onchange=fillManagerFormFromSelected;$("moId").onchange=fillManagerFormFromSelected;
+  bind("acceptTermsBtn","onclick",acceptTerms); bind("rejectTermsBtn","onclick",()=>logout());
+  bind("refreshBtn","onclick",async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");});
+  bind("logoutBtn","onclick",logout);
+  if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn")?.parentElement?.appendChild(ownPinBtn); }
+  bind("memberSearch","oninput",renderMembers); renderNeighborCheckMembers();
+  bind("apologizeCoffeeBtn","onclick",()=>apologizeCoffee(false)); bind("undoApologyBtn","onclick",()=>apologizeCoffee(true));
+  bind("createNeighborCheckBtn","onclick",createNeighborCheck);
+  bind("sendMessageBtn","onclick",sendMessage); bind("suggestionBtn","onclick",submitSuggestion);
+  bind("createOutingPlanBtn","onclick",createOutingPlan); bind("saveProfileBtn","onclick",saveMemberProfile); bind("randomPlanBtn","onclick",randomizePlan); bind("managerApprovePlanBtn","onclick",()=>approvePlan("manager")); bind("supervisorApprovePlanBtn","onclick",()=>approvePlan("supervisor")); bind("createOccasionBtn","onclick",createOccasion); bind("updateOccasionBtn","onclick",updateOccasion); bind("deleteOccasionBtn","onclick",deleteOccasion); bind("occasionId","onchange",fillOccasionSelect); bind("createManagerMessageBtn","onclick",createManagerMessage); bind("updateManagerMessageBtn","onclick",updateManagerMessage); bind("deleteManagerMessageBtn","onclick",deleteManagerMessage); bind("managerMessageId","onchange",fillManagerMessageSelect); bind("saveCoffeeBtn","onclick",saveCoffee); bind("createCoffeeBtn","onclick",createCoffee); bind("deleteCoffeeBtn","onclick",deleteCoffee); bind("swapCoffeeBtn","onclick",swapCoffee); bind("saveOutingBtn","onclick",saveOuting); bind("createOutingBtn","onclick",createOuting); bind("deleteOutingBtn","onclick",deleteOuting); bind("swapOutingBtn","onclick",swapOuting);
+  bind("addMemberBtn","onclick",addMember); bind("changeMemberPinBtn","onclick",changeMemberPin); bind("savePermBtn","onclick",savePermissions); bind("saveRulesBtn","onclick",saveRules); bind("changeManagerPinBtn","onclick",changeManagerPin); bind("scheduleNotifyBtn","onclick",scheduleNotification);
+  bind("statsBtn","onclick",managerStats); bind("backupBtn","onclick",makeBackup); bind("restoreFile","onchange",e=>restoreBackupFile(e.target.files[0]));
+  bind("mcId","onchange",fillManagerFormFromSelected); bind("moId","onchange",fillManagerFormFromSelected);
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
   const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
   ["homePrayerBtn","prayerRefreshBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=loadPrayerByMemberLocation;});
