@@ -1,0 +1,13 @@
+-- Phase 1 follow-up: preserve released-client compatibility and strengthen throttling.
+--
+-- ROLLBACK PLAN:
+-- 1) Restore the previous login_attempt_limits definition by dropping lock_count,
+--    then restore member_login and manager_pin_login from 20261007180000.
+-- 2) Drop the temporary four-argument accept_program_terms compatibility function.
+-- 3) Restore manager_set_manager_pin's previous minimum-length check.
+-- 4) Full Phase-1 rollback: restore the pre-Phase-1 accept_program_terms function
+--    and drop login_attempt_limits.
+-- No application data tables are deleted by this migration.
+-- NOTE: the four-argument compatibility function intentionally rejects old clients
+-- so the released main build cannot record an unauthenticated acceptance.
+
