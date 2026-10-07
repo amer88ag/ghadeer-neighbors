@@ -1,0 +1,1 @@
+-- phase1 central pin verification path1
