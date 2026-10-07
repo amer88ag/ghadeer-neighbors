@@ -87,3 +87,20 @@ The limiter table has RLS enabled and no direct `anon`/authenticated privileges.
 The remaining non-security gate is a final build/source-order check. After that check, Preview may be opened. Production remains paused.
 
 No Production deployment is authorized by this phase.
+
+## Central PIN verification — current status
+
+**Decision: KEEP PHASE 1 OPEN.** PostgreSQL rolls back writes made in the same transaction when an uncaught exception is raised; therefore a failed-attempt counter cannot be made durable by a helper alone if the caller subsequently raises. This is a database transaction constraint, not a UI issue.
+
+The central entry points remain:
+- member: `member_login(bigint,text)`
+- manager: `manager_pin_login(text)`
+
+Client execution privileges for both central entry points were revoked from `anon` and `authenticated`; they are internal database helpers.
+
+The first bypass path, `issue_member_device_token`, has been converted to consume `member_login` and return `success:false` instead of raising after failed authentication. Its token-generation `crypt(token,gen_salt('bf'))` remains unchanged because that is token hashing, not PIN verification.
+
+**Not yet closed:** all remaining functions that compare member/manager PINs directly must be converted to the two central entry points, and authentication-failure branches must return a normal failure result rather than raise. No Preview until the direct-PIN verification query returns zero rows and the 9-attempt test succeeds on a clearly identified test member.
+
+### Main compatibility decision
+The four-argument `accept_program_terms` compatibility function intentionally rejects old clients with `تحديث الصفحة مطلوب قبل تسجيل الموافقة`. This prevents unauthenticated/forged acceptance but temporarily blocks new acceptance on the currently published `main` client until the branch is published. This is an explicit short-lived security-over-availability decision and must be removed after the new client is live.
