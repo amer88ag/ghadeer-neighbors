@@ -13,7 +13,7 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
-const bind = (id, event, fn) => { const el=$(id); if(el) el[event]=fn; };
+const bindEl = (id, event, fn) => { const el=$(id); if(el) el[event]=fn; };
 window.GHADEER_CTX = () => ({ db, rpc, table, state, loadMembers, loadData, memberName, toast, openPage });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDate = d => d ? new Date(d + "T00:00:00").toLocaleDateString("ar-SA",{weekday:"short",year:"numeric",month:"short",day:"numeric"}) : "—";
@@ -657,18 +657,18 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if($('topMemberAccessBtn'))$('topMemberAccessBtn').onclick=showMemberAuth;
   if($('showManagerFromHomeBtn'))$('showManagerFromHomeBtn').onclick=showManagerLogin;
   if($('developerAccessBtn'))$('developerAccessBtn').onclick=showManagerLogin;
-  bind("acceptTermsBtn","onclick",acceptTerms); bind("rejectTermsBtn","onclick",()=>logout());
-  bind("refreshBtn","onclick",async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");});
-  bind("logoutBtn","onclick",logout);
+  bindEl("acceptTermsBtn","onclick",acceptTerms); bindEl("rejectTermsBtn","onclick",()=>logout());
+  bindEl("refreshBtn","onclick",async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");});
+  bindEl("logoutBtn","onclick",logout);
   if(!$('ownPinBtn')){ const ownPinBtn=document.createElement("button"); ownPinBtn.id="ownPinBtn"; ownPinBtn.className="btn secondary"; ownPinBtn.textContent="🔑 تغيير رقمي السري"; ownPinBtn.onclick=changeOwnPin; $("logoutBtn")?.parentElement?.appendChild(ownPinBtn); }
-  bind("memberSearch","oninput",renderMembers); renderNeighborCheckMembers();
-  bind("apologizeCoffeeBtn","onclick",()=>apologizeCoffee(false)); bind("undoApologyBtn","onclick",()=>apologizeCoffee(true));
-  bind("createNeighborCheckBtn","onclick",createNeighborCheck);
-  bind("sendMessageBtn","onclick",sendMessage); bind("suggestionBtn","onclick",submitSuggestion);
-  bind("createOutingPlanBtn","onclick",createOutingPlan); bind("saveProfileBtn","onclick",saveMemberProfile); bind("randomPlanBtn","onclick",randomizePlan); bind("managerApprovePlanBtn","onclick",()=>approvePlan("manager")); bind("supervisorApprovePlanBtn","onclick",()=>approvePlan("supervisor")); bind("createOccasionBtn","onclick",createOccasion); bind("updateOccasionBtn","onclick",updateOccasion); bind("deleteOccasionBtn","onclick",deleteOccasion); bind("occasionId","onchange",fillOccasionSelect); bind("createManagerMessageBtn","onclick",createManagerMessage); bind("updateManagerMessageBtn","onclick",updateManagerMessage); bind("deleteManagerMessageBtn","onclick",deleteManagerMessage); bind("managerMessageId","onchange",fillManagerMessageSelect); bind("saveCoffeeBtn","onclick",saveCoffee); bind("createCoffeeBtn","onclick",createCoffee); bind("deleteCoffeeBtn","onclick",deleteCoffee); bind("swapCoffeeBtn","onclick",swapCoffee); bind("saveOutingBtn","onclick",saveOuting); bind("createOutingBtn","onclick",createOuting); bind("deleteOutingBtn","onclick",deleteOuting); bind("swapOutingBtn","onclick",swapOuting);
-  bind("addMemberBtn","onclick",addMember); bind("changeMemberPinBtn","onclick",changeMemberPin); bind("savePermBtn","onclick",savePermissions); bind("saveRulesBtn","onclick",saveRules); bind("changeManagerPinBtn","onclick",changeManagerPin); bind("scheduleNotifyBtn","onclick",scheduleNotification);
-  bind("statsBtn","onclick",managerStats); bind("backupBtn","onclick",makeBackup); bind("restoreFile","onchange",e=>restoreBackupFile(e.target.files[0]));
-  bind("mcId","onchange",fillManagerFormFromSelected); bind("moId","onchange",fillManagerFormFromSelected);
+  bindEl("memberSearch","oninput",renderMembers); renderNeighborCheckMembers();
+  bindEl("apologizeCoffeeBtn","onclick",()=>apologizeCoffee(false)); bindEl("undoApologyBtn","onclick",()=>apologizeCoffee(true));
+  bindEl("createNeighborCheckBtn","onclick",createNeighborCheck);
+  bindEl("sendMessageBtn","onclick",sendMessage); bindEl("suggestionBtn","onclick",submitSuggestion);
+  bindEl("createOutingPlanBtn","onclick",createOutingPlan); bindEl("saveProfileBtn","onclick",saveMemberProfile); bindEl("randomPlanBtn","onclick",randomizePlan); bindEl("managerApprovePlanBtn","onclick",()=>approvePlan("manager")); bindEl("supervisorApprovePlanBtn","onclick",()=>approvePlan("supervisor")); bindEl("createOccasionBtn","onclick",createOccasion); bindEl("updateOccasionBtn","onclick",updateOccasion); bindEl("deleteOccasionBtn","onclick",deleteOccasion); bindEl("occasionId","onchange",fillOccasionSelect); bindEl("createManagerMessageBtn","onclick",createManagerMessage); bindEl("updateManagerMessageBtn","onclick",updateManagerMessage); bindEl("deleteManagerMessageBtn","onclick",deleteManagerMessage); bindEl("managerMessageId","onchange",fillManagerMessageSelect); bindEl("saveCoffeeBtn","onclick",saveCoffee); bindEl("createCoffeeBtn","onclick",createCoffee); bindEl("deleteCoffeeBtn","onclick",deleteCoffee); bindEl("swapCoffeeBtn","onclick",swapCoffee); bindEl("saveOutingBtn","onclick",saveOuting); bindEl("createOutingBtn","onclick",createOuting); bindEl("deleteOutingBtn","onclick",deleteOuting); bindEl("swapOutingBtn","onclick",swapOuting);
+  bindEl("addMemberBtn","onclick",addMember); bindEl("changeMemberPinBtn","onclick",changeMemberPin); bindEl("savePermBtn","onclick",savePermissions); bindEl("saveRulesBtn","onclick",saveRules); bindEl("changeManagerPinBtn","onclick",changeManagerPin); bindEl("scheduleNotifyBtn","onclick",scheduleNotification);
+  bindEl("statsBtn","onclick",managerStats); bindEl("backupBtn","onclick",makeBackup); bindEl("restoreFile","onchange",e=>restoreBackupFile(e.target.files[0]));
+  bindEl("mcId","onchange",fillManagerFormFromSelected); bindEl("moId","onchange",fillManagerFormFromSelected);
   document.querySelectorAll(".manager-tabs .tab").forEach(b=>b.onclick=()=>openManagerTab(b.dataset.mtab));
   const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
   ["homePrayerBtn","prayerRefreshBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=loadPrayerByMemberLocation;});
