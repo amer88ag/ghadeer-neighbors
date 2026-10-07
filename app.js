@@ -13,6 +13,7 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
+// Safe fallback for elements removed from the production build.\nconst $safe = id => document.getElementById(id) || document.createElement("div");
 const bindEl = (id, event, fn) => { const el=$(id); if(el) el[event]=fn; };
 window.GHADEER_CTX = () => ({ db, rpc, table, state, loadMembers, loadData, memberName, toast, openPage });
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -159,11 +160,11 @@ function renderHome(){
   const today=currentDateISO();
   const c=state.coffee.find(x=>x.coffee_date>=today);
   const o=state.outings.find(x=>x.outing_date>=today);
-  $("nextCoffee").innerHTML=c?`<b>${esc(memberName(c.member_id))}</b><br><span>${fmtDate(c.coffee_date)} — ${fmtTime(c.coffee_time)}</span>`:"لا يوجد موعد قادم";
-  $("nextOuting").innerHTML=o?`<b>${esc(memberName(o.member1_id))} + ${esc(memberName(o.member2_id))}</b><br><span>${fmtDate(o.outing_date)} — ${fmtTime(o.outing_time)}</span>`:"لا توجد طلعة قادمة";
+  $safe("nextCoffee").innerHTML=c?`<b>${esc(memberName(c.member_id))}</b><br><span>${fmtDate(c.coffee_date)} — ${fmtTime(c.coffee_time)}</span>`:"لا يوجد موعد قادم";
+  $safe("nextOuting").innerHTML=o?`<b>${esc(memberName(o.member1_id))} + ${esc(memberName(o.member2_id))}</b><br><span>${fmtDate(o.outing_date)} — ${fmtTime(o.outing_time)}</span>`:"لا توجد طلعة قادمة";
   const a=visibleOccasions()[0]||state.announcements.find(x=>!x.is_occasion);
-  $("latestAnnouncement").innerHTML=a?`<b>${esc(a.title)}</b><br><span>${esc(a.message).slice(0,150)}</span>`:"لا توجد إعلانات";
-  $("memberCount").textContent=activeMemberList().length+" جار نشط"; const mc=$("messageCount"); if(mc) mc.textContent=state.messages.length+" رسالة";
+  $safe("latestAnnouncement").innerHTML=a?`<b>${esc(a.title)}</b><br><span>${esc(a.message).slice(0,150)}</span>`:"لا توجد إعلانات";
+  $safe("memberCount").textContent=activeMemberList().length+" جار نشط"; const mc=$("messageCount"); if(mc) mc.textContent=state.messages.length+" رسالة";
 }
 function renderCoffee(){
   const body=$("coffeeTable"), sel=$("coffeeApologyId");
@@ -283,7 +284,7 @@ async function loadPrayerByMemberLocation(){
   navigator.geolocation.getCurrentPosition(async pos=>{
     try{const lat=pos.coords.latitude,lon=pos.coords.longitude;const url="https://api.aladhan.com/v1/timings/"+prayerDateForApi()+"?latitude="+encodeURIComponent(lat)+"&longitude="+encodeURIComponent(lon)+"&method=4";const res=await fetch(url,{cache:"no-store"});if(!res.ok)throw new Error("HTTP "+res.status);const json=await res.json();const t=json?.data?.timings;if(!t)throw new Error("لا توجد بيانات مواقيت");
       ["Fajr","Dhuhr","Asr","Maghrib","Isha"].forEach(k=>{const el=$("pt"+k);if(el)el.textContent=String(t[k]||"—").slice(0,5);});
-      $("prayerLocationLabel").textContent="تم حساب المواقيت حسب موقع جهازك الحالي. لا يتم حفظ الإحداثيات في البرنامج.";setStatus("prayerStatus","تم تحديث مواقيت الصلاة.",true);
+      $safe("prayerLocationLabel").textContent="تم حساب المواقيت حسب موقع جهازك الحالي. لا يتم حفظ الإحداثيات في البرنامج.";setStatus("prayerStatus","تم تحديث مواقيت الصلاة.",true);
     }catch(e){setStatus("prayerStatus","تعذر جلب المواقيت لهذا الموقع. حاول مرة أخرى.",false);}
   },()=>setStatus("prayerStatus","لم يتم السماح بالموقع. يمكنك السماح بالموقع من إعدادات المتصفح ثم المحاولة مرة أخرى.",false),{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 }
@@ -351,8 +352,8 @@ async function authenticateMemberFromModal(){
     if(error || result.success!==true){setStatus('authStatus',result.message||error?.message||'الرقم السري غير صحيح.',false);return false;}
     state.member=state.members.find(m=>Number(m.id)===id)||{id,name:result.name||memberName(id)};
     state.pin=pin; state.manager=false; state.supervisor=['super_admin','supervisor'].includes(result.role);
-    $('whoami').textContent='— '+state.member.name+(state.supervisor?' (مشرف)':'');
-    $('managerNav').classList.toggle('hidden',!state.supervisor);
+    $safe('whoami').textContent='— '+state.member.name+(state.supervisor?' (مشرف)':'');
+    $safe('managerNav').classList.toggle('hidden',!state.supervisor);
     closeMemberAuth();
     await ensureAcceptance();
     await loadData(); await loadOwnPlanVotes();
@@ -407,8 +408,8 @@ async function managerLogin(){
     if(result.success !== true){ setStatus("entryStatus",result.message||"الرقم السري غير صحيح.",false); return; }
     state.member=chosen; state.pin=pin; state.manager=true; state.supervisor=true;
     $("entryScreen").classList.add("hidden");$("app").classList.remove("hidden");
-    $("whoami").textContent="— "+chosen.name+" (مدير)";
-    $("managerNav").classList.remove("hidden");
+    $safe("whoami").textContent="— "+chosen.name+" (مدير)";
+    $safe("managerNav").classList.remove("hidden");
     await loadData(); openPage("manager"); renderManager();
   }catch(e){
     setStatus("entryStatus","حدث خطأ أثناء تسجيل دخول المدير: "+(e?.message||e),false);
@@ -629,7 +630,7 @@ window.openManagerTab=openManagerTab;window.toggleOccasionAutomation=toggleOccas
 function logout(){
   state.member=null;state.pin=null;state.manager=false;state.supervisor=false;state.neighborChecks=[];state.managerNeighborChecks=[];
   $('acceptModal').classList.add('hidden');
-  $('whoami').textContent=''; $('managerNav').classList.add('hidden');
+  $safe('whoami').textContent=''; $safe('managerNav').classList.add('hidden');
   $('entryScreen').classList.add('hidden'); $('memberAuthModal').classList.add('hidden');
   openPage('home'); toast('تم تسجيل الخروج.');
 }
@@ -644,7 +645,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   $("entryScreen")?.classList.add("hidden");
   $("app")?.classList.remove("hidden");
   try {
-  hadithIndex=Math.floor(Date.now()/86400000)%hadithBoardItems.length; renderHadithBoard(); if($("hadithPrevBtn"))$("hadithPrevBtn").onclick=()=>stepHadith(-1); if($("hadithNextBtn"))$("hadithNextBtn").onclick=()=>stepHadith(1);
+  hadithIndex=Math.floor(Date.now()/86400000)%hadithBoardItems.length; renderHadithBoard(); if($("hadithPrevBtn"))$safe("hadithPrevBtn").onclick=()=>stepHadith(-1); if($("hadithNextBtn"))$safe("hadithNextBtn").onclick=()=>stepHadith(1);
 
   document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>openPage(b.dataset.page)));
   if($('memberLoginBtn'))$('memberLoginBtn').onclick=memberLogin;
@@ -653,10 +654,10 @@ document.addEventListener("DOMContentLoaded",async()=>{
   if($('backToMemberBtn'))$('backToMemberBtn').onclick=()=>{$('entryScreen').classList.add('hidden');};
   if($('authLoginBtn'))$('authLoginBtn').onclick=authenticateMemberFromModal;
   if($('authCancelBtn'))$('authCancelBtn').onclick=closeMemberAuth;
-  if($('memberAccessBtn'))$('memberAccessBtn').onclick=showMemberAuth;
-  if($('topMemberAccessBtn'))$('topMemberAccessBtn').onclick=showMemberAuth;
-  if($('showManagerFromHomeBtn'))$('showManagerFromHomeBtn').onclick=showManagerLogin;
-  if($('developerAccessBtn'))$('developerAccessBtn').onclick=showManagerLogin;
+  if($('memberAccessBtn'))$safe('memberAccessBtn').onclick=showMemberAuth;
+  if($('topMemberAccessBtn'))$safe('topMemberAccessBtn').onclick=showMemberAuth;
+  if($('showManagerFromHomeBtn'))$safe('showManagerFromHomeBtn').onclick=showManagerLogin;
+  if($('developerAccessBtn'))$safe('developerAccessBtn').onclick=showManagerLogin;
   bindEl("acceptTermsBtn","onclick",acceptTerms); bindEl("rejectTermsBtn","onclick",()=>logout());
   bindEl("refreshBtn","onclick",async()=>{await loadMembers();await loadData();toast("تم تحديث البيانات.");});
   bindEl("logoutBtn","onclick",logout);
@@ -673,7 +674,7 @@ document.addEventListener("DOMContentLoaded",async()=>{
   const weatherUrl="https://www.google.com/search?q=الطقس+أبها";
   ["homePrayerBtn","prayerRefreshBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=loadPrayerByMemberLocation;});
   ["weatherBtn","homeWeatherBtn"].forEach(id=>{const el=$(id);if(el)el.onclick=()=>window.open(weatherUrl,"_blank","noopener");});
-  $('whoami').textContent=''; $('managerNav')?.classList.add('hidden');
+  $safe('whoami').textContent=''; $('managerNav')?.classList.add('hidden');
   await loadMembers(); await loadData(); if(state.member&&state.pin)await loadOwnPlanVotes();
   } catch(e) {
     console.error("Ghadeer initialization failed:", e);
