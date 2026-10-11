@@ -63,9 +63,10 @@ async function memberLogin(id, pin, remember) {
   if (!r.ok || r.data?.success !== true) return { ok: false, message: r.message || 'الرقم السري غير صحيح.' };
   const role = r.data.role || 'member';
   setUser({ id, name: r.data.name || memberName(id), role }, pin, { supervisor: ['supervisor', 'super_admin'].includes(role) });
-  if (remember) await rememberDevice();
+  if (remember && !storage.get(DEVICE_TOKEN_KEY)) await rememberDevice();
   await ensureTerms();
-  return { ok: true };
+  // إذا رفض العضو الشروط تُلغى الجلسة داخل ensureTerms.
+  return state.user ? { ok: true } : { ok: false, message: 'لم يكتمل الدخول دون الموافقة على الشروط.' };
 }
 
 /**
@@ -145,6 +146,8 @@ export function showManagerLogin() {
 }
 
 export function logout() {
+  const token = storage.get(DEVICE_TOKEN_KEY);
+  if (token) call('member_revoke_device_token', { p_token: token }); // إلغاء الرمز من الخادم أيضًا
   storage.del(DEVICE_TOKEN_KEY);
   setUser(null, null);
   toast('تم تسجيل الخروج.');

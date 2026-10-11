@@ -88,6 +88,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/messages/private'); await page.waitForTimeout(400);
   ok('chat: conversation listed', (await page.textContent('.page-body')).includes('سعيد'));
 
+  await page.goto(BASE + '#/neighbors/me'); await page.waitForSelector('[data-contact]');
+  ok('profile: live settings prefilled', (await page.$eval('[data-residency] select', e => e.value)) === 'tenant' && await page.$eval('[data-contact] [name=whats]', e => e.checked));
+  await page.goto(BASE + '#/neighbors'); await page.waitForSelector('.member');
+  ok('neighbors: residency merged', (await page.textContent('[data-grid]')).includes('مستأجر'));
+
   // 8) Services catalog → post
   await page.goto(BASE + '#/services/catalog'); await page.click('details.card summary');
   await page.click('[data-svc]'); await page.waitForSelector('.modal [data-post]');
@@ -109,7 +114,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
 
   // 10) Logout
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
-  ok('logout: token cleared', !(await page.evaluate(() => JSON.stringify(localStorage))).includes('tok-'));
+  ok('logout: token cleared + revoked on server', !(await page.evaluate(() => JSON.stringify(localStorage))).includes('tok-') && !!(await lastCall('member_revoke_device_token')));
 
   // 11) New member must accept terms
   await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '3');

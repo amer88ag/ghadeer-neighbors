@@ -17,7 +17,9 @@ export const invalidate = (...keys) => keys.length ? keys.forEach(k => cache.del
 export const coffee = force => cached('coffee', async () => (await table('coffee_schedule', { order: 'coffee_date' })).data, force);
 export const outings = force => cached('outings', async () => (await table('outings_schedule', { order: 'outing_date' })).data, force);
 export const announcements = force => cached('announcements', async () => (await table('announcements', { order: 'created_at', ascending: false, limit: 30 })).data, force);
-export const groupMessages = force => cached('messages', async () => (await table('group_messages', { order: 'created_at', ascending: true, limit: 150 })).data, force);
+// أحدث 150 رسالة ثم ترتيبها تصاعديًا للعرض (وإلا تختفي الرسائل الجديدة بعد تجاوز الحد).
+export const groupMessages = force => cached('messages', async () => (await table('group_messages', { order: 'created_at', ascending: false, limit: 150 })).data.slice().reverse(), force);
+export const neighborProfiles = force => cached('nprofiles', async () => (await list('get_neighbor_profiles')).data, force);
 export const settings = force => cached('settings', async () => { const r = await call('get_schedule_settings'); return r.ok && r.data && typeof r.data === 'object' ? r.data : {}; }, force);
 export const profiles = force => cached('profiles', async () => (await list('get_member_profiles')).data, force);
 

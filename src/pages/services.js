@@ -51,6 +51,6 @@ export async function render(el, [tab = 'help']) {
   const r = await call('list_neighbor_services');
   const rows = (r.ok && r.data?.[KINDS[kind].key]) || [];
   el.innerHTML = tabs + `<div class="card"><div class="row-head"><b>${KINDS[kind].label}</b><button class="btn primary" data-add>＋ إضافة</button></div>
-    ${!r.ok ? `<p class="status bad">${esc(r.message)}</p>` : rows.length ? `<div class="list">${rows.map(a => `<div class="row-item col"><div class="row-head"><b>${esc(a.title || 'بدون عنوان')}</b><span class="pill">${esc(a.status || a.kind || 'مفتوحة')}</span></div>${a.description ? `<p>${esc(a.description)}</p>` : ''}<small class="muted">👤 ${esc(a.member_name || 'جار')}</small></div>`).join('')}</div>` : empty('لا توجد مشاركات منشورة حاليًا.')}</div>`;
+    ${!r.ok ? `<p class="status bad">${esc(r.message)}</p>` : rows.length ? `<div class="list">${rows.map(a => `<div class="row-item col"><div class="row-head"><b>${esc(a.title || 'بدون عنوان')}</b><span class="pill">${esc(a.kind || a.status || 'مفتوحة')}</span></div>${a.description ? `<p>${esc(a.description)}</p>` : ''}<small class="muted">👤 ${esc(a.member_name || 'جار')}</small></div>`).join('')}</div>` : empty('لا توجد مشاركات منشورة حاليًا.')}</div>`;
   el.querySelector('[data-add]').onclick = async () => { if (await postForm(kind)) render(el, [kind]); };
 }
