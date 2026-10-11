@@ -166,9 +166,7 @@ async function ensureTerms() {
       onMount(card, close) {
         card.querySelector('[data-ok]').onclick = async () => {
           if (!card.querySelector('[data-agree]').checked) return toast('يرجى تأكيد قراءة الشروط.', false);
-          const args = { ...creds(), p_version: TERMS_VERSION, p_user_agent: navigator.userAgent.slice(0, 500) };
-          let res = await call('member_accept_terms', args);
-          if (res.missing) res = await call('accept_program_terms', { p_member_id: state.user.id, p_member_name: state.user.name, p_version: TERMS_VERSION, p_user_agent: args.p_user_agent });
+          const res = await call('accept_program_terms', { p_member_id: state.user.id, p_member_name: state.user.name, p_version: TERMS_VERSION, p_user_agent: navigator.userAgent.slice(0, 500), p_pin: state.pin });
           if (!res.ok) return toast(res.message, false);
           accepted = true; close(); toast('تم تسجيل الموافقة.');
         };

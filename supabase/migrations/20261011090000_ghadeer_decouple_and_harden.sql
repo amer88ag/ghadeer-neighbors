@@ -4,15 +4,14 @@
 -- 1) استعادة الرقم السري كانت تكتب في account_support_requests و account_security_audit_log
 --    (جداول مشروع آخر يشارك قاعدة البيانات). ننقلها إلى جدول خاص بالغدير بنفس توقيعات الدوال،
 --    فلا تحتاج الواجهة أي تعديل.
--- 2) دالة الإقرار بالشروط القديمة accept_program_terms لا تتحقق من الرقم السري.
---    نضيف member_accept_terms التي تتحقق أولًا، ونغلق القديمة عن الواجهة.
+-- 2) (لا تغيير) الإقرار بالشروط يستخدم accept_program_terms ذات المعامل p_pin الموجودة في القاعدة.
 -- 3) النسخ الاحتياطي كان يقرأ الجداول مباشرة من المتصفح. نضيف manager_export_backup
 --    تتحقق من رقم المدير وتستبعد الأرقام السرية.
--- 4) منع قراءة members مباشرة في ملف منفصل: 20261011090100_lock_members_direct_read.sql
+-- 4) (لا تغيير) قراءة members مباشرة ممنوعة عن anon في القاعدة الحية أصلًا.
 --
 -- خطة التراجع (Rollback) في آخر الملف.
 
-begin;
+
 
 -- ---------------------------------------------------------------------------
 -- 1) جدول طلبات استعادة الرقم السري الخاص بالغدير
@@ -55,20 +54,7 @@ begin
   end if;
 end $$;
 
--- دالة مساعدة للتحقق من رقم المدير (نفس آلية manager_pin_login الحالية).
-create or replace function public.ghadeer_is_manager_pin(p_manager_pin text)
-returns boolean
-language sql
-stable
-security definer
-set search_path to 'public','extensions','pg_temp'
-as $$
-  select exists(
-    select 1 from public.app_settings
-    where key = 'manager_pin' and value = extensions.crypt(coalesce(p_manager_pin,''), value)
-  );
-$$;
-revoke all on function public.ghadeer_is_manager_pin(text) from public, anon, authenticated;
+-- التحقق من رقم المدير يتم عبر public._manager_pin_ok الموجودة (تتضمن قفل المحاولات).
 
 create or replace function public.request_member_pin_reset(p_member_id bigint, p_name text, p_phone text default null)
 returns jsonb
@@ -106,7 +92,9 @@ security definer
 set search_path to 'public','extensions','pg_temp'
 as $$
 begin
-  if not public.ghadeer_is_manager_pin(p_manager_pin) then raise exception 'غير مصرح'; end if;
+  if not public._manager_pin_ok(p_manager_pin) then
+    return jsonb_build_object('success', false, 'message', 'الرقم السري غير صحيح أو الحساب مقفل مؤقتًا');
+  end if;
   return coalesce((
     select jsonb_agg(jsonb_build_object('id', r.id, 'member_id', r.member_id, 'full_name', r.full_name,
                                         'phone', r.phone, 'status', r.status, 'created_at', r.created_at)
@@ -123,7 +111,9 @@ set search_path to 'public','extensions','pg_temp'
 as $$
 declare v_req public.ghadeer_pin_reset_requests%rowtype;
 begin
-  if not public.ghadeer_is_manager_pin(p_manager_pin) then raise exception 'غير مصرح'; end if;
+  if not public._manager_pin_ok(p_manager_pin) then
+    return jsonb_build_object('success', false, 'message', 'الرقم السري غير صحيح أو الحساب مقفل مؤقتًا');
+  end if;
   if p_new_pin is null or btrim(p_new_pin) !~ '^[0-9]{4,12}$' then raise exception 'الرقم السري يجب أن يكون من 4 إلى 12 رقمًا'; end if;
   select * into v_req from public.ghadeer_pin_reset_requests where id = p_request_id and status = 'open' for update;
   if not found then raise exception 'طلب الاستعادة غير موجود أو مغلق'; end if;
@@ -145,30 +135,6 @@ revoke all on function public.manager_reset_member_pin_from_request(text,bigint,
 grant execute on function public.manager_reset_member_pin_from_request(text,bigint,text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
--- 2) الإقرار بالشروط مع التحقق من الرقم السري
--- ---------------------------------------------------------------------------
-create or replace function public.member_accept_terms(p_member_id bigint, p_pin text, p_version text, p_user_agent text)
-returns jsonb
-language plpgsql
-security definer
-set search_path to 'public','extensions','pg_temp'
-as $$
-declare v_name text;
-begin
-  select name into v_name from public.members
-  where id = p_member_id and active and pin_hash is not null and pin_hash = extensions.crypt(coalesce(p_pin,''), pin_hash);
-  if v_name is null then return jsonb_build_object('success', false, 'message', 'بيانات الدخول غير صحيحة'); end if;
-  perform public.accept_program_terms(p_member_id, v_name, left(coalesce(p_version,'1.0'),20), left(coalesce(p_user_agent,''),500));
-  return jsonb_build_object('success', true);
-end;
-$$;
-revoke all on function public.member_accept_terms(bigint,text,text,text) from public, anon, authenticated;
-grant execute on function public.member_accept_terms(bigint,text,text,text) to anon, authenticated;
-
--- الدالة القديمة لا تتحقق من الهوية: تُغلق عن الواجهة (تبقى متاحة داخليًا لـ member_accept_terms).
-revoke execute on function public.accept_program_terms(bigint,text,text,text) from public, anon, authenticated;
-
--- ---------------------------------------------------------------------------
 -- 3) النسخ الاحتياطي عبر الخادم دون الأرقام السرية
 -- ---------------------------------------------------------------------------
 create or replace function public.manager_export_backup(p_manager_pin text)
@@ -186,8 +152,8 @@ declare
     'program_control','suggestions','program_acceptances','lottery_draws','outing_plans','outing_plan_organizers',
     'outing_plan_assignments','outing_plan_expenses','outing_plan_ratings','neighborhood_events','event_participants','event_expenses'];
 begin
-  if not public.ghadeer_is_manager_pin(p_manager_pin) then
-    return jsonb_build_object('success', false, 'message', 'غير مصرح');
+  if not public._manager_pin_ok(p_manager_pin) then
+    return jsonb_build_object('success', false, 'message', 'الرقم السري غير صحيح أو الحساب مقفل مؤقتًا');
   end if;
   foreach t in array names loop
     if to_regclass('public.' || t) is not null then
@@ -201,13 +167,11 @@ $$;
 revoke all on function public.manager_export_backup(text) from public, anon, authenticated;
 grant execute on function public.manager_export_backup(text) to anon, authenticated;
 
-commit;
+
 
 -- ===========================================================================
 -- خطة التراجع (Rollback) — تُنفذ يدويًا عند الحاجة فقط:
---   grant execute on function public.accept_program_terms(bigint,text,text,text) to anon, authenticated;
 --   drop function if exists public.manager_export_backup(text);
---   drop function if exists public.member_accept_terms(bigint,text,text,text);
 --   ثم إعادة تطبيق الملف 20260929_add_member_pin_recovery_workflow.sql لإرجاع دوال الاستعادة القديمة.
 --   الجداول ghadeer_pin_reset_requests و ghadeer_security_log يمكن إبقاؤها (لا تؤثر).
 -- ===========================================================================

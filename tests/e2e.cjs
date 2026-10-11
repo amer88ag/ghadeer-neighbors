@@ -116,8 +116,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.fill('.modal [name=pin]', '7777'); await page.click('.modal .btn.primary');
   await page.waitForSelector('.modal [data-agree]');
   await page.check('.modal [data-agree]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
-  const c11 = await lastCall('member_accept_terms');
-  ok('terms: accepted via pin-verified RPC', c11 && c11.args.p_pin === '7777' && !(await calls()).includes('accept_program_terms'));
+  const c11 = await lastCall('accept_program_terms');
+  ok('terms: accepted via pin-verified RPC', c11 && c11.args.p_pin === '7777' && c11.args.p_member_name === 'خالد');
   await page.goto(BASE + '#/account'); await page.click('[data-logout]');
 
   // 12) Wrong pin

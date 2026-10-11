@@ -56,14 +56,18 @@ async function details(id) {
       const pf = card.querySelector('[data-part]'), xf = card.querySelector('[data-exp]');
       if (pf) pf.onsubmit = e => { e.preventDefault(); busy(pf.querySelector('button'), async () => {
         const target = Number(val(pf, 'member'));
-        const args = { p_event_id: id, p_target_member_id: target, p_role: val(pf, 'role') || 'مشارك', p_amount_due: Number(val(pf, 'due')) || 0, p_amount_paid: Number(val(pf, 'paid')) || 0 };
-        const res = state.manager ? await call('manager_set_event_participant', { p_manager_pin: state.pin, p_member_id: target, ...args }) : await call('supervisor_set_event_participant', { p_member_id: state.user.id, p_pin: state.pin, ...args });
+        const common = { p_event_id: id, p_role: val(pf, 'role') || 'مشارك', p_amount_due: Number(val(pf, 'due')) || 0, p_amount_paid: Number(val(pf, 'paid')) || 0 };
+        const res = state.manager
+          ? await call('manager_set_event_participant', { p_manager_pin: state.pin, p_member_id: target, ...common })
+          : await call('supervisor_set_event_participant', { p_member_id: state.user.id, p_pin: state.pin, p_target_member_id: target, ...common });
         if (!res.ok) return toast(res.message, false);
         toast('تم حفظ المشارك.'); close(); details(id);
       }); };
       if (xf) xf.onsubmit = e => { e.preventDefault(); busy(xf.querySelector('button'), async () => {
-        const args = { p_event_id: id, p_target_member_id: null, p_category: val(xf, 'category') || 'مصاريف', p_amount: Number(val(xf, 'amount')) || 0, p_note: val(xf, 'note') };
-        const res = state.manager ? await call('manager_add_event_expense', { p_manager_pin: state.pin, p_member_id: null, ...args }) : await call('supervisor_add_event_expense', { p_member_id: state.user.id, p_pin: state.pin, ...args });
+        const common = { p_event_id: id, p_category: val(xf, 'category') || 'مصاريف', p_amount: Number(val(xf, 'amount')) || 0, p_note: val(xf, 'note') };
+        const res = state.manager
+          ? await call('manager_add_event_expense', { p_manager_pin: state.pin, p_member_id: null, ...common })
+          : await call('supervisor_add_event_expense', { p_member_id: state.user.id, p_pin: state.pin, p_target_member_id: null, ...common });
         if (!res.ok) return toast(res.message, false);
         toast('تم تسجيل المصروف.'); close(); details(id);
       }); };

@@ -23,7 +23,7 @@
     member_login: a => pins[a.p_member_id] === a.p_pin ? { success: true, member_id: a.p_member_id, name: members.find(m => m.id === a.p_member_id).name, role: a.p_member_id === 2 ? 'supervisor' : 'member' } : { success: false, message: 'الرمز السري غير صحيح' },
     manager_pin_login: a => ({ success: a.p_pin === '9999', message: a.p_pin === '9999' ? '' : 'الرقم السري غير صحيح.' }),
     get_program_acceptance: a => ({ exists: a.p_member_id !== 3 }),
-    member_accept_terms: a => auth(a) ? { success: true } : deny,
+    accept_program_terms: a => auth(a) && a.p_member_name ? { success: true } : deny,
     issue_member_device_token: a => auth(a) ? { success: true, token: 'tok-' + a.p_member_id } : deny,
     member_login_by_device_token: a => a.p_token?.startsWith('tok-') ? { success: true, member_id: Number(a.p_token.slice(4)), name: members.find(m => m.id === Number(a.p_token.slice(4))).name } : { success: false },
     get_schedule_settings: () => ({ coffee_interval_days: 14, coffee_order_mode: 'alphabetical' }),
