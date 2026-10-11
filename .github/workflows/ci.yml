@@ -1,0 +1,32 @@
+name: Ghadeer CI
+
+on:
+  push:
+    branches: [main, 'cleanup-*', 'rebuild-*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check + build
+        run: node build.js
+      - name: End-to-end tests (mock database)
+        run: |
+          npm i --no-save playwright@1.56.0
+          npx playwright install --with-deps chromium
+          (cd dist && python3 -m http.server 8765 --bind 127.0.0.1 &) && sleep 1
+          node tests/e2e.cjs /tmp/shots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: /tmp/shots
