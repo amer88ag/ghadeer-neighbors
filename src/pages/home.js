@@ -1,4 +1,4 @@
-import { esc, fmtDate, fmtTime, todayISO, $ } from '../lib/dom.js';
+import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
@@ -40,13 +40,24 @@ export const GROUPS = [
   ['👤 حسابي', [
     ['account', '👤', 'حسابي', 'الدخول والرقم السري', 'all'],
     ['neighbors/me', '🪪', 'بطاقتي', 'بياناتي وطرق التواصل', 'member'],
+    ['terms', '📜', 'الشروط والأحكام', 'الأنظمة والإقرارات', 'all'],
     ['about', '©️', 'عن البرنامج', 'الملكية والخصوصية', 'all'],
     ['manager', '🛠️', 'لوحة الإدارة', 'للمدير والمشرفين', 'admin']
   ]]
 ];
 export const TILES = GROUPS.flatMap(([, items]) => items);
 
+/** ترتيب الأيقونات حسب إعدادات المطور وإخفاء الموقوفة عن غير المدير. */
+function arrange(items, svc) {
+  return items
+    .filter(t => t[4] !== 'admin' || canManage())
+    .filter(t => state.manager || svc[t[0]]?.enabled !== false)
+    .map((t, i) => [t, svc[t[0]]?.sort_order ?? (100 + i)])
+    .sort((a, b) => a[1] - b[1]).map(x => x[0]);
+}
+
 export async function render(el) {
+  const svc = await data.serviceSettings();
   const day = Math.floor(Date.now() / 86400000);
   let hadithIndex = day % HADITH.length;
   el.innerHTML = `
@@ -56,12 +67,12 @@ export async function render(el) {
       <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'سجّل الدخول للمشاركة في القهوة والطلعات والرسائل.'}</p></div>
       ${state.user ? '' : '<button class="btn primary" data-login>🔐 دخول الأعضاء</button>'}
     </section>
-    <div class="grid3 summary">
-      <a class="card stat-card" href="#/coffee"><small>☕ القهوة القادمة</small><div data-next-coffee class="muted">…</div></a>
-      <a class="card stat-card" href="#/outings"><small>🚐 الطلعة القادمة</small><div data-next-outing class="muted">…</div></a>
-      <a class="card stat-card" href="#/messages"><small>🔔 آخر إعلان</small><div data-latest class="muted">…</div></a>
-    </div>
-    ${GROUPS.map(([g, items]) => { const vis = items.filter(t => t[4] !== 'admin' || canManage()); return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${acc === 'member' && !state.user ? '<span class="lock" title="يحتاج دخول">🔒</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
+    <section class="card upcoming" aria-label="القادم">
+      <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-k">القهوة</span><span class="up-v" data-next-coffee>…</span></a>
+      <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-k">الطلعة</span><span class="up-v" data-next-outing>…</span></a>
+      <a href="#/news" class="up-row"><span class="up-ic">🔔</span><span class="up-k">آخر خبر</span><span class="up-v" data-latest>…</span></a>
+    </section>
+    ${GROUPS.map(([g, items]) => { const vis = arrange(items, svc); if (!vis.length) return ''; return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${svc[id]?.enabled === false ? '<span class="lock" title="موقوفة">⏸️</span>' : acc === 'member' && !state.user ? '<span class="lock" title="يحتاج دخول">🔒</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
     <div class="grid2">
       <section class="card widget" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
       <section class="card widget" data-weather><p class="muted">جارٍ تحميل الطقس…</p></section>
@@ -103,7 +114,8 @@ export async function render(el) {
   const c = coffee.find(x => x.coffee_date >= today);
   const o = outings.find(x => x.outing_date >= today);
   const a = data.visibleAnnouncements(ann)[0];
-  $('[data-next-coffee]', el).innerHTML = c ? `<b>${esc(memberName(c.member_id))}</b><br>${fmtDate(c.coffee_date)} — ${fmtTime(c.coffee_time)}` : 'لا يوجد موعد قادم';
-  $('[data-next-outing]', el).innerHTML = o ? `<b>${esc(o.outing_type || [memberName(o.member1_id), memberName(o.member2_id)].join(' + '))}</b><br>${fmtDate(o.outing_date)} — ${fmtTime(o.outing_time)}` : 'لا توجد طلعة قادمة';
-  $('[data-latest]', el).innerHTML = a ? `<b>${esc(a.title)}</b><br>${esc(String(a.message || '').slice(0, 110))}` : 'لا توجد إعلانات';
+  const short = d => new Date(d + 'T00:00:00').toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' });
+  $('[data-next-coffee]', el).innerHTML = c ? `<b>${esc(memberName(c.member_id))}</b> · ${short(c.coffee_date)}${c.coffee_time ? ' · ' + fmtTime(c.coffee_time) : ''}` : 'لا يوجد موعد قادم';
+  $('[data-next-outing]', el).innerHTML = o ? `<b>${esc(o.outing_type || [memberName(o.member1_id), memberName(o.member2_id)].join(' + '))}</b> · ${short(o.outing_date)}${o.outing_time ? ' · ' + fmtTime(o.outing_time) : ''}` : 'لا توجد طلعة قادمة';
+  $('[data-latest]', el).innerHTML = a ? `<b>${esc(a.title)}</b>` : 'لا توجد أخبار';
 }

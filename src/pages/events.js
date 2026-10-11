@@ -9,10 +9,10 @@ const actor = (managerFn, supervisorFn) => state.manager
 
 export async function render(el) {
   const r = await list('get_neighborhood_events');
-  const rows = r.data;
+  const rows = r.data.filter(e => canManage() || e.status !== 'ملغاة');
   el.innerHTML = `
     ${!r.ok ? `<div class="card"><p class="status bad">${esc(r.message)}</p></div>` : ''}
-    ${rows.length ? rows.map(e => `<article class="card"><div class="row-head"><b>🎉 ${esc(e.title)}</b><span class="pill">${esc(e.event_type || 'مناسبة')}</span></div>
+    ${rows.length ? rows.map(e => `<article class="card"><div class="row-head"><b>🎉 ${esc(e.title)}</b><span class="pill">${e.status === 'ملغاة' ? '⛔ ملغاة' : esc(e.event_type || 'مناسبة')}</span></div>
       <div class="muted">📅 ${fmtDate(e.event_date)} ${e.event_time ? '— ⏰ ' + fmtTime(e.event_time) : ''} ${e.place ? '— 📍 ' + esc(e.place) : ''}</div>
       ${e.purpose ? `<p>${esc(e.purpose)}</p>` : ''}
       <div class="actions"><button class="small-btn" data-details="${e.id}">👥 التفاصيل والمشاركون</button>${canManage() ? `<span class="muted">الميزانية ${money(e.total_budget)}</span>` : ''}</div></article>`).join('')

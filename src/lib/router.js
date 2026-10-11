@@ -3,6 +3,9 @@ import { esc } from './dom.js';
 
 const pages = new Map();
 let current = null;
+let guard = null;
+/** حارس اختياري: يعيد نص HTML لمنع عرض الصفحة (مثل خدمة موقوفة)، أو null للسماح. */
+export const setGuard = fn => { guard = fn; };
 
 /** تسجيل صفحة: { id, title, icon, render(el, params), nav?:boolean } */
 export function register(page) {
@@ -32,6 +35,8 @@ export async function render() {
   window.scrollTo({ top: 0 });
   const body = main.querySelector('.page-body');
   try {
+    const blocked = guard ? await guard(id, params) : null;
+    if (blocked) { if (current === id) body.innerHTML = blocked; return; }
     await page.render(body, params);
   } catch (e) {
     console.error(e);

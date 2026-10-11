@@ -193,3 +193,21 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 .tasbeeh-btn { width: 150px; height: 150px; border-radius: 50%; border: 0; margin: 8px auto; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #2a9a66, var(--g2)); color: #fff; font-size: 44px; font-weight: 800; box-shadow: 0 10px 30px #176b4540; }
 .tasbeeh-btn:active { transform: scale(.96); }
 .prayer-grid small + b + small, .prayer-grid div small:last-child { font-size: 11px; }
+
+/* شريط القادم المختصر */
+.upcoming { padding: 6px 12px; }
+.up-row { display: grid; grid-template-columns: 26px 64px 1fr; align-items: center; gap: 6px; padding: 8px 0; text-decoration: none; color: inherit; border-bottom: 1px solid var(--line); }
+.up-row:last-child { border-bottom: 0; }
+.up-ic { font-size: 18px; }
+.up-k { color: var(--muted); font-size: 13px; font-weight: 700; }
+.up-v { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.off { opacity: .45; }
+.terms h3 { margin-top: 18px; color: var(--g); }
+.terms p { line-height: 1.9; }
+.svc-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.svc-row .ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.svc-row input[type=number] { width: 64px; min-height: 34px; padding: 4px 6px; }
+.switch { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 13px; margin: 0; }
+.switch input { width: auto; min-height: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.row-item.inactive { opacity: .6; }

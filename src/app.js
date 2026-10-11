@@ -1,8 +1,8 @@
 /* نقطة الدخول الوحيدة للتطبيق. */
-import { register, start, refresh, currentPage } from './lib/router.js';
+import { register, start, refresh, currentPage, setGuard } from './lib/router.js';
 import { state, onChange, loadMembers, restoreDevice, showLogin, canManage } from './lib/session.js';
 import { toast, esc } from './lib/dom.js';
-import { invalidate } from './lib/data.js';
+import { invalidate, serviceSettings } from './lib/data.js';
 import * as home from './pages/home.js';
 import * as coffee from './pages/coffee.js';
 import * as outings from './pages/outings.js';
@@ -20,6 +20,7 @@ import * as prayer from './pages/prayer.js';
 import * as weather from './pages/weather.js';
 import * as azkar from './pages/azkar.js';
 import * as about from './pages/about.js';
+import * as terms from './pages/terms.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -27,9 +28,19 @@ const PAGES = [
   ['check', 'تفقد جارك', '❤️', check], ['services', 'خدمات الحي', '🤝', services], ['housing', 'سكن الحي', '🏠', housing],
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
-  ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about]
+  ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
+
+// صفحات لا يمكن إيقافها حتى لا يُحجب الدخول أو الإدارة أو الشروط.
+const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about']);
+setGuard(async (id, params) => {
+  if (ALWAYS_ON.has(id) || state.manager) return null;
+  const svc = await serviceSettings();
+  const s = svc[id + (params[0] ? '/' + params[0] : '')] || svc[id];
+  if (!s || s.enabled !== false) return null;
+  return `<div class="card center"><p class="tile-icon">⏸️</p><h3>هذه الخدمة موقوفة مؤقتًا</h3>${s.note ? `<p>${esc(s.note)}</p>` : ''}<a class="btn secondary" href="#/home">العودة للرئيسية</a></div>`;
+});
 
 function renderChrome() {
   const who = document.getElementById('who');

@@ -85,7 +85,7 @@ export function showLogin({ reason = '' } = {}) {
       <label class="check"><input type="checkbox" name="remember" ${known ? 'checked' : ''}> تذكّر هذا الجهاز (لا يُحفظ الرقم السري)</label>
       <div class="status" data-status></div>
       <div class="actions"><button class="btn primary">دخول</button><button type="button" class="btn secondary" data-close>إلغاء</button></div>
-      <div class="actions small"><button type="button" class="link-btn" data-forgot>نسيت الرقم السري؟</button><button type="button" class="link-btn" data-manager>دخول المدير</button></div>
+      <div class="actions small"><button type="button" class="link-btn" data-forgot>نسيت الرقم السري؟</button><button type="button" class="link-btn" data-manager>دخول المطور</button></div>
     </form>`;
     openModal({
       title: '🔐 تسجيل الدخول',
@@ -123,8 +123,8 @@ export function showManagerLogin() {
   return new Promise(resolve => {
     let success = false;
     openModal({
-      title: '🛠️ دخول المدير',
-      body: `<form data-mgr><label>الرقم السري للمدير</label><input name="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="20" required>
+      title: '🛠️ دخول المطور',
+      body: `<form data-mgr><label>الرقم السري للمطور</label><input name="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="20" required>
         <div class="status" data-status></div><div class="actions"><button class="btn primary">دخول</button><button type="button" class="btn secondary" data-close>إلغاء</button></div></form>`,
       onMount(card, close) {
         const f = card.querySelector('[data-mgr]'), status = card.querySelector('[data-status]');
@@ -134,8 +134,8 @@ export function showManagerLogin() {
           await busy(f.querySelector('.btn.primary'), async () => {
             const r = await call('manager_pin_login', { p_pin: pin });
             if (!r.ok || r.data?.success !== true) { status.textContent = r.message || 'الرقم السري غير صحيح.'; status.className = 'status bad'; return; }
-            setUser({ id: 0, name: 'المدير', role: 'manager' }, pin, { manager: true });
-            success = true; close(); toast('تم دخول المدير.');
+            setUser({ id: 0, name: 'المطور', role: 'manager' }, pin, { manager: true });
+            success = true; close(); toast('تم دخول المطور.');
             location.hash = '#/manager';
           });
         };
@@ -154,27 +154,35 @@ export function logout() {
   location.hash = '#/home';
 }
 
-/* ---------- الإقرار بالشروط ---------- */
-const TERMS = 'أقرّ باستخدام البرنامج ضمن الأنظمة والقوانين والآداب العامة والقيم والأحكام الشرعية، وأتحمل المسؤولية عن أي محتوى أو رسالة أو تصرف يصدر مني. وللمدير والمشرفين المفوضين، في حدود الصلاحيات، اتخاذ الإجراءات التنظيمية المناسبة، بما في ذلك حذف أو إخفاء المحتوى أو إيقاف أو تقييد العضوية أو حذف العضو، مع الاحتفاظ بحق اتخاذ الإجراءات النظامية المناسبة أو إحالة الأمر للجهات المختصة عند الاقتضاء.';
+/* ---------- الإقرار بالأنظمة والشروط ---------- */
+async function termsAccepted() {
+  const r = await call('member_terms_status', { ...creds(), p_version: TERMS_VERSION });
+  return r.ok && r.data?.accepted === true;
+}
 
+/** شاشة الموافقة المعتمدة: لا يستخدم العضو الخدمات قبل الموافقة على الإصدار الحالي. */
 async function ensureTerms() {
-  const r = await call('get_program_acceptance', creds());
-  if (r.ok && r.data?.exists === true) return;
+  if (await termsAccepted()) return;
+  const { termsHtml } = await import('../pages/terms.js');
+  const { CONSENT_TEXT } = await import('./terms.js');
   await new Promise(resolve => {
     let accepted = false;
     openModal({
-      title: 'إقرار استخدام البرنامج',
-      body: `<p>${TERMS}</p><label class="check"><input type="checkbox" data-agree> أقر أنني قرأت الشروط وأوافق عليها.</label>
-        <div class="actions"><button class="btn primary" data-ok>أوافق</button><button class="btn secondary" data-close>لا أوافق</button></div>`,
+      title: 'مرحبًا بك في جيران حي الغدير',
+      body: `<p>للتسجيل والاستفادة من الخدمات التي تتطلب حسابًا، يرجى الموافقة على الأنظمة والشروط.</p>
+        <label class="check"><input type="checkbox" data-agree> ${esc(CONSENT_TEXT)}</label>
+        <div class="actions"><button class="btn primary" data-ok>موافق</button><button class="btn secondary" data-close>لا أوافق</button></div>
+        <p><button type="button" class="link-btn" data-read>للاطلاع على الإقرارات والشروط كاملة، اضغط هنا</button></p>`,
       onMount(card, close) {
+        card.querySelector('[data-read]').onclick = () => openModal({ title: 'الأنظمة والشروط', body: termsHtml(), wide: true });
         card.querySelector('[data-ok]').onclick = async () => {
-          if (!card.querySelector('[data-agree]').checked) return toast('يرجى تأكيد قراءة الشروط.', false);
+          if (!card.querySelector('[data-agree]').checked) return toast('يرجى تحديد مربع الموافقة.', false);
           const res = await call('accept_program_terms', { p_member_id: state.user.id, p_member_name: state.user.name, p_version: TERMS_VERSION, p_user_agent: navigator.userAgent.slice(0, 500), p_pin: state.pin });
           if (!res.ok) return toast(res.message, false);
-          accepted = true; close(); toast('تم تسجيل الموافقة.');
+          accepted = true; close(); toast('تم تسجيل موافقتك.');
         };
       },
-      onClose: () => { if (!accepted) { storage.del(DEVICE_TOKEN_KEY); setUser(null, null); toast('لا يمكن استخدام خدمات الأعضاء دون الموافقة على الشروط.', false); } resolve(); }
+      onClose: () => { if (!accepted) { storage.del(DEVICE_TOKEN_KEY); setUser(null, null); toast('يمكنك التصفح، أما استخدام الخدمات فيتطلب الموافقة على الأنظمة والشروط.', false); } resolve(); }
     });
   });
 }

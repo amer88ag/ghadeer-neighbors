@@ -9,7 +9,8 @@ export const SUPABASE_KEY = 'sb_publishable__i-E8Gi5hcdfNd7gZXa12Q_-ZPSXPUr';
 export const TIMEZONE = 'Asia/Riyadh';
 export const LOCATION = { lat: 18.2164, lon: 42.5053, city: 'Abha', country: 'Saudi Arabia', label: 'الغدير — المحالة، أبها' };
 
-export const TERMS_VERSION = '1.0';
+// إصدار الأنظمة والشروط المعتمد. تغييره يطلب من كل عضو الموافقة من جديد.
+export const TERMS_VERSION = 'terms-1.0';
 export const DEVICE_TOKEN_KEY = 'ghadeer_member_device_token';
 export const PIN_PATTERN = /^\d{4,12}$/;
 

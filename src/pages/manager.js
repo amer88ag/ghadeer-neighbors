@@ -4,9 +4,11 @@ import { state, canManage, activeMembers, memberName, loadMembers, logout, showM
 import { call, list, table } from '../lib/api.js';
 import * as data from '../lib/data.js';
 import { PIN_PATTERN } from '../config.js';
+import { GROUPS } from './home.js';
 import { refresh } from '../lib/router.js';
 
 const TABS = [
+  ['services', '🧩 الخدمات', 'manager'],
   ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
   ['occasions', '🎉 المناسبات', 'any'],
@@ -14,6 +16,7 @@ const TABS = [
   ['members', '👥 الأعضاء والأرقام', 'manager'],
   ['permissions', '🛡️ المشرفون', 'manager'],
   ['rules', '⚙️ القواعد', 'any'],
+  ['content', '🗂️ المحتوى', 'manager'],
   ['checks', '❤️ التفقد', 'manager'],
   ['reports', '📊 التقارير والنسخ', 'manager']
 ];
@@ -41,7 +44,7 @@ const memberOpts = sel => options(activeMembers(), m => m.name, sel);
 
 export async function render(el, [tab]) {
   if (!canManage() || !state.pin) {
-    el.innerHTML = `<div class="card"><p>لوحة الإدارة للمدير والمشرفين المفوضين.</p><button class="btn primary block" data-mgr>🛠️ دخول المدير</button><button class="btn secondary block" data-sup>🔐 دخول المشرف</button></div>`;
+    el.innerHTML = `<div class="card"><p>لوحة الإدارة للمطور والمشرفين المفوضين.</p><button class="btn primary block" data-mgr>🛠️ دخول المطور</button><button class="btn secondary block" data-sup>🔐 دخول المشرف</button></div>`;
     $('[data-mgr]', el).onclick = async () => { if (await showManagerLogin()) refresh(); };
     $('[data-sup]', el).onclick = async () => { if (await showLogin()) refresh(); };
     return;
@@ -51,7 +54,7 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ schedules, plans, occasions, messages, members, permissions, rules, checks, reports })[tab](box, again);
+  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, checks, reports })[tab](box, again);
 }
 
 /* ---------------- الجداول ---------------- */
@@ -180,26 +183,33 @@ async function messages(el, again) {
 
 /* ---------------- الأعضاء والأرقام ---------------- */
 async function members(el, again) {
-  const reqs = await list('manager_get_pin_reset_requests', M());
+  const [reqs, all] = await Promise.all([list('manager_get_pin_reset_requests', M()), list('manager_list_members', M())]);
+  const rows = all.data;
+  const active = rows.filter(m => m.active), inactive = rows.filter(m => !m.active);
+  const row = m => `<div class="row-item${m.active ? '' : ' inactive'}"><div class="row-main"><b>${esc(m.name)}</b><small>${m.role === 'supervisor' ? '🛡️ مشرف · ' : ''}${m.phone ? esc(m.phone) : 'بدون جوال'}${m.last_seen_at ? ' · آخر دخول ' + fmtDateTime(m.last_seen_at) : ''}</small></div><div class="row-side">
+      ${m.active ? `<button class="small-btn" data-act="rename" data-id="${m.id}">✏️ الاسم</button><button class="small-btn" data-act="pin" data-id="${m.id}">🔑 الرقم</button><button class="small-btn ghost" data-act="suspend" data-id="${m.id}">⏸️ إيقاف</button>`
+                 : `<button class="small-btn" data-act="restore" data-id="${m.id}">↩️ إعادة العضو</button>`}</div></div>`;
   el.innerHTML = `<div class="card"><h3>🔑 طلبات استعادة الرقم السري</h3>${!reqs.ok ? `<p class="status bad">${esc(reqs.message)}</p>` : reqs.data.length ? reqs.data.map(r => `
       <form class="row-item col" data-f="reset" data-id="${r.id}"><b>${esc(r.full_name)}</b><small class="muted">${r.phone ? esc(r.phone) : 'لا يوجد جوال'} — ${fmtDateTime(r.created_at)}</small>
       <div class="inline-form"><input name="pin" type="password" inputmode="numeric" maxlength="12" placeholder="الرقم الجديد" required><button class="small-btn">تعيين وإغلاق الطلب</button></div></form>`).join('') : empty('لا توجد طلبات مفتوحة.')}</div>
-    <form class="card" data-f="add"><h3>➕ إضافة جار</h3><label>الاسم</label><input name="name" required><label>الجوال (للتحقق عند الاستعادة)</label><input name="phone" inputmode="tel"><label>ملاحظات</label><input name="notes"><label>الرقم السري الأولي (4–12 رقمًا)</label><input name="pin" inputmode="numeric" maxlength="12"><button class="btn primary block">إضافة</button></form>
-    <div class="card"><h3>👥 الأعضاء النشطون (${activeMembers().length})</h3><div class="list">${activeMembers().map(m => `<div class="row-item"><div class="row-main"><b>${esc(m.name)}</b></div><div class="row-side">
-      <button class="small-btn" data-act="rename" data-id="${m.id}">✏️ الاسم</button><button class="small-btn" data-act="pin" data-id="${m.id}">🔑 الرقم</button><button class="small-btn ghost" data-act="delete" data-id="${m.id}">🗑️</button></div></div>`).join('')}</div></div>
-    <form class="card" data-f="mgrpin"><h3>🛠️ تغيير رقم المدير</h3><input name="old" type="password" inputmode="numeric" placeholder="الرقم الحالي" required><input name="next" type="password" inputmode="numeric" placeholder="الرقم الجديد" required><button class="btn secondary block">تغيير</button></form>`;
+    <details class="card"><summary><b>➕ إضافة جار</b></summary><form data-f="add"><label>الاسم</label><input name="name" required><label>الجوال (للتحقق عند الاستعادة)</label><input name="phone" inputmode="tel" placeholder="05xxxxxxxx"><label>ملاحظات</label><input name="notes"><label>الرقم السري الأولي (4–12 رقمًا)</label><input name="pin" inputmode="numeric" maxlength="12"><button class="btn primary block">إضافة</button></form></details>
+    <div class="card"><h3>👥 الأعضاء النشطون (${active.length})</h3>${!all.ok ? `<p class="status bad">${esc(all.message)}</p>` : `<input class="search" type="search" placeholder="🔎 بحث" data-q><div class="list" data-list>${active.map(row).join('')}</div>`}</div>
+    <div class="card"><h3>⏸️ الأعضاء الموقوفون (${inactive.length})</h3>${inactive.length ? `<div class="list">${inactive.map(row).join('')}</div>` : empty('لا يوجد أعضاء موقوفون.')}</div>
+    <details class="card"><summary><b>🛠️ تغيير رقم المطور</b></summary><form data-f="mgrpin"><input name="old" type="password" inputmode="numeric" placeholder="الرقم الحالي" required><input name="next" type="password" inputmode="numeric" placeholder="الرقم الجديد" required><button class="btn secondary block">تغيير</button></form></details>`;
   const reload = async () => { await loadMembers(); again(); };
+  $('[data-q]', el)?.addEventListener('input', e => { const q = e.target.value.trim(); el.querySelectorAll('[data-list] .row-item').forEach(r => { r.hidden = q && !r.textContent.includes(q); }); });
   bind(el, '[data-f=reset]', f => PIN_PATTERN.test(f.pin.value) ? call('manager_reset_member_pin_from_request', { ...M(), p_request_id: Number(f.dataset.id), p_new_pin: f.pin.value }) : { ok: false, message: 'الرقم من 4 إلى 12 رقمًا.' }, again);
   bind(el, '[data-f=add]', f => { const pin = val(f, 'pin'); if (pin && !PIN_PATTERN.test(pin)) return { ok: false, message: 'الرقم السري من 4 إلى 12 رقمًا.' }; return call('manager_add_member', { ...M(), p_name: val(f, 'name'), p_phone: val(f, 'phone'), p_notes: val(f, 'notes'), p_member_pin: pin || null }); }, reload);
   bind(el, '[data-f=mgrpin]', async f => { const r = await call('manager_set_manager_pin', { p_current_pin: f.old.value, p_new_pin: f.next.value }); if (r.ok) setTimeout(logout, 600); return r; });
   el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => busy(b, async () => {
-    const id = Number(b.dataset.id), name = memberName(id);
+    const id = Number(b.dataset.id), name = rows.find(m => Number(m.id) === id)?.name || memberName(id);
     let r;
     if (b.dataset.act === 'rename') { const v = await promptBox({ title: 'تعديل الاسم', label: 'الاسم الجديد', value: name }); if (!v || v.trim() === name) return; r = await call('manager_update_member_name', { ...M(), p_member_id: id, p_name: v.trim() }); }
     else if (b.dataset.act === 'pin') { const v = await promptBox({ title: 'رقم سري جديد لـ ' + name, label: '4 إلى 12 رقمًا', type: 'password', inputmode: 'numeric' }); if (v === null) return; if (!PIN_PATTERN.test(v)) return toast('الرقم من 4 إلى 12 رقمًا.', false); r = await call('manager_set_member_pin', { ...M(), p_member_id: id, p_new_pin: v }); }
-    else { if (!(await confirmBox('حذف الجار «' + name + '»؟'))) return; r = await call('manager_delete_member', { ...M(), p_member_id: id }); }
+    else if (b.dataset.act === 'suspend') { if (!(await confirmBox(`إيقاف العضو «${name}»؟ لن يستطيع الدخول، وتُلغى صلاحياته وأجهزته المحفوظة. يمكنك إعادته لاحقًا.`, { okText: 'إيقاف' }))) return; r = await call('manager_set_member_active', { ...M(), p_member_id: id, p_active: false }); }
+    else { r = await call('manager_set_member_active', { ...M(), p_member_id: id, p_active: true }); }
     if (!r.ok) return toast(r.message, false);
-    toast('تم.'); if (b.dataset.act !== 'pin') reload();
+    toast(r.message || 'تم.'); if (b.dataset.act !== 'pin') reload();
   }));
 }
 
@@ -211,13 +221,15 @@ async function permissions(el, again) {
   const p = await table('member_permissions', { order: 'member_id' });
   const map = new Map(p.data.map(x => [Number(x.member_id), x]));
   const sups = activeMembers().filter(m => map.get(Number(m.id))?.role === 'supervisor');
-  el.innerHTML = `<form class="card" data-f="perm"><h3>🛡️ تعيين مشرف وصلاحياته</h3><select name="member">${memberOpts()}</select>
-      ${PERMS.map(([k, l]) => `<label class="check"><input type="checkbox" name="${k}"> ${l}</label>`).join('')}<button class="btn primary block">حفظ الصلاحيات</button></form>
-    <div class="card"><h3>المشرفون الحاليون</h3>${!p.ok ? `<p class="status bad">${esc(p.message)}</p>` : sups.length ? `<div class="list">${sups.map(m => `<div class="row-item"><b>${esc(m.name)}</b><button class="small-btn ghost" data-revoke="${m.id}">إلغاء الإشراف</button></div>`).join('')}</div>` : empty('لا يوجد مشرفون.')}</div>`;
+  const chips = x => PERMS.filter(([k]) => x[PERM_COL[k]]).map(([, l]) => `<span class="pill">${l}</span>`).join('') || '<span class="muted">بدون صلاحيات</span>';
+  el.innerHTML = `<div class="card"><h3>🛡️ المشرفون الحاليون (${sups.length})</h3>${!p.ok ? `<p class="status bad">${esc(p.message)}</p>` : sups.length ? `<div class="list">${sups.map(m => `<div class="row-item col"><div class="row-head"><b>${esc(m.name)}</b><span><button class="small-btn" data-edit="${m.id}">✏️ تعديل الصلاحيات</button> <button class="small-btn ghost" data-revoke="${m.id}">إلغاء الإشراف</button></span></div><div class="chips">${chips(map.get(Number(m.id)))}</div></div>`).join('')}</div>` : empty('لا يوجد مشرفون بعد.')}</div>
+    <form class="card" data-f="perm"><h3>➕ تعيين مشرف أو تعديل صلاحياته</h3><p class="muted">اختر العضو وحدد ما يُوكل إليه فقط. يمكنك تعيين أكثر من مشرف.</p><select name="member">${memberOpts()}</select>
+      ${PERMS.map(([k, l]) => `<label class="check"><input type="checkbox" name="${k}"> ${l}</label>`).join('')}<button class="btn primary block">حفظ الصلاحيات</button></form>`;
   const f = $('[data-f=perm]', el);
   const fill = () => { const x = map.get(Number(f.member.value)) || {}; PERMS.forEach(([k]) => { f[k].checked = !!x[PERM_COL[k]]; }); };
   f.member.onchange = fill; fill();
-  bind(el, '[data-f=perm]', ff => call('manager_set_member_permissions', { ...M(), p_member_id: Number(ff.member.value), ...Object.fromEntries(PERMS.map(([k]) => ['p_' + (PERM_COL[k]), ff[k].checked])) }), again);
+  el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { f.member.value = b.dataset.edit; fill(); f.scrollIntoView({ behavior: 'smooth' }); });
+  bind(el, '[data-f=perm]', ff => PERMS.some(([k]) => ff[k].checked) ? call('manager_set_member_permissions', { ...M(), p_member_id: Number(ff.member.value), ...Object.fromEntries(PERMS.map(([k]) => ['p_' + (PERM_COL[k]), ff[k].checked])) }) : { ok: false, message: 'حدد صلاحية واحدة على الأقل، أو استخدم «إلغاء الإشراف».' }, again);
   el.querySelectorAll('[data-revoke]').forEach(b => b.onclick = () => busy(b, async () => {
     if (!(await confirmBox('إلغاء صلاحيات المشرف؟'))) return;
     const r = await call('manager_remove_supervisor', { ...M(), p_member_id: Number(b.dataset.revoke) });
@@ -251,6 +263,35 @@ async function checks(el, again) {
     <div class="actions small">${['تم التواصل', 'تمت المساعدة', 'مغلقة'].map(s => `<button class="small-btn" data-id="${x.id}" data-status="${s}">${s}</button>`).join('')}<button class="small-btn ghost" data-del="${x.id}">حذف</button></div></div>`).join('')}</div>` : empty('لا توجد حالات.')}</div>`;
   el.querySelectorAll('[data-status]').forEach(b => b.onclick = () => busy(b, async () => { const res = await call('manager_update_neighbor_check', { ...M(), p_id: Number(b.dataset.id), p_status: b.dataset.status }); toast(res.ok ? 'تم التحديث.' : res.message, res.ok); if (res.ok) again(); }));
   el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => busy(b, async () => { if (!(await confirmBox('حذف الحالة؟'))) return; const res = await call('manager_delete_neighbor_check', { ...M(), p_id: Number(b.dataset.del) }); toast(res.ok ? 'تم الحذف.' : res.message, res.ok); if (res.ok) again(); }));
+}
+
+/* ---------------- الخدمات (تفعيل/إيقاف/ترتيب) ---------------- */
+async function services(el, again) {
+  const svc = await data.serviceSettings(true);
+  el.innerHTML = `<p class="muted">أوقف أي خدمة أو أعد ترتيبها داخل مجموعتها (الرقم الأصغر يظهر أولًا). الخدمة الموقوفة تختفي من الرئيسية وتظهر رسالتك لمن يفتح رابطها. المطور يرى كل الخدمات دائمًا.</p>` +
+    GROUPS.map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => t[4] !== 'admin').map(([id, i, t], idx) => { const s = svc[id] || {}; return `
+      <form class="row-item col svc-row" data-svc="${id}"><div><b>${i} ${t}</b>${s.enabled === false ? ' <span class="pill">⏸️ موقوفة</span>' : ''}</div>
+        <div class="ctl"><label class="switch"><input type="checkbox" name="on" ${s.enabled === false ? '' : 'checked'}> مفعّلة</label>
+        <input type="number" name="order" min="0" max="999" value="${esc(s.sort_order ?? idx + 1)}" aria-label="الترتيب">
+        <input name="note" placeholder="رسالة عند الإيقاف (اختياري)" value="${esc(s.note || '')}"><button class="small-btn">حفظ</button></div></form>`; }).join('')}</div></div>`).join('');
+  bind(el, '[data-svc]', f => call('manager_set_service_setting', { ...M(), p_key: f.dataset.svc, p_enabled: f.on.checked, p_sort_order: Number(f.order.value) || 0, p_note: val(f, 'note') }), () => { data.invalidate('svc'); again(); });
+}
+
+/* ---------------- المحتوى (إغلاق/إعادة/إلغاء) ---------------- */
+const CONTENT = [['help', '🤝 خدمات الجيران', s => s === 'open'], ['market', '🛍️ السوق والمفقودات', s => s === 'open'], ['initiative', '💡 المبادرات', s => s !== 'محذوفة'], ['rental', '🏠 سكن الحي', s => s === 'open'], ['event', '🎉 مناسبات الحي', s => s !== 'ملغاة']];
+async function content(el, again) {
+  const r = await call('manager_list_content', M());
+  if (!r.ok) { el.innerHTML = `<div class="card"><p class="status bad">${esc(r.message)}</p></div>`; return; }
+  el.innerHTML = `<p class="muted">إغلاق المنشور يخفيه عن الأعضاء دون حذفه، ويمكن إعادته. المناسبة الملغاة تبقى في السجل.</p>` + CONTENT.map(([k, label, isOpen]) => { const rows = r.data?.[k] || []; return `<details class="card"${rows.length ? ' open' : ''}><summary><b>${label}</b> <span class="muted">(${rows.length})</span></summary>
+    ${rows.length ? `<div class="list">${rows.map(x => { const open = isOpen(x.status); return `<div class="row-item${open ? '' : ' inactive'}"><div class="row-main"><b>${esc(x.title)}</b><small>${esc(x.member_name || '')} ${x.kind ? '· ' + esc(x.kind) : ''} · ${esc(x.status || '')} · ${fmtDateTime(x.event_date || x.created_at)}</small></div>
+      <div class="row-side"><button class="small-btn${open ? ' ghost' : ''}" data-kind="${k}" data-id="${x.id}" data-open="${open ? 0 : 1}">${open ? (k === 'event' ? '⛔ إلغاء' : '⛔ إغلاق') : '↩️ إعادة'}</button></div></div>`; }).join('')}</div>` : empty('لا يوجد محتوى.')}</details>`; }).join('');
+  el.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => busy(b, async () => {
+    const opening = b.dataset.open === '1';
+    if (!opening && !(await confirmBox('إخفاء هذا العنصر عن الأعضاء؟', { okText: 'تأكيد' }))) return;
+    const res = await call('manager_set_content_open', { ...M(), p_kind: b.dataset.kind, p_id: Number(b.dataset.id), p_open: opening });
+    if (!res.ok) return toast(res.message, false);
+    toast('تم.'); again();
+  }));
 }
 
 /* ---------------- التقارير والنسخ ---------------- */

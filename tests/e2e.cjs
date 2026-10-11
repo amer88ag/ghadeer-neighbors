@@ -40,15 +40,18 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 23 && !(await page.$('[data-tile=manager]')));
-  ok('home: next coffee', (await page.textContent('[data-next-coffee]')).includes('عامر'));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 24 && !(await page.$('[data-tile=manager]')));
+  ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
   ok('home: occasion shown, future hidden', (await page.textContent('[data-latest]')).includes('اليوم الوطني'));
+  await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
+  ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
+  await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
   await page.waitForSelector('.prayer-grid'); await page.waitForSelector('.weather');
   ok('home: prayer + weather', true);
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 23);
+  ok('guest icons count', (await checkAllTiles('guest')) === 24);
 
   // 2) Every page as guest
   for (const p of ['coffee', 'coffee/all', 'outings', 'outings/schedule', 'outings/new', 'events', 'neighbors', 'neighbors/me', 'messages', 'messages/private', 'messages/suggest', 'check', 'services', 'services/catalog', 'housing', 'housing/links', 'links', 'links/sports', 'links/jobs', 'account', 'manager', 'unknown-page']) {
@@ -70,7 +73,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 23);
+  ok('member icons count', (await checkAllTiles('member')) === 24);
   await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
   ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));
   await page.click('[data-add]'); await page.selectOption('.modal [name=mode]', 'معثور عليه'); await page.fill('.modal [name=title]', 'محفظة'); await page.click('.modal [data-post] .btn');
@@ -149,9 +152,12 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '3');
   await page.fill('.modal [name=pin]', '7777'); await page.click('.modal .btn.primary');
   await page.waitForSelector('.modal [data-agree]');
+  await page.click('.modal [data-read]'); await page.waitForSelector('.modal .terms');
+  ok('consent: full terms open from link', (await page.$$('.modal .terms h3')).length === 15);
+  await page.click('.modal:last-child [data-close]');
   await page.check('.modal [data-agree]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
   const c11 = await lastCall('accept_program_terms');
-  ok('terms: accepted via pin-verified RPC', c11 && c11.args.p_pin === '7777' && c11.args.p_member_name === 'خالد');
+  ok('terms: accepted via pin-verified RPC with version', c11 && c11.args.p_pin === '7777' && c11.args.p_member_name === 'خالد' && c11.args.p_version === 'terms-1.0');
   await page.goto(BASE + '#/account'); await page.click('[data-logout]');
 
   // 12) Wrong pin
@@ -169,7 +175,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     const bad = await page.$('.page-body .status.bad');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
   }
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 24);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 25);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -198,7 +204,44 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const sv = await lastCall('supervisor_update_coffee_assignment');
   ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 24);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 25);
+
+  // 13c) Developer controls (re-login as manager)
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('[data-tab]');
+  await page.goto(BASE + '#/manager/services'); await page.waitForSelector('[data-svc="services/lost"]');
+  await page.$eval('[data-svc="services/lost"] [name=on]', e => e.checked = false);
+  await page.fill('[data-svc="services/lost"] [name=note]', 'قريبًا');
+  await page.click('[data-svc="services/lost"] button'); await page.waitForTimeout(400);
+  const ss = await lastCall('manager_set_service_setting');
+  ok('dev: service paused', ss && ss.args.p_key === 'services/lost' && ss.args.p_enabled === false);
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services/lost"]');
+  ok('dev: developer still sees paused tile (dimmed)', await page.$eval('[data-tile="services/lost"]', e => e.classList.contains('off')));
+  await page.goto(BASE + '#/manager/members'); await page.waitForSelector('[data-act=restore]');
+  ok('dev: suspended members listed with restore', (await page.textContent('[data-tab]')).includes('عضو موقوف'));
+  await page.click('[data-act=suspend][data-id="3"]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
+  ok('dev: suspend member', (await lastCall('manager_set_member_active'))?.args.p_active === false);
+  await page.goto(BASE + '#/manager/content'); await page.waitForSelector('[data-kind=event]');
+  await page.click('[data-kind=event]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
+  const cc = await lastCall('manager_set_content_open');
+  ok('dev: cancel event', cc && cc.args.p_kind === 'event' && cc.args.p_open === false);
+  await page.goto(BASE + '#/manager/permissions'); await page.waitForSelector('[data-edit]');
+  ok('dev: supervisors listed with permission chips', (await page.textContent('[data-tab]')).includes('إدارة القهوة'));
+  await page.selectOption('[data-f=perm] [name=member]', '3'); await page.check('[data-f=perm] [name=messages]'); await page.click('[data-f=perm] .btn'); await page.waitForTimeout(400);
+  const pp = await lastCall('manager_set_member_permissions');
+  ok('dev: add second supervisor with chosen permissions', pp && pp.args.p_member_id === 3 && pp.args.p_can_send_group_messages === true && pp.args.p_can_manage_coffee === false);
+  // guest sees paused service as hidden + blocked
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
+  ok('guest: paused tile hidden', !(await page.$('[data-tile="services/lost"]')));
+  await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);
+  ok('guest: paused page blocked with note', (await page.textContent('.page-body')).includes('موقوفة') && (await page.textContent('.page-body')).includes('قريبًا'));
+  await page.evaluate(() => { window.__svc = []; });
+  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('#who .chip:not(.light)');
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('[data-tab]');
 
   // 14) Dark mode + desktop screenshots
   await page.emulateMedia({ colorScheme: 'dark' }); await page.goto(BASE + '#/home'); await page.waitForTimeout(600);
