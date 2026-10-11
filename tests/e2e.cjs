@@ -40,7 +40,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 24 && !(await page.$('[data-tile=manager]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
   ok('home: occasion shown, future hidden', (await page.textContent('[data-latest]')).includes('اليوم الوطني'));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
@@ -51,7 +51,12 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 24);
+  ok('guest icons count', (await checkAllTiles('guest')) === 26);
+
+  await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-gate]');
+  ok('guest: services gated until login + terms', (await page.textContent('.page-body')).includes('للأعضاء') && !(await page.$('[data-apology]')));
+  await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms');
+  ok('guest: terms page open', true);
 
   // 2) Every page as guest
   for (const p of ['coffee', 'coffee/all', 'outings', 'outings/schedule', 'outings/new', 'events', 'neighbors', 'neighbors/me', 'messages', 'messages/private', 'messages/suggest', 'check', 'services', 'services/catalog', 'housing', 'housing/links', 'links', 'links/sports', 'links/jobs', 'account', 'manager', 'unknown-page']) {
@@ -73,7 +78,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 24);
+  ok('member icons count', (await checkAllTiles('member')) === 26);
   await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
   ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));
   await page.click('[data-add]'); await page.selectOption('.modal [name=mode]', 'معثور عليه'); await page.fill('.modal [name=title]', 'محفظة'); await page.click('.modal [data-post] .btn');
@@ -134,12 +139,14 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('services: catalog item posts help request', c8 && c8.args.p_title === title && title.length > 0, title);
 
   // 9) Reload → device restore → pin re-prompt
-  await page.goto(BASE + '#/coffee'); await page.reload(); await page.waitForSelector('[data-apology="11"]');
+  await page.goto(BASE + '#/coffee'); await page.reload(); await page.waitForSelector('[data-gate]');
   ok('restore: identity restored after reload', (await page.textContent('#who')).includes('عامر'));
-  await page.click('[data-apology="11"]'); await page.click('.modal [data-ok]');
-  await page.waitForSelector('.modal [name=pin]');
+  ok('restore: services stay locked until pin + terms confirmed', !(await page.$('[data-apology]')));
+  await page.click('[data-gate]'); await page.waitForSelector('.modal [name=pin]');
   ok('restore: pin re-prompt shows known name', (await page.textContent('.modal')).includes('الدخول باسم'));
   await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('[data-apology="11"]');
+  await page.click('[data-apology="11"]'); await page.click('.modal [data-ok]');
   await page.waitForTimeout(800);
   const restoredCalls = (await page.evaluate(() => window.__calls.filter(c => c.name === 'member_apologize_coffee').length));
   ok('restore: action continues after pin', restoredCalls >= 1);
@@ -175,7 +182,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     const bad = await page.$('.page-body .status.bad');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
   }
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 25);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -204,7 +211,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const sv = await lastCall('supervisor_update_coffee_assignment');
   ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 25);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 27);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
@@ -235,11 +242,34 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
   ok('guest: paused tile hidden', !(await page.$('[data-tile="services/lost"]')));
-  await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);
-  ok('guest: paused page blocked with note', (await page.textContent('.page-body')).includes('موقوفة') && (await page.textContent('.page-body')).includes('قريبًا'));
-  await page.evaluate(() => { window.__svc = []; });
   await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
+  await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);
+  ok('member: paused page blocked with note', (await page.textContent('.page-body')).includes('موقوفة') && (await page.textContent('.page-body')).includes('قريبًا'));
+  await page.evaluate(() => { window.__svc = []; });
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('[data-tab]');
+
+  // 13d) New community + statistics
+  await page.goto(BASE + '#/stats'); await page.waitForSelector('.stat-box');
+  ok('stats: developer sees full statistics', (await page.$$('.stat-box')).length >= 30 && (await page.textContent('.page-body')).includes('23'));
+  await page.goto(BASE + '#/manager/communities'); await page.waitForSelector('[data-a=approve]');
+  await page.click('[data-a=approve]'); await page.waitForSelector('.modal [name=v]'); await page.click('.modal .btn.primary'); await page.waitForTimeout(400);
+  ok('community: developer approves request', (await lastCall('manager_review_community'))?.args.p_action === 'approve');
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('#who .chip:not(.light)');
+  await page.goto(BASE + '#/community'); await page.waitForSelector('[data-create]');
+  ok('community: no stats tile for member', true);
+  await page.fill('[data-create] [name=name]', 'جيران حي النخيل'); await page.click('[data-create] .btn'); await page.waitForTimeout(400);
+  ok('community: member requests new community', (await lastCall('community_request_create'))?.args.p_name === 'جيران حي النخيل');
+  await page.waitForSelector('a[href="#/community/manage/5"]');
+  ok('community: owner sees join code', (await page.textContent('.page-body')).includes('NKH123'));
+  await page.click('a[href="#/community/manage/5"]'); await page.waitForSelector('[data-d=approve]');
+  await page.click('[data-d=approve]'); await page.waitForTimeout(400);
+  ok('community: owner approves join request', (await lastCall('community_decide_member'))?.args.p_decision === 'approve');
+  await page.goto(BASE + '#/stats'); await page.waitForTimeout(300);
+  ok('stats: hidden from members', (await page.textContent('.page-body')).includes('للمطور فقط'));
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('[data-tab]');
 

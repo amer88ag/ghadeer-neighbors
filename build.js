@@ -6,7 +6,8 @@ execFileSync(process.execPath, ['scripts/check.js'], { stdio: 'inherit' });
 
 rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist');
-for (const f of ['index.html', 'manifest.webmanifest', 'icon.svg']) copyFileSync(f, 'dist/' + f);
+for (const f of ['index.html', 'manifest.webmanifest', 'icon.svg', 'sw.js']) copyFileSync(f, 'dist/' + f);
 cpSync('src', 'dist/src', { recursive: true });
+cpSync('icons', 'dist/icons', { recursive: true });
 if (!existsSync('dist/src/app.js')) throw new Error('build output incomplete');
 console.log('BUILD OK → dist/');

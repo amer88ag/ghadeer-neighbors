@@ -17,6 +17,7 @@ const TABS = [
   ['permissions', '🛡️ المشرفون', 'manager'],
   ['rules', '⚙️ القواعد', 'any'],
   ['content', '🗂️ المحتوى', 'manager'],
+  ['communities', '🏘️ المجتمعات', 'any'],
   ['checks', '❤️ التفقد', 'manager'],
   ['reports', '📊 التقارير والنسخ', 'manager']
 ];
@@ -54,7 +55,7 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, checks, reports })[tab](box, again);
+  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- الجداول ---------------- */
@@ -269,7 +270,7 @@ async function checks(el, again) {
 async function services(el, again) {
   const svc = await data.serviceSettings(true);
   el.innerHTML = `<p class="muted">أوقف أي خدمة أو أعد ترتيبها داخل مجموعتها (الرقم الأصغر يظهر أولًا). الخدمة الموقوفة تختفي من الرئيسية وتظهر رسالتك لمن يفتح رابطها. المطور يرى كل الخدمات دائمًا.</p>` +
-    GROUPS.map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => t[4] !== 'admin').map(([id, i, t], idx) => { const s = svc[id] || {}; return `
+    GROUPS.map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => !['admin', 'dev'].includes(t[4])).map(([id, i, t], idx) => { const s = svc[id] || {}; return `
       <form class="row-item col svc-row" data-svc="${id}"><div><b>${i} ${t}</b>${s.enabled === false ? ' <span class="pill">⏸️ موقوفة</span>' : ''}</div>
         <div class="ctl"><label class="switch"><input type="checkbox" name="on" ${s.enabled === false ? '' : 'checked'}> مفعّلة</label>
         <input type="number" name="order" min="0" max="999" value="${esc(s.sort_order ?? idx + 1)}" aria-label="الترتيب">
@@ -289,6 +290,29 @@ async function content(el, again) {
     const opening = b.dataset.open === '1';
     if (!opening && !(await confirmBox('إخفاء هذا العنصر عن الأعضاء؟', { okText: 'تأكيد' }))) return;
     const res = await call('manager_set_content_open', { ...M(), p_kind: b.dataset.kind, p_id: Number(b.dataset.id), p_open: opening });
+    if (!res.ok) return toast(res.message, false);
+    toast('تم.'); again();
+  }));
+}
+
+/* ---------------- المجتمعات الجديدة ---------------- */
+const C_STATUS = { pending: '⏳ قيد المراجعة', active: '✅ نشط', rejected: '⛔ مرفوض', suspended: '⏸️ موقوف' };
+async function communities(el, again) {
+  const r = state.manager ? await list('manager_list_communities', M()) : await list('supervisor_list_communities', S());
+  if (!r.ok) { el.innerHTML = `<div class="card"><p class="status bad">${esc(r.message)}</p><p class="muted">مراجعة المجتمعات للمطور وللمشرف المخوّل بإدارة الأعضاء.</p></div>`; return; }
+  const btn = (c, a, l, cls = '') => `<button class="small-btn ${cls}" data-c="${c.id}" data-a="${a}">${l}</button>`;
+  el.innerHTML = `<p class="muted">اعتماد طلب المجتمع يُنشئ رمز انضمام لصاحبه. الإيقاف يجمّد المجتمع ويمنع قبول الأعضاء حتى إعادته.</p>` +
+    (r.data.length ? `<div class="list">${r.data.map(c => `<div class="row-item col${c.status === 'active' || c.status === 'pending' ? '' : ' inactive'}">
+      <div class="row-head"><b>🏘️ ${esc(c.name)}</b><span class="pill">${C_STATUS[c.status] || esc(c.status)}</span></div>
+      <small class="muted">صاحبه: ${esc(c.owner_name)} · ${c.members_count} عضو · ${fmtDateTime(c.created_at)}${c.join_code ? ' · الرمز ' + esc(c.join_code) : ''}</small>
+      ${c.description ? `<p>${esc(c.description)}</p>` : ''}${c.review_note ? `<p class="muted">ملاحظة: ${esc(c.review_note)}</p>` : ''}
+      <div class="actions small">${c.status === 'pending' ? btn(c, 'approve', '✅ اعتماد') + btn(c, 'reject', '⛔ رفض', 'ghost') : c.status === 'active' ? btn(c, 'suspend', '⏸️ إيقاف', 'ghost') : c.status === 'suspended' ? btn(c, 'activate', '↩️ إعادة تفعيل') : ''}</div></div>`).join('')}</div>` : `<div class="card">${empty('لا توجد مجتمعات أو طلبات بعد.')}</div>`);
+  el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => busy(b, async () => {
+    const a = b.dataset.a;
+    const note = ['reject', 'suspend', 'approve'].includes(a) ? await promptBox({ title: a === 'approve' ? 'اعتماد المجتمع' : a === 'reject' ? 'رفض الطلب' : 'إيقاف المجتمع', label: 'ملاحظة لصاحب المجتمع (اختياري)', required: false, okText: 'تأكيد' }) : '';
+    if (note === null) return;
+    const args = { p_id: Number(b.dataset.c), p_action: a, p_note: note || '' };
+    const res = state.manager ? await call('manager_review_community', { ...M(), ...args }) : await call('supervisor_review_community', { ...S(), ...args });
     if (!res.ok) return toast(res.message, false);
     toast('تم.'); again();
   }));

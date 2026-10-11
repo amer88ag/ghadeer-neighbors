@@ -1,6 +1,6 @@
 /* نقطة الدخول الوحيدة للتطبيق. */
 import { register, start, refresh, currentPage, setGuard } from './lib/router.js';
-import { state, onChange, loadMembers, restoreDevice, showLogin, canManage } from './lib/session.js';
+import { state, onChange, loadMembers, restoreDevice, showLogin, canManage, requirePin } from './lib/session.js';
 import { toast, esc } from './lib/dom.js';
 import { invalidate, serviceSettings } from './lib/data.js';
 import * as home from './pages/home.js';
@@ -21,6 +21,9 @@ import * as weather from './pages/weather.js';
 import * as azkar from './pages/azkar.js';
 import * as about from './pages/about.js';
 import * as terms from './pages/terms.js';
+import * as install from './pages/install.js';
+import * as community from './pages/community.js';
+import * as stats from './pages/stats.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -28,13 +31,30 @@ const PAGES = [
   ['check', 'تفقد جارك', '❤️', check], ['services', 'خدمات الحي', '🤝', services], ['housing', 'سكن الحي', '🏠', housing],
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
-  ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms]
+  ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms], ['install', 'النشر والتثبيت', '📲', install],
+  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 
+// صفحات متاحة للزائر: الواجهة فقط والتعريف والشروط والدخول. كل ما عداها يتطلب دخول عضو وموافقته على الشروط.
+const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager']);
 // صفحات لا يمكن إيقافها حتى لا يُحجب الدخول أو الإدارة أو الشروط.
-const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about']);
+const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats']);
+export const isPublicRoute = id => PUBLIC.has(String(id).split('/')[0]);
+
 setGuard(async (id, params) => {
+  if (!PUBLIC.has(id) && !state.manager && !(state.user && state.termsOk)) {
+    const restored = state.user && !state.pin;
+    setTimeout(() => {
+      document.querySelector('[data-gate]')?.addEventListener('click', async () => {
+        const ok = restored ? await requirePin() : await showLogin({ reason: 'سجّل دخولك ووافق على الأنظمة والشروط لاستخدام خدمات البرنامج.' });
+        if (ok) refresh();
+      });
+    });
+    return `<div class="card center gate"><p class="tile-icon">🔒</p><h3>${restored ? 'أكّد دخولك للمتابعة' : 'هذه الخدمة للأعضاء'}</h3>
+      <p class="muted">${restored ? 'أدخل رقمك السري مرة واحدة لتأكيد هويتك وموافقتك على الأنظمة والشروط.' : 'يمكن للزائر مشاهدة الواجهة فقط. استخدام الخدمات يتطلب تسجيل الدخول والموافقة على الأنظمة والشروط.'}</p>
+      <button class="btn primary" data-gate>🔐 ${restored ? 'تأكيد الدخول' : 'تسجيل الدخول'}</button> <a class="btn secondary" href="#/terms">📜 الأنظمة والشروط</a></div>`;
+  }
   if (ALWAYS_ON.has(id) || state.manager) return null;
   const svc = await serviceSettings();
   const s = svc[id + (params[0] ? '/' + params[0] : '')] || svc[id];
@@ -54,7 +74,7 @@ function renderChrome() {
 let lastUser = undefined;
 onChange(() => {
   renderChrome();
-  const key = state.user ? state.user.id + ':' + state.manager : '';
+  const key = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   if (lastUser !== undefined && key !== lastUser) { invalidate(); if (currentPage()) refresh(); }
   lastUser = key;
 });
@@ -80,6 +100,7 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); })
     console.error(e);
     toast(e.message || 'تعذر الاتصال بقاعدة البيانات.', false);
   }
-  lastUser = state.user ? state.user.id + ':' + state.manager : '';
+  lastUser = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   start();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

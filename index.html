@@ -7,7 +7,11 @@
   <meta name="description" content="برنامج جيران حي الغدير بالمحالة — القهوة والطلعات والرسائل وخدمات الحي.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://xewjakfmdfkbhcnxglct.supabase.co wss://xewjakfmdfkbhcnxglct.supabase.co https://api.aladhan.com https://api.open-meteo.com; base-uri 'self'; form-action 'self'">
   <title>جيران حي الغدير بالمحالة</title>
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" sizes="180x180">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="جيران الغدير">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="src/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" defer></script>
@@ -15,7 +19,7 @@
 </head>
 <body>
   <header class="appbar">
-    <a href="#/home" class="brand"><span class="logo" aria-hidden="true">🏘️</span><span><b>جيران حي الغدير</b><small>المحالة — أبها</small></span></a>
+    <a href="#/home" class="brand"><img class="logo" src="icons/icon-simple-96.png" alt="" width="36" height="36"><span><b>جيران حي الغدير</b><small>المحالة — أبها</small></span></a>
     <div class="appbar-actions"><button id="refreshBtn" class="icon-btn light" aria-label="تحديث البيانات">⟳</button><span id="who"></span></div>
   </header>
 

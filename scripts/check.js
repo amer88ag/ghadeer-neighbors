@@ -17,8 +17,8 @@ for (const f of files) {
   // قيود: لا وصول لقاعدة البيانات خارج طبقة api، ولا تخزين للأرقام السرية، ولا ارتباط بمشاريع أخرى.
   if (f !== join('src', 'lib', 'api.js') && /createClient\(|\.from\(['"]/.test(src)) errors.push(`وصول مباشر لقاعدة البيانات خارج api.js: ${f}`);
   if (/localStorage\.setItem\([^)]*pin/i.test(src) || /sessionStorage/.test(src)) errors.push(`تخزين محظور للرقم السري: ${f}`);
-  if (/quran|mutqin|madrasati|communit(y|ies)_|account_support/i.test(src)) errors.push(`ارتباط بمشروع آخر: ${f}`);
-  if (/\balert\(|\bprompt\(|\bconfirm\(/.test(src.replace(/\/\*[\s\S]*?\*\//g, ''))) errors.push(`استخدم نوافذ التطبيق بدل alert/prompt/confirm: ${f}`);
+  if (/quran|mutqin|madrasati|community_(audit|draws|events|listings|memberships|messages|modules|notifications|requests|votes)|account_support/i.test(src)) errors.push(`ارتباط بمشروع آخر: ${f}`);
+  if (/(?<![.\w])(alert|prompt|confirm)\(/.test(src.replace(/\/\*[\s\S]*?\*\//g, ''))) errors.push(`استخدم نوافذ التطبيق بدل alert/prompt/confirm: ${f}`);
 }
 
 for (const f of readdirSync('src/pages')) {
@@ -30,9 +30,13 @@ for (const f of readdirSync('src/pages')) {
 const appSrc = readFileSync('src/app.js', 'utf8');
 const registered = new Set([...appSrc.matchAll(/\['([a-z]+)', '[^']+', '[^']+', [a-z]+\]/g)].map(m => m[1]));
 const homeSrc = readFileSync('src/pages/home.js', 'utf8');
-const tileRoutes = [...homeSrc.matchAll(/\['([a-z]+(?:\/[a-z]+)?)', '[^']+', '[^']+', '[^']+', '(?:all|member|admin)'\]/g)].map(m => m[1]);
+const tileRoutes = [...homeSrc.matchAll(/\['([a-z]+(?:\/[a-z]+)?)', '[^']+', '[^']+', '[^']+', '(?:all|member|admin|dev)'\]/g)].map(m => m[1]);
 if (tileRoutes.length < 20) errors.push('لم تُقرأ أيقونات الرئيسية بشكل صحيح: ' + tileRoutes.length);
 for (const r of tileRoutes) if (!registered.has(r.split('/')[0])) errors.push('أيقونة بلا صفحة مسجلة: ' + r);
+
+const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));
+for (const i of manifest.icons) if (!existsSync(i.src)) errors.push('أيقونة مفقودة في manifest: ' + i.src);
+if (!manifest.icons.some(i => i.purpose === 'maskable')) errors.push('manifest بلا أيقونة maskable');
 
 const html = readFileSync('index.html', 'utf8');
 for (const m of html.matchAll(/(?:src|href)="([^"#:]+)"/g)) if (!existsSync(m[1])) errors.push(`ملف مفقود في index.html: ${m[1]}`);

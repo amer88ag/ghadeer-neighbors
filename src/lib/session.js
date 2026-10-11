@@ -8,7 +8,8 @@ export const state = {
   user: null,         // {id,name,role}
   pin: null,          // في الذاكرة فقط — لا يُحفظ في المتصفح إطلاقًا
   manager: false,
-  supervisor: false
+  supervisor: false,
+  termsOk: false      // وافق على الإصدار الحالي من الشروط في هذه الجلسة
 };
 
 const listeners = new Set();
@@ -40,6 +41,7 @@ function setUser(user, pin, { manager = false, supervisor = false } = {}) {
   state.pin = pin;
   state.manager = manager;
   state.supervisor = supervisor || manager;
+  state.termsOk = manager;
   emit();
 }
 
@@ -115,7 +117,7 @@ export function showLogin({ reason = '' } = {}) {
 /** يضمن وجود الرقم السري في الذاكرة قبل أي عملية تتطلب التحقق. */
 export async function requirePin(reason = 'سجّل الدخول للمتابعة.') {
   if (state.manager && state.pin) return true;
-  if (state.user && state.pin) return true;
+  if (state.user && state.pin && state.termsOk) return true;
   return showLogin({ reason: state.user ? 'لأمانك، أدخل رقمك السري لتأكيد العملية.' : reason });
 }
 
@@ -162,7 +164,7 @@ async function termsAccepted() {
 
 /** شاشة الموافقة المعتمدة: لا يستخدم العضو الخدمات قبل الموافقة على الإصدار الحالي. */
 async function ensureTerms() {
-  if (await termsAccepted()) return;
+  if (await termsAccepted()) { state.termsOk = true; emit(); return; }
   const { termsHtml } = await import('../pages/terms.js');
   const { CONSENT_TEXT } = await import('./terms.js');
   await new Promise(resolve => {
@@ -179,7 +181,7 @@ async function ensureTerms() {
           if (!card.querySelector('[data-agree]').checked) return toast('يرجى تحديد مربع الموافقة.', false);
           const res = await call('accept_program_terms', { p_member_id: state.user.id, p_member_name: state.user.name, p_version: TERMS_VERSION, p_user_agent: navigator.userAgent.slice(0, 500), p_pin: state.pin });
           if (!res.ok) return toast(res.message, false);
-          accepted = true; close(); toast('تم تسجيل موافقتك.');
+          accepted = true; state.termsOk = true; emit(); close(); toast('تم تسجيل موافقتك.');
         };
       },
       onClose: () => { if (!accepted) { storage.del(DEVICE_TOKEN_KEY); setUser(null, null); toast('يمكنك التصفح، أما استخدام الخدمات فيتطلب الموافقة على الأنظمة والشروط.', false); } resolve(); }
