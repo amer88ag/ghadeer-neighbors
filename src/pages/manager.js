@@ -7,13 +7,13 @@ import { PIN_PATTERN } from '../config.js';
 import { refresh } from '../lib/router.js';
 
 const TABS = [
-  ['schedules', '☕🚐 الجداول', 'manager'],
+  ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
   ['occasions', '🎉 المناسبات', 'any'],
   ['messages', '💬 الرسائل والتنبيهات', 'manager'],
   ['members', '👥 الأعضاء والأرقام', 'manager'],
   ['permissions', '🛡️ المشرفون', 'manager'],
-  ['rules', '⚙️ القواعد', 'manager'],
+  ['rules', '⚙️ القواعد', 'any'],
   ['checks', '❤️ التفقد', 'manager'],
   ['reports', '📊 التقارير والنسخ', 'manager']
 ];
@@ -66,8 +66,8 @@ async function schedules(el, again) {
   <details class="card"><summary><b>☕ تعديل / حذف موعد قهوة</b></summary><form data-f="coffee-edit"><select name="rid" data-pick="coffee">${options(coffee, cLabel)}</select>
     <label>الجار</label><select name="member">${memberOpts()}</select>
     <div class="grid2"><div><label>التاريخ</label><input name="date" type="date"></div><div><label>الوقت</label><input name="time" type="time"></div></div>
-    <label>ملاحظات</label><input name="notes"><div class="actions"><button class="btn primary" value="save">حفظ</button><button class="btn danger" value="delete">🗑️ حذف</button></div></form></details>
-  <details class="card"><summary><b>🔁 تبديل موعدي قهوة</b></summary><form data-f="coffee-swap"><select name="a">${options(coffee, cLabel)}</select><select name="b">${options(coffee, cLabel)}</select><button class="btn secondary block">تبديل</button></form></details>
+    <label>ملاحظات</label><input name="notes"><div class="actions"><button class="btn primary" value="save">حفظ</button>${state.manager ? '<button class="btn danger" value="delete">🗑️ حذف</button>' : ''}</div></form></details>
+  ${state.manager ? `<details class="card"><summary><b>🔁 تبديل موعدي قهوة</b></summary><form data-f="coffee-swap"><select name="a">${options(coffee, cLabel)}</select><select name="b">${options(coffee, cLabel)}</select><button class="btn secondary block">تبديل</button></form></details>` : ''}
   <details class="card"><summary><b>🚐 موعد طلعة يدوي</b></summary><form data-f="outing-new"><div class="grid2"><div><label>المنظم الأول</label><select name="m1">${memberOpts()}</select></div><div><label>المنظم الثاني</label><select name="m2">${memberOpts()}</select></div></div>
     <div class="grid2"><div><label>التاريخ</label><input name="date" type="date" required></div><div><label>الوقت</label><input name="time" type="time"></div></div>
     <label>التاريخ الهجري (اختياري)</label><input name="hijri"><label>ملاحظات</label><input name="notes"><button class="btn primary block">➕ إنشاء</button></form></details>
@@ -75,8 +75,8 @@ async function schedules(el, again) {
     <div class="grid2"><div><label>المنظم الأول</label><select name="m1">${memberOpts()}</select></div><div><label>المنظم الثاني</label><select name="m2">${memberOpts()}</select></div></div>
     <div class="grid2"><div><label>التاريخ</label><input name="date" type="date"></div><div><label>الوقت</label><input name="time" type="time"></div></div>
     <label>ملاحظات</label><input name="notes">
-    <div class="actions"><button class="btn primary" value="save">حفظ</button><button class="btn secondary" value="time">🕐 تعديل الوقت فقط</button><button class="btn secondary" value="cost">💰 التكاليف</button><button class="btn danger" value="delete">🗑️ حذف</button></div></form></details>
-  <details class="card"><summary><b>🔁 تبديل موعدي طلعتين</b></summary><form data-f="outing-swap"><select name="a">${options(outings, oLabel)}</select><select name="b">${options(outings, oLabel)}</select><button class="btn secondary block">تبديل</button></form></details>
+    <div class="actions"><button class="btn primary" value="save">حفظ</button><button class="btn secondary" value="time">🕐 تعديل الوقت فقط</button><button class="btn secondary" value="cost">💰 التكاليف</button>${state.manager ? '<button class="btn danger" value="delete">🗑️ حذف</button>' : ''}</div></form></details>
+  ${state.manager ? `<details class="card"><summary><b>🔁 تبديل موعدي طلعتين</b></summary><form data-f="outing-swap"><select name="a">${options(outings, oLabel)}</select><select name="b">${options(outings, oLabel)}</select><button class="btn secondary block">تبديل</button></form></details>` : ''}
   <details class="card"><summary><b>🎲 جدول طلعات عشوائي جديد</b></summary><form data-f="outing-random"><p class="muted">يُنشئ جدولًا جديدًا من اليوم وفق القواعد (يتطلب عددًا زوجيًا من الجيران النشطين).</p><button class="btn secondary block">🎲 إنشاء الجدول</button></form></details>`;
 
   const fillCoffee = f => { const x = coffee.find(c => String(c.id) === f.rid.value); if (!x) return; f.member.value = x.member_id; f.date.value = x.coffee_date; f.time.value = fmtTime(x.coffee_time).replace('—', ''); f.notes.value = x.notes || ''; };
@@ -85,22 +85,28 @@ async function schedules(el, again) {
   ce.rid.onchange = () => fillCoffee(ce); fillCoffee(ce);
   oe.rid.onchange = () => fillOuting(oe); fillOuting(oe);
 
-  bind(el, '[data-f=coffee-new]', f => call('manager_create_coffee', { ...M(), p_member_id: Number(f.member.value), p_date: f.date.value, p_time: f.time.value || null, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') }), again);
+  bind(el, '[data-f=coffee-new]', f => state.manager
+    ? call('manager_create_coffee', { ...M(), p_member_id: Number(f.member.value), p_date: f.date.value, p_time: f.time.value || null, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') })
+    : call('supervisor_insert_coffee', { ...S(), p_target_member_id: Number(f.member.value), p_date: f.date.value, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') }), again);
   bind(el, '[data-f=coffee-edit]', async (f, btn) => {
     if (btn?.value === 'delete') { if (!(await confirmBox('حذف موعد القهوة نهائيًا؟'))) return null; return call('manager_delete_coffee', { ...M(), p_id: Number(f.rid.value) }); }
+    if (!state.manager) return call('supervisor_update_coffee_assignment', { ...S(), p_id: Number(f.rid.value), p_target_member_id: Number(f.member.value), p_date: f.date.value, p_time: f.time.value || null, p_notes: val(f, 'notes') });
     return call('manager_update_coffee_assignment', { ...M(), p_id: Number(f.rid.value), p_member_id: Number(f.member.value), p_date: f.date.value, p_time: f.time.value || null, p_notes: val(f, 'notes') });
   }, again);
   bind(el, '[data-f=coffee-swap]', f => f.a.value === f.b.value ? { ok: false, message: 'اختر موعدين مختلفين.' } : call('manager_swap_coffee_dates', { ...M(), p_id1: Number(f.a.value), p_id2: Number(f.b.value) }), again);
-  bind(el, '[data-f=outing-new]', f => call('manager_create_outing', { ...M(), p_member1_id: Number(f.m1.value), p_member2_id: Number(f.m2.value), p_date: f.date.value, p_time: f.time.value || null, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') }), again);
+  bind(el, '[data-f=outing-new]', f => state.manager
+    ? call('manager_create_outing', { ...M(), p_member1_id: Number(f.m1.value), p_member2_id: Number(f.m2.value), p_date: f.date.value, p_time: f.time.value || null, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') })
+    : call('supervisor_insert_outing', { ...S(), p_member1_id: Number(f.m1.value), p_member2_id: Number(f.m2.value), p_date: f.date.value, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') }), again);
   bind(el, '[data-f=outing-edit]', async (f, btn) => {
     const id = Number(f.rid.value);
     if (btn?.value === 'delete') { if (!(await confirmBox('حذف موعد الطلعة نهائيًا؟'))) return null; return call('manager_delete_outing', { ...M(), p_id: id }); }
-    if (btn?.value === 'time') { if (!f.time.value) return { ok: false, message: 'حدد الوقت الجديد.' }; return call('manager_update_outing_time', { ...M(), p_id: id, p_new_time: f.time.value }); }
+    if (btn?.value === 'time') { if (!f.time.value) return { ok: false, message: 'حدد الوقت الجديد.' }; return state.manager ? call('manager_update_outing_time', { ...M(), p_id: id, p_new_time: f.time.value }) : call('supervisor_update_outing_time', { ...S(), p_id: id, p_new_time: f.time.value }); }
     if (btn?.value === 'cost') return outingCost(id);
+    if (!state.manager) return call('supervisor_update_outing_assignment', { ...S(), p_id: id, p_member1_id: Number(f.m1.value), p_member2_id: Number(f.m2.value), p_date: f.date.value, p_time: f.time.value || null, p_notes: val(f, 'notes') });
     return call('manager_update_outing_assignment', { ...M(), p_id: id, p_member1_id: Number(f.m1.value), p_member2_id: Number(f.m2.value), p_date: f.date.value, p_time: f.time.value || null, p_notes: val(f, 'notes') });
   }, again);
   bind(el, '[data-f=outing-swap]', f => f.a.value === f.b.value ? { ok: false, message: 'اختر موعدين مختلفين.' } : call('manager_swap_outing_dates', { ...M(), p_id1: Number(f.a.value), p_id2: Number(f.b.value) }), again);
-  bind(el, '[data-f=outing-random]', async () => { if (!(await confirmBox('إنشاء جدول طلعات جديد ونشره؟', { danger: false }))) return null; return call('manager_randomize_outings', { ...M(), p_start_date: todayISO() }); }, again);
+  bind(el, '[data-f=outing-random]', async () => { if (!(await confirmBox('إنشاء جدول طلعات جديد ونشره؟', { danger: false }))) return null; return state.manager ? call('manager_randomize_outings', { ...M(), p_start_date: todayISO() }) : call('supervisor_randomize_outings', { ...S(), p_start_date: todayISO() }); }, again);
 }
 
 async function outingCost(id) {
@@ -110,7 +116,7 @@ async function outingCost(id) {
   const other = await ask('تكاليف أخرى (ريال)'); if (other === null) return null;
   const notes = await promptBox({ title: '💰 تكاليف الطلعة', label: 'ملاحظات (اختياري)', required: false, okText: 'حفظ' });
   if (notes === null) return null;
-  return call('manager_set_outing_cost_breakdown', { ...M(), p_outing_id: id, p_food: Number(food) || 0, p_place: Number(place) || 0, p_other: Number(other) || 0, p_notes: notes.trim() });
+  return call(state.manager ? 'manager_set_outing_cost_breakdown' : 'supervisor_set_outing_cost_breakdown', { ...(state.manager ? M() : S()), p_outing_id: id, p_food: Number(food) || 0, p_place: Number(place) || 0, p_other: Number(other) || 0, p_notes: notes.trim() });
 }
 
 /* ---------------- الطلعات المقترحة ---------------- */
@@ -233,7 +239,7 @@ async function rules(el, again) {
     <label>نمط الأزواج</label>${sel('pair', [['random_no_repeat', 'عشوائي بدون تكرار'], ['current', 'الحالي']], s.outing_pair_mode)}
     <label class="check"><input type="checkbox" name="conflict" ${s.avoid_coffee_conflicts === false ? '' : 'checked'}> منع تعارض القهوة والطلعات</label>
     <button class="btn primary block">حفظ القواعد</button></form>`;
-  bind(el, '[data-f=rules]', f => call('manager_set_schedule_rules', { ...M(), p_coffee_interval_days: Number(f.interval.value) || 14, p_coffee_order_mode: f.order.value, p_coffee_avoid_repeat: f.avoid.checked, p_outing_frequency: f.freq.value, p_outing_day_rule: f.rule.value, p_outing_pair_mode: f.pair.value, p_avoid_coffee_conflicts: f.conflict.checked }), again);
+  bind(el, '[data-f=rules]', f => call(state.manager ? 'manager_set_schedule_rules' : 'supervisor_set_schedule_rules', { ...(state.manager ? M() : S()), p_coffee_interval_days: Number(f.interval.value) || 14, p_coffee_order_mode: f.order.value, p_coffee_avoid_repeat: f.avoid.checked, p_outing_frequency: f.freq.value, p_outing_day_rule: f.rule.value, p_outing_pair_mode: f.pair.value, p_avoid_coffee_conflicts: f.conflict.checked }), again);
 }
 
 /* ---------------- التفقد ---------------- */

@@ -149,6 +149,20 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-stats]'); await page.waitForSelector('.kv');
   ok('manager: stats rendered', (await page.textContent('[data-out]')).includes('members'));
 
+  // 13b) Supervisor tools
+  await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
+  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '2');
+  await page.fill('.modal [name=pin]', '5555'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('#who .chip:not(.light)');
+  ok('supervisor: admin nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
+  await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-edit]', { state: 'attached' });
+  ok('supervisor: no delete/swap controls', !(await page.$('[data-f=coffee-swap]')) && !(await page.$('[data-f=outing-swap]')) && !(await page.$('[data-f=coffee-edit] [value=delete]')));
+  ok('supervisor: no manager-only tabs', !(await page.$('a[href="#/manager/members"]')) && !!(await page.$('a[href="#/manager/rules"]')));
+  await page.$$eval('details', ds => ds.forEach(d => d.open = true));
+  await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
+  const sv = await lastCall('supervisor_update_coffee_assignment');
+  ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
+
   // 14) Dark mode + desktop screenshots
   await page.emulateMedia({ colorScheme: 'dark' }); await page.goto(BASE + '#/home'); await page.waitForTimeout(600);
   await page.screenshot({ path: SHOTS + '/4-home-dark.png', fullPage: true });
