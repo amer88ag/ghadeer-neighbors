@@ -17,7 +17,7 @@ export async function render(el, [tab = 'all']) {
       <label>العنوان</label><input name="title" required placeholder="مثال: شقة 3 غرف للإيجار">
       <label>التفاصيل</label><textarea name="desc" placeholder="المواصفات والموقع"></textarea>
       <div class="grid2"><div><label>الحي</label><input name="district" value="الغدير"></div><div><label>نوع العقار</label><select name="ptype">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div></div>
-      <div class="grid3"><div><label>الغرف</label><input name="beds" type="number" min="0"></div><div><label>دورات المياه</label><input name="baths" type="number" min="0"></div><div><label>المساحة م²</label><input name="area" type="number" min="0"></div></div>
+      <div class="grid3"><div><label>الغرف</label><input name="beds" type="number" min="0"></div><div><label>دورات المياه</label><input name="baths" type="number" min="0"></div><div><label>المساحة م²</label><input name="area" type="number" min="1"></div></div>
       <div class="grid3"><div><label>شهري</label><input name="month" type="number" min="0"></div><div><label>سنوي</label><input name="year" type="number" min="0"></div><div><label>التأمين</label><input name="deposit" type="number" min="0"></div></div>
       <label class="check"><input type="checkbox" name="furnished"> مفروشة</label><label class="check"><input type="checkbox" name="parking"> موقف سيارة</label>
       <label>ملاحظة تواصل (اختياري)</label><input name="contact">

@@ -9,7 +9,7 @@
     outings_schedule: [{ id: 21, member1_id: 2, member2_id: 3, outing_date: plus(20), outing_time: '17:00:00', outing_type: 'عشاء', outing_place: 'السودة' }],
     announcements: [{ id: 31, title: 'اليوم الوطني', message: 'كل عام والوطن بخير', is_occasion: true, occasion_type: 'وطنية', created_at: new Date().toISOString() }, { id: 32, title: 'مستقبلي', message: 'لا يظهر', scheduled_at: new Date(Date.now() + 864e5 * 5).toISOString(), created_at: new Date().toISOString() }],
     group_messages: [{ id: 41, sender_member_id: 2, sender_name: 'سعيد', message: 'السلام عليكم', created_at: new Date().toISOString() }],
-    member_permissions: [{ member_id: 2, role: 'supervisor', can_manage_coffee: true }]
+    member_permissions: [{ member_id: 2, role: 'supervisor', can_manage_coffee: true }, { member_id: 1, role: 'member', can_send_group_messages: true }]
   };
   const plans = [{ id: 51, outing_type: 'رحلة برية', outing_place: 'تهامة', outing_date: plus(10), outing_time: '16:00', status: 'voting', attending_count: 3, total_expense: 300, per_person_cost: 100, organizers: [{ member_id: 1, member_name: 'عامر' }] }];
   const convs = [];
@@ -40,7 +40,8 @@
     neighbor_list_conversations: a => auth(a) ? convs : deny,
     neighbor_send_message: a => { if (!auth(a)) return deny; let c = convs.find(x => x.recipient_id === a.p_recipient_id); if (!c) { c = { id: 70 + convs.length, recipient_id: a.p_recipient_id, recipient_name: members.find(m => m.id === a.p_recipient_id).name }; convs.push(c); } msgs.push({ id: msgs.length + 1, conversation_id: c.id, sender_id: a.p_member_id, body: a.p_body, created_at: new Date().toISOString() }); c.last_message = a.p_body; return { success: true, conversation_id: c.id }; },
     neighbor_read_conversation: a => auth(a) ? msgs.filter(m => m.conversation_id === a.p_conversation_id) : deny,
-    list_neighbor_services: () => ({ help: [{ title: 'توصيل دواء', status: 'طلب', member_name: 'سعيد' }], market: [], initiatives: [] }),
+    list_neighbor_services: () => ({ help: [{ title: 'توصيل دواء', kind: 'request', status: 'open', member_name: 'سعيد', created_at: new Date().toISOString() }], market: [{ title: 'مكتب', kind: 'للبيع', status: 'open', member_name: 'خالد' }, { title: 'مفاتيح', kind: 'مفقود', status: 'open', member_name: 'عامر' }], initiatives: [] }),
+    create_neighbor_market: a => auth(a) && ['للبيع','للإهداء','مطلوب','مفقود','معثور عليه'].includes(a.p_kind) ? { success: true } : { success: false, message: 'نوع المشاركة غير صحيح' },
     create_neighbor_help: a => auth(a) ? { success: true } : deny,
     list_neighbor_rentals: () => [{ kind: 'offer', title: 'شقة 3 غرف', property_type: 'apartment', bedrooms: 3, monthly_price: 2000, district: 'الغدير' }],
     get_neighborhood_events: () => [{ id: 81, title: 'تكريم المتفوقين', event_type: 'تكريم', event_date: plus(5), total_budget: 500 }],

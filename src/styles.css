@@ -184,3 +184,12 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 .skeleton { height: 160px; border-radius: var(--radius); background: linear-gradient(90deg, var(--card), var(--g-soft), var(--card)); background-size: 200% 100%; animation: sk 1.2s infinite; }
 @keyframes sk { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* مجموعات الرئيسية والمسبحة */
+.group-title { margin: 14px 4px 8px; font-size: 16px; color: var(--muted); }
+.tile { position: relative; }
+.tile .lock { position: absolute; top: 6px; left: 8px; font-size: 12px; opacity: .7; }
+.tasbeeh h2 { color: var(--g); min-height: 2.6em; }
+.tasbeeh-btn { width: 150px; height: 150px; border-radius: 50%; border: 0; margin: 8px auto; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #2a9a66, var(--g2)); color: #fff; font-size: 44px; font-weight: 800; box-shadow: 0 10px 30px #176b4540; }
+.tasbeeh-btn:active { transform: scale(.96); }
+.prayer-grid small + b + small, .prayer-grid div small:last-child { font-size: 11px; }

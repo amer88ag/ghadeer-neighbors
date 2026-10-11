@@ -36,7 +36,7 @@ export async function render(el, [tab = 'list']) {
         <button class="btn secondary block">حفظ</button></form>`;
     $('[data-load]', el)?.addEventListener('click', async () => { if (await requirePin()) render(el, ['me']); });
     const submit = (sel, fn) => { const f = $(sel, el); f.onsubmit = e => { e.preventDefault(); busy(f.querySelector('button'), async () => { if (!(await requirePin())) return; const r = await fn(f); if (!r.ok) return toast(r.message, false); toast('تم الحفظ.'); data.invalidate('profiles', 'nprofiles'); }); }; };
-    submit('[data-profile]', f => call('save_member_profile', { ...creds(), p_full_name: val(f, 'full'), p_bio: val(f, 'bio'), p_phone_public: val(f, 'phone'), p_occupation: val(f, 'occupation') }));
+    submit('[data-profile]', f => val(f, 'full').split(/\s+/).filter(Boolean).length < 4 ? { ok: false, message: 'اكتب الاسم الرباعي (أربعة أسماء على الأقل).' } : call('save_member_profile', { ...creds(), p_full_name: val(f, 'full'), p_bio: val(f, 'bio'), p_phone_public: val(f, 'phone'), p_occupation: val(f, 'occupation') }));
     submit('[data-residency]', f => call('set_neighbor_residency_type', { ...creds(), p_residency_type: val(f, 'type') }));
     submit('[data-contact]', f => call('neighbor_set_message_settings', { ...creds(), p_in_app: f.inapp.checked, p_whatsapp: f.whats.checked, p_phone: f.phone.checked }));
     return;

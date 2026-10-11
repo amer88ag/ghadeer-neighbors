@@ -12,3 +12,6 @@ export const LOCATION = { lat: 18.2164, lon: 42.5053, city: 'Abha', country: 'Sa
 export const TERMS_VERSION = '1.0';
 export const DEVICE_TOKEN_KEY = 'ghadeer_member_device_token';
 export const PIN_PATTERN = /^\d{4,12}$/;
+
+// دقائق الإقامة بعد الأذان (كما في نسخة البرنامج السابقة).
+export const IQAMA = { Fajr: 25, Dhuhr: 20, Asr: 20, Maghrib: 10, Isha: 20 };

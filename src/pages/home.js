@@ -1,20 +1,50 @@
 import { esc, fmtDate, fmtTime, todayISO, $ } from '../lib/dom.js';
-import { state, memberName, activeMembers, showLogin } from '../lib/session.js';
+import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
 
-export const TILES = [
-  ['coffee', '☕', 'القهوة', 'الجدول والاعتذار'],
-  ['outings', '🚐', 'الطلعات', 'التصويت والجدول'],
-  ['events', '🎉', 'مناسبات الحي', 'المناسبات والمشاركون'],
-  ['neighbors', '👥', 'الجيران', 'الدليل وبطاقتي'],
-  ['messages', '💬', 'الرسائل', 'المجموعة والخاص'],
-  ['check', '❤️', 'تفقد جارك', 'مريض • محتاج • مساعدة'],
-  ['services', '🤝', 'خدمات الحي', 'طلب وعرض الخدمات'],
-  ['housing', '🏠', 'سكن الحي', 'عروض وطلبات الإيجار'],
-  ['links', '🔗', 'روابط مفيدة', 'أخبار • رياضة • وظائف']
+/*
+ * أيقونات الرئيسية مصنفة. access: all = متاح للجميع، member = يحتاج دخول عضو للمشاركة، admin = للمدير والمشرفين فقط.
+ * كل مسار هنا يجب أن يكون صفحة مسجلة في app.js (يتحقق منها scripts/check.js).
+ */
+export const GROUPS = [
+  ['🏘️ الحي', [
+    ['coffee', '☕', 'القهوة', 'الجدول والاعتذار', 'all'],
+    ['outings', '🚐', 'الطلعات', 'التصويت والجدول', 'all'],
+    ['events', '🎉', 'مناسبات الحي', 'المناسبات والمشاركون', 'all'],
+    ['neighbors', '👥', 'الجيران', 'دليل الجيران', 'all'],
+    ['news', '📢', 'أخبار الحي', 'الإعلانات والمناسبات', 'all'],
+    ['messages', '💬', 'الرسائل', 'المجموعة والخاص', 'member'],
+    ['check', '❤️', 'تفقد جارك', 'مريض • محتاج • مساعدة', 'member']
+  ]],
+  ['🤝 خدمات الحي', [
+    ['services/help', '🤝', 'خدمات الجيران', 'اطلب أو اعرض خدمة', 'all'],
+    ['services/market', '🛍️', 'سوق الحي', 'بيع وإهداء وطلب', 'all'],
+    ['services/lost', '🔎', 'المفقودات', 'مفقود أو معثور عليه', 'all'],
+    ['services/initiative', '💡', 'المبادرات', 'أفكار لخدمة الحي', 'all'],
+    ['housing', '🏠', 'سكن الحي', 'عروض وطلبات الإيجار', 'all'],
+    ['services/catalog', '📚', 'دليل الخدمات', 'صيانة • نقل • تعليم', 'all'],
+    ['links/jobs', '💼', 'الوظائف', 'بوابات التوظيف', 'all']
+  ]],
+  ['🕌 يومياتي', [
+    ['prayer', '🕌', 'مواقيت الصلاة', 'الأذان والإقامة', 'all'],
+    ['weather', '🌤️', 'الطقس', 'الآن والأيام القادمة', 'all'],
+    ['azkar', '📿', 'الذكر', 'مسبحة وأحاديث الجوار', 'all']
+  ]],
+  ['🔗 روابط', [
+    ['links/news', '📰', 'الأخبار والصحف', 'السعودية والعالم', 'all'],
+    ['links/sports', '⚽', 'الرياضة', 'الدوري والبطولات', 'all'],
+    ['links/gov', '🏛️', 'خدمات عامة', 'حكومية • المساجد', 'all']
+  ]],
+  ['👤 حسابي', [
+    ['account', '👤', 'حسابي', 'الدخول والرقم السري', 'all'],
+    ['neighbors/me', '🪪', 'بطاقتي', 'بياناتي وطرق التواصل', 'member'],
+    ['about', '©️', 'عن البرنامج', 'الملكية والخصوصية', 'all'],
+    ['manager', '🛠️', 'لوحة الإدارة', 'للمدير والمشرفين', 'admin']
+  ]]
 ];
+export const TILES = GROUPS.flatMap(([, items]) => items);
 
 export async function render(el) {
   const day = Math.floor(Date.now() / 86400000);
@@ -31,7 +61,7 @@ export async function render(el) {
       <a class="card stat-card" href="#/outings"><small>🚐 الطلعة القادمة</small><div data-next-outing class="muted">…</div></a>
       <a class="card stat-card" href="#/messages"><small>🔔 آخر إعلان</small><div data-latest class="muted">…</div></a>
     </div>
-    <nav class="tiles" aria-label="الخدمات">${TILES.map(([id, i, t, d]) => `<a class="tile" href="#/${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small></a>`).join('')}</nav>
+    ${GROUPS.map(([g, items]) => { const vis = items.filter(t => t[4] !== 'admin' || canManage()); return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${acc === 'member' && !state.user ? '<span class="lock" title="يحتاج دخول">🔒</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
     <div class="grid2">
       <section class="card widget" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
       <section class="card widget" data-weather><p class="muted">جارٍ تحميل الطقس…</p></section>
@@ -39,7 +69,7 @@ export async function render(el) {
     <section class="card hadith"><div class="widget-head"><b>🌿 لوحة التذكير</b><span class="pill" data-h-topic></span></div>
       <p class="hadith-text" data-h-text></p><div class="hadith-foot"><a target="_blank" rel="noopener" data-h-src></a>
       <span><button class="icon-btn" data-h="-1" aria-label="السابق">›</button><button class="icon-btn" data-h="1" aria-label="التالي">‹</button></span></div></section>
-    <p class="muted center">${activeMembers().length} جار نشط في البرنامج</p>`;
+    <p class="muted center">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
   $('[data-login]', el)?.addEventListener('click', () => showLogin());
 

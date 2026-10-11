@@ -210,7 +210,7 @@ export const NEWS = {
  ]
 };
 
-export const SPORTS = [["https://www.spl.com.sa/", "🇸🇦 دوري روشن السعودي"], ["https://www.saff.com.sa/", "🇸🇦 الاتحاد السعودي لكرة القدم"], ["https://www.the-afc.com/", "🌏 الاتحاد الآسيوي"], ["https://www.uefa.com/", "🌐 UEFA"], ["https://www.fifa.com/", "🌍 FIFA"], ["https://www.gulfcup.com/", "🌙 كأس الخليج"]];
+export const SPORTS = [["https://www.spl.com.sa/ar", "🇸🇦 دوري روشن السعودي"], ["https://www.saff.com.sa/", "🇸🇦 الاتحاد السعودي — كأس الملك والسوبر"], ["https://www.the-afc.com/", "🌏 الاتحاد الآسيوي"], ["https://www.uefa.com/uefaeuropaleague/", "🏆 الدوري الأوروبي"], ["https://www.uefa.com/", "🌐 UEFA — البطولات الأوروبية"], ["https://www.fifa.com/", "🌍 FIFA"], ["https://www.gulfcup.com/", "🌙 كأس الخليج"]];
 
 export const JOBS = [
  {

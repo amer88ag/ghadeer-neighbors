@@ -12,7 +12,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-SA', acceptDownloads: true });
   await ctx.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: mock }));
   await ctx.route('https://api.aladhan.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: { timings: { Fajr: '04:50', Sunrise: '06:05', Dhuhr: '12:10', Asr: '15:35', Maghrib: '18:10', Isha: '19:40' }, date: { hijri: { day: '29', month: { ar: 'ربيع الآخر' }, year: '1448' } } } }) }));
-  await ctx.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 21.4, relative_humidity_2m: 40, apparent_temperature: 20.9, weather_code: 1, wind_speed_10m: 12 }, daily: { temperature_2m_max: [26], temperature_2m_min: [14] } }) }));
+  await ctx.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 21.4, relative_humidity_2m: 40, apparent_temperature: 20.9, weather_code: 1, wind_speed_10m: 12 }, daily: { time: ['2026-10-11','2026-10-12','2026-10-13'], weather_code: [1,3,61], precipitation_probability_max: [0,10,60], temperature_2m_max: [26,25,22], temperature_2m_min: [14,13,12] } }) }));
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -20,17 +20,35 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const lastCall = name => page.evaluate(n => [...window.__calls].reverse().find(c => c.name === n), name);
   const toastText = async () => { await page.waitForSelector('#toast.show', { timeout: 4000 }).catch(() => {}); return page.textContent('#toast'); };
 
+
+  // Every home icon opens a working page for the current role.
+  async function checkAllTiles(role) {
+    await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
+    const ids = await page.$$eval('[data-tile]', els => els.map(e => e.dataset.tile));
+    for (const id of ids) {
+      await page.goto(BASE + '#/home'); await page.waitForSelector(`[data-tile="${id}"]`);
+      await page.click(`[data-tile="${id}"]`);
+      await page.waitForFunction(() => !document.querySelector('.page-body .skeleton'), null, { timeout: 8000 }).catch(() => {});
+      const bad = await page.$('.page-body .status.bad');
+      const hash = await page.evaluate(() => location.hash);
+      ok(`icon [${role}] ${id}`, hash === '#/' + id && !bad && !(await page.$('.page-body .skeleton')), bad ? await bad.textContent() : hash);
+    }
+    return ids.length;
+  }
+
   // 1) Guest home
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: tiles render', (await page.$$('.tile')).length === 9);
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 23 && !(await page.$('[data-tile=manager]')));
   ok('home: next coffee', (await page.textContent('[data-next-coffee]')).includes('عامر'));
   ok('home: occasion shown, future hidden', (await page.textContent('[data-latest]')).includes('اليوم الوطني'));
   await page.waitForSelector('.prayer-grid'); await page.waitForSelector('.weather');
   ok('home: prayer + weather', true);
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
+
+  ok('guest icons count', (await checkAllTiles('guest')) === 23);
 
   // 2) Every page as guest
   for (const p of ['coffee', 'coffee/all', 'outings', 'outings/schedule', 'outings/new', 'events', 'neighbors', 'neighbors/me', 'messages', 'messages/private', 'messages/suggest', 'check', 'services', 'services/catalog', 'housing', 'housing/links', 'links', 'links/sports', 'links/jobs', 'account', 'manager', 'unknown-page']) {
@@ -51,6 +69,17 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const ls = await page.evaluate(() => JSON.stringify(localStorage));
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
+
+  ok('member icons count', (await checkAllTiles('member')) === 23);
+  await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
+  ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));
+  await page.click('[data-add]'); await page.selectOption('.modal [name=mode]', 'معثور عليه'); await page.fill('.modal [name=title]', 'محفظة'); await page.click('.modal [data-post] .btn');
+  await page.waitForTimeout(400); const lc = await lastCall('create_neighbor_market');
+  ok('lost: posts with valid kind', lc && lc.args.p_kind === 'معثور عليه');
+  await page.goto(BASE + '#/prayer'); await page.waitForSelector('.prayer-grid');
+  ok('prayer: iqama shown', (await page.textContent('.prayer-grid')).includes('الإقامة 05:15'));
+  await page.goto(BASE + '#/azkar'); await page.click('[data-tap]'); await page.click('[data-tap]');
+  ok('azkar: counter works', (await page.textContent('[data-count]')) === '2');
 
   // 4) Coffee apology
   await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-apology="11"]');
@@ -140,6 +169,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     const bad = await page.$('.page-body .status.bad');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
   }
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 24);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -167,6 +197,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
   const sv = await lastCall('supervisor_update_coffee_assignment');
   ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
+
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 24);
 
   // 14) Dark mode + desktop screenshots
   await page.emulateMedia({ colorScheme: 'dark' }); await page.goto(BASE + '#/home'); await page.waitForTimeout(600);

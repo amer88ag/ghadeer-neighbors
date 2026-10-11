@@ -15,12 +15,19 @@ import * as housing from './pages/housing.js';
 import * as links from './pages/links.js';
 import * as account from './pages/account.js';
 import * as manager from './pages/manager.js';
+import * as news from './pages/news.js';
+import * as prayer from './pages/prayer.js';
+import * as weather from './pages/weather.js';
+import * as azkar from './pages/azkar.js';
+import * as about from './pages/about.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
   ['events', 'مناسبات الحي', '🎉', events], ['neighbors', 'الجيران', '👥', neighbors], ['messages', 'الرسائل', '💬', messages],
   ['check', 'تفقد جارك', '❤️', check], ['services', 'خدمات الحي', '🤝', services], ['housing', 'سكن الحي', '🏠', housing],
-  ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager]
+  ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
+  ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
+  ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 

@@ -40,9 +40,12 @@ export async function render(el, [tab = 'group', arg]) {
   const ann = data.visibleAnnouncements(await data.announcements()).slice(0, 10);
   const annHtml = `<div class="card"><h3>🔔 الإعلانات والمناسبات</h3>${ann.length ? `<div class="list">${ann.map(a => `<div class="row-item"><div class="row-main"><b>${a.is_occasion ? (a.occasion_type === 'وطنية' ? '🇸🇦 ' : '🕌 ') : ''}${esc(a.title)}</b><p>${esc(a.message || '')}</p><small class="muted">${fmtDateTime(a.scheduled_at || a.created_at)}</small></div></div>`).join('')}</div>` : empty('لا توجد إعلانات.')}</div>`;
   if (!state.user) { el.innerHTML = tabs + annHtml + `<div class="card"><p>رسائل المجموعة متاحة للأعضاء.</p><button class="btn primary" data-login>🔐 دخول</button></div>`; $('[data-login]', el).onclick = async () => { if (await showLogin()) again(); }; return; }
-  const msgs = await data.groupMessages(true);
+  const [msgs, perms] = await Promise.all([data.groupMessages(true), data.permissions()]);
+  const mine = perms.find(x => Number(x.member_id) === Number(state.user.id)) || {};
+  // الإرسال للمجموعة يتحقق منه الخادم؛ نُظهر النموذج فقط لمن يملك الصلاحية.
+  const canPost = state.supervisor || ['supervisor', 'super_admin'].includes(mine.role) || mine.can_send_group_messages === true || mine.can_send_messages === true;
   el.innerHTML = tabs + annHtml + `<div class="card"><h3>📢 رسائل المجموعة</h3><div class="chat-box" data-box>${msgs.length ? msgs.map(m => `<div class="bubble ${state.user && Number(m.sender_member_id) === Number(state.user.id) ? 'mine' : ''}"><b>${esc(m.sender_name || memberName(m.sender_member_id))}</b><p>${esc(m.message)}</p><small>${fmtDateTime(m.created_at)}</small></div>`).join('') : empty('لا توجد رسائل.')}</div>
-    ${state.manager ? '<p class="muted">رسائل المدير تُرسل من لوحة المدير.</p>' : `<form class="compose" data-send><textarea name="msg" rows="2" maxlength="2000" placeholder="اكتب رسالة للمجموعة…" required></textarea><button class="btn primary">إرسال</button></form>`}</div>`;
+    ${state.manager ? '<p class="muted">رسائل المدير تُرسل من لوحة الإدارة.</p>' : !canPost ? '<p class="muted">رسائل المجموعة تُرسل من الإدارة والمخوّلين. للتواصل مع جار استخدم «الخاص»، وللاقتراحات «اقتراح».</p>' : `<form class="compose" data-send><textarea name="msg" rows="2" maxlength="2000" placeholder="اكتب رسالة للمجموعة…" required></textarea><button class="btn primary">إرسال</button></form>`}</div>`;
   const box = $('[data-box]', el); box.scrollTop = box.scrollHeight;
   const f = $('[data-send]', el);
   if (f) f.onsubmit = e => { e.preventDefault(); busy(f.querySelector('button'), async () => {

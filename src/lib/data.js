@@ -21,6 +21,7 @@ export const announcements = force => cached('announcements', async () => (await
 export const groupMessages = force => cached('messages', async () => (await table('group_messages', { order: 'created_at', ascending: false, limit: 150 })).data.slice().reverse(), force);
 export const neighborProfiles = force => cached('nprofiles', async () => (await list('get_neighbor_profiles')).data, force);
 export const settings = force => cached('settings', async () => { const r = await call('get_schedule_settings'); return r.ok && r.data && typeof r.data === 'object' ? r.data : {}; }, force);
+export const permissions = force => cached('perms', async () => (await table('member_permissions', { order: 'member_id' })).data, force);
 export const profiles = force => cached('profiles', async () => (await list('get_member_profiles')).data, force);
 
 /** طلبات الطلعات مع تصويت العضو الحالي (إن كان مسجلًا برقمه). */

@@ -26,6 +26,14 @@ for (const f of readdirSync('src/pages')) {
   if (!/export async function render\(/.test(src)) errors.push(`الصفحة ${f} لا تصدّر render`);
 }
 
+// كل أيقونة في الرئيسية يجب أن تقود لصفحة مسجلة.
+const appSrc = readFileSync('src/app.js', 'utf8');
+const registered = new Set([...appSrc.matchAll(/\['([a-z]+)', '[^']+', '[^']+', [a-z]+\]/g)].map(m => m[1]));
+const homeSrc = readFileSync('src/pages/home.js', 'utf8');
+const tileRoutes = [...homeSrc.matchAll(/\['([a-z]+(?:\/[a-z]+)?)', '[^']+', '[^']+', '[^']+', '(?:all|member|admin)'\]/g)].map(m => m[1]);
+if (tileRoutes.length < 20) errors.push('لم تُقرأ أيقونات الرئيسية بشكل صحيح: ' + tileRoutes.length);
+for (const r of tileRoutes) if (!registered.has(r.split('/')[0])) errors.push('أيقونة بلا صفحة مسجلة: ' + r);
+
 const html = readFileSync('index.html', 'utf8');
 for (const m of html.matchAll(/(?:src|href)="([^"#:]+)"/g)) if (!existsSync(m[1])) errors.push(`ملف مفقود في index.html: ${m[1]}`);
 if ((html.match(/<script/g) || []).length !== 2) errors.push('index.html يجب أن يحمّل مكتبة Supabase و src/app.js فقط');
