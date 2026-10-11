@@ -1,8 +1,0 @@
-/* Canonical registry adapter — shared identity + complete service contract. */
-(()=>{'use strict';
-const norm=s=>String(s??'').normalize('NFKC').replace(/[\sـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase();
-const slug=s=>norm(s).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,70)||'service';
-const stableKey=x=>{const explicit=String(x?.serviceKey||'').trim();if(explicit)return explicit;const role=window.GhadeerServiceRegistry?.normalizeRole(x?.role??x?.category??x?.cat)||'other';return `svc_${slug(role)}_${slug(x?.name)}`};
-function boot(){const R=window.GhadeerServiceRegistry,C=window.GhadeerServicesV6?.catalog,E=window.GhadeerServiceEntries;if(!R||!Array.isArray(C)||!E)return;const seen=new Set();for(const x of C){const serviceKey=stableKey(x);if(seen.has(serviceKey))throw new Error('Duplicate serviceKey: '+serviceKey);seen.add(serviceKey);const role=R.normalizeRole(x.role??x.category??x.cat);const route=`/services/${slug(role)}/${slug(x.name)}`;const entry=E.register(serviceKey).entry;if(R.get(serviceKey)){if(R.get(serviceKey).entry!==entry)throw new Error('Entry mismatch: '+serviceKey);continue}R.register({serviceKey,name:x.name,icon:x.icon,role,category:role,description:x.desc,route,entry,ownerPage:'services',lifecycle:'ui'})}const quran={serviceKey:'svc_quran2',name:'وردي / القرآن',icon:'📖',role:'faith',category:'faith',route:'/quran2',entry:'GhadeerQuran2Module',ownerPage:'quran2',lifecycle:'ui'};if(!R.get(quran.serviceKey))R.register(quran);const result=R.validate();window.GhadeerServiceRegistryAudit=result;console.info('[Ghadeer] service registry',result)}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,0),{once:true});else setTimeout(boot,0);
-})();

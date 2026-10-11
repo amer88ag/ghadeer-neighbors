@@ -1,0 +1,61 @@
+# قاعدة البيانات
+
+مشروع Supabase الخاص بالغدير: `xewjakfmdfkbhcnxglct` (اسمه في لوحة Supabase: Amer).
+
+## ما طُبّق على القاعدة الحية (2026-10-11)
+
+الترحيل `20261011090000_ghadeer_decouple_and_harden.sql` (اسمه في سجل Supabase: `ghadeer_decouple_and_harden`):
+
+- استعادة الرقم السري صارت تستخدم جداول الغدير الخاصة `ghadeer_pin_reset_requests` و`ghadeer_security_log` بدل `account_support_requests` و`account_security_audit_log` التابعة للمشروع الآخر. توقيعات الدوال لم تتغير، والتحقق من رقم المدير يمر عبر `_manager_pin_ok` (فيها قفل المحاولات).
+- دالة جديدة `manager_export_backup(p_manager_pin)` للنسخ الاحتياطي عبر الخادم، تستبعد `pin_hash` و`token_hash`.
+- لم يُحذف أي جدول ولا أي بيانات.
+
+وبعد التدقيق الثاني طُبّق ترحيلان إضافيان (إضافة فقط):
+
+- `20261011180000_neighbor_get_my_settings.sql`: دالة `neighbor_get_my_settings` تقرأ صفة السكن وطرق التواصل الحالية للعضو بعد التحقق من رقمه، لتظهر الإعدادات الفعلية في «بطاقتي» بدل قيم افتراضية.
+- `20261011181000_member_revoke_device_token.sql`: دالة `member_revoke_device_token` تلغي رمز «تذكّر هذا الجهاز» من الخادم عند تسجيل الخروج.
+
+وبعد اختبار كل الدوال على القاعدة الحية:
+
+- `20261011190000_fix_neighbor_services.sql`: إصلاح نشر خدمات الجيران وسوق الحي، وإضافة المفقودات.
+- `20261011191000_fix_manager_events_cost_search_path.sql`: إصلاح دوال المدير للمناسبات وتكاليف الطلعة.
+
+وصلاحيات المطور والشروط:
+
+- `20261011200000_developer_controls_and_terms.sql`: جدول `ghadeer_service_settings` لإيقاف الخدمات وترتيبها، وقائمة كل الأعضاء مع إيقاف/إعادة العضو (يلغي صلاحياته وأجهزته عند الإيقاف)، وإغلاق/إعادة المحتوى وإلغاء المناسبات، وحالة قبول إصدار الشروط `terms-1.0`. كلها للمطور برقمه فقط وتُسجَّل في `ghadeer_security_log`.
+
+والمجتمعات الجديدة والإحصاء:
+
+- `20261011210000_communities_phase1.sql`: جداول `ghadeer_communities` و`ghadeer_community_members` ودوال الطلب والاعتماد والانضمام بالرمز وقبول الأعضاء، ومراجعة المطور أو المشرف المخوّل بإدارة الأعضاء.
+- `20261011220000_manager_full_stats.sql`: دالة `manager_full_stats` (أعداد مجمعة للمطور فقط).
+
+## التحقق بعد التطبيق
+
+| الفحص | النتيجة |
+|---|---|
+| `anon` يقرأ `ghadeer_pin_reset_requests` / `ghadeer_security_log` | ممنوع |
+| `anon` يقرأ `members` مباشرة | ممنوع (كان ممنوعًا أصلًا) |
+| دوال الاستعادة الثلاث تشير لجداول `account_*` | لا |
+| مطابقة أسماء معاملات كل دوال RPC التي تستدعيها الواجهة الجديدة (84 استدعاء) مع القاعدة الحية | مطابقة |
+
+## ملاحظات من فحص القاعدة الحية
+
+- `accept_program_terms` لها نسختان: القديمة (4 معاملات) معطّلة وتعيد خطأ، والجديدة تتطلب `p_pin`. الواجهة الجديدة تستخدم الجديدة.
+- تنبيه Supabase عن العرض `public_members` (SECURITY DEFINER) مقصود: يعرض `id, name, active` فقط.
+- تنبيهات «دوال SECURITY DEFINER قابلة للتنفيذ من anon» متوقعة: التطبيق يعتمد على دوال تتحقق من الرقم السري داخلها.
+- لوحة الإدارة للمشرف تستخدم الآن دوال المشرف الموجودة: إضافة وتعديل القهوة والطلعات، تعديل الوقت، التكاليف، القواعد، والجدول العشوائي. الحذف والتبديل وإدارة الأعضاء تبقى للمدير فقط، والخادم يتحقق من صلاحيات كل مشرف.
+
+## المشروع الآخر داخل قاعدة الغدير (قرار لك)
+
+لديك مشروع Supabase مستقل باسم **Universal Communities** (`kmfjqpxcywlpqcjugrqb`). ومع ذلك ما زالت في قاعدة الغدير جداول تخصه، والواجهة الجديدة لا تستخدمها:
+
+`communities`، `community_audit_log`، `community_draws`، `community_events`، `community_listings`، `community_memberships`، `community_messages`، `community_modules`، `community_notifications`، `community_requests`، `community_votes`، `community_vote_responses`، `account_consents`، `account_lifecycle`، `account_security_audit_log`، `account_support_messages`، `account_support_requests`، والدوال `create_account_support_request`، `log_account_security_event`، `record_consent_evidence`. (لا تحذف `is_app_admin` قبل مراجعة سياسات RLS على `members` و`coffee_schedule` و`outings_schedule` و`member_permissions` لأنها تستخدمها.)
+
+بعد التأكد أن مشروع Universal Communities لا يقرأ من قاعدة الغدير، يمكن حذفها بترحيل منفصل بعد نسخة احتياطية. لم يُنفَّذ الحذف لأنه لا رجعة فيه.
+
+## التراجع
+
+```sql
+drop function if exists public.manager_export_backup(text);
+```
+ثم أعد تطبيق `20260929_add_member_pin_recovery_workflow.sql` لإرجاع دوال الاستعادة القديمة. الجداول الجديدة يمكن إبقاؤها.

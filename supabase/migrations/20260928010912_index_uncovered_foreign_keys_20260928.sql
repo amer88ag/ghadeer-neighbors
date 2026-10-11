@@ -1,16 +1,6 @@
-create index if not exists idx_account_consents_user_id on public.account_consents(user_id);
+-- ملاحظة: حُذفت من هذه النسخة أسطر فهارس جداول المشروع الآخر (communities/community_*/account_consents)
+-- لأنها لا تخص جيران الغدير. الفهارس المطبقة سابقًا في القاعدة لا تتأثر بهذا التعديل.
 create index if not exists idx_announcements_sender_member_id on public.announcements(sender_member_id);
-create index if not exists idx_communities_created_by on public.communities(created_by);
-create index if not exists idx_community_audit_actor_user_id on public.community_audit_log(actor_user_id);
-create index if not exists idx_community_draws_community_id on public.community_draws(community_id);
-create index if not exists idx_community_draws_created_by on public.community_draws(created_by);
-create index if not exists idx_community_events_created_by on public.community_events(created_by);
-create index if not exists idx_community_listings_seller_id on public.community_listings(seller_id);
-create index if not exists idx_community_messages_sender_id on public.community_messages(sender_id);
-create index if not exists idx_community_notifications_community_id on public.community_notifications(community_id);
-create index if not exists idx_community_requests_user_id on public.community_requests(user_id);
-create index if not exists idx_community_vote_responses_user_id on public.community_vote_responses(user_id);
-create index if not exists idx_community_votes_created_by on public.community_votes(created_by);
 create index if not exists idx_group_audit_actor_member_id on public.group_audit_log(actor_member_id);
 create index if not exists idx_group_memberships_proposed_partner_id on public.group_memberships(proposed_partner_id);
 create index if not exists idx_group_messages_sender_member_id on public.group_messages(sender_member_id);
