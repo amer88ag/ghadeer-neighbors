@@ -27,6 +27,20 @@
     get_service_settings: () => window.__svc || [],
     manager_set_service_setting: a => { if (!mgr(a)) return { success: false, message: 'غير مصرح' }; window.__svc = (window.__svc || []).filter(x => x.key !== a.p_key).concat([{ key: a.p_key, enabled: a.p_enabled, sort_order: a.p_sort_order, note: a.p_note }]); return { success: true }; },
     manager_list_members: a => mgr(a) ? members.map(m => ({ ...m, role: m.id === 2 ? 'supervisor' : 'member' })).concat([{ id: 9, name: 'عضو موقوف', active: false, role: 'member' }]) : { success: false, message: 'غير مصرح' },
+    submit_ghadeer_join_request: a => {
+      if (!a.p_full_name || !a.p_phone || !a.p_address || a.p_terms_version !== '1.0') return { success: false, message: 'بيانات الطلب غير مكتملة' };
+      window.__joinRequests = window.__joinRequests || [];
+      if (window.__joinRequests.some(x => x.phone === a.p_phone)) return { success: false, message: 'يوجد طلب سابق بهذا الرقم' };
+      window.__joinRequests.push({ id: Date.now(), full_name: a.p_full_name, phone: a.p_phone, address: a.p_address, occupation: a.p_occupation, note: a.p_note, terms_version: a.p_terms_version, status: 'pending', created_at: new Date().toISOString() });
+      return { success: true, message: 'تم استلام طلبك بنجاح.' };
+    },
+    manager_list_ghadeer_join_requests: a => mgr(a) ? (window.__joinRequests || []).filter(x => x.status === 'pending') : { success: false, message: 'غير مصرح' },
+    manager_close_ghadeer_join_request: a => {
+      if (!mgr(a)) return { success: false, message: 'غير مصرح' };
+      const request = (window.__joinRequests || []).find(x => String(x.id) === String(a.p_request_id));
+      if (!request) return { success: false, message: 'الطلب غير موجود' };
+      request.status = a.p_status; return { success: true, message: 'تم تحديث الطلب.' };
+    },
     manager_set_member_active: a => mgr(a) ? { success: true, message: a.p_active ? 'تمت إعادة العضو' : 'تم إيقاف العضو' } : { success: false },
     manager_list_content: a => mgr(a) ? { help: [{ id: 1, title: 'توصيل دواء', status: 'open', kind: 'request', member_name: 'سعيد' }], market: [], initiative: [], rental: [], event: [{ id: 81, title: 'تكريم المتفوقين', status: 'مخطط', event_date: plus(5) }] } : { success: false },
     manager_full_stats: a => mgr(a) ? { success: true, generated_at: new Date().toISOString(), members: { active: 23, suspended: 1, supervisors: 1, seen_7d: 5, seen_30d: 9, never_seen: 2, terms_accepted: 3, remembered_devices: 4, pin_reset_open: 1 }, coffee: { total: 22, upcoming: 19, apologies: 1 }, outings: { scheduled_total: 11, upcoming: 10, plans_voting: 1, plans_scheduled: 0, votes: 2, ratings: 0 }, events: { total: 1, upcoming: 1, cancelled: 0, participants: 2 }, communication: { group_messages: 3, group_messages_30d: 3, private_conversations: 1, private_messages: 2, reports: 0, announcements: 8, suggestions: 1 }, services: { help_open: 1, market_open: 1, lost_open: 1, initiatives: 0, rentals_open: 1, checks_open: 0, checks_total: 0 }, communities: { pending: 1, active: 1, suspended: 0, members: 3 }, services_paused: 0 } : { success: false, message: 'غير مصرح' },
