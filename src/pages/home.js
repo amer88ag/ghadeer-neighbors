@@ -2,6 +2,7 @@ import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
+import { showJoinRequest } from '../lib/join.js';
 import { LOCATION } from '../config.js';
 
 /*
@@ -56,6 +57,7 @@ const OPEN = new Set(['account', 'terms', 'about', 'install']);
 function arrange(items, svc) {
   return items
     .filter(t => (t[4] !== 'admin' || canManage()) && (t[4] !== 'dev' || state.manager))
+    .filter(t => state.user || t[0] !== 'terms')
     .filter(t => state.manager || svc[t[0]]?.enabled !== false)
     .map((t, i) => [t, svc[t[0]]?.sort_order ?? (100 + i)])
     .sort((a, b) => a[1] - b[1]).map(x => x[0]);
@@ -67,17 +69,27 @@ export async function render(el) {
   let hadithIndex = day % HADITH.length;
   el.innerHTML = `
     <div class="dhikr" aria-live="polite"><b>🤲</b><span data-dhikr>${esc(DHIKR[Math.floor(Date.now() / 60000) % DHIKR.length])}</span></div>
-    <section class="hero">
-      <div><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2>
-      <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'أنت تشاهد الواجهة كزائر. لاستخدام الخدمات سجّل دخولك ووافق على الأنظمة والشروط.'}</p></div>
-      ${state.user ? '' : '<button class="btn primary" data-login>🔐 دخول الأعضاء</button>'}
+    <section class="entry-hero">
+      <div class="entry-brand">
+        <img src="icons/icon-simple-96.png" alt="" width="64" height="64">
+        <div><p class="entry-kicker">أهلًا بك في حيّك</p><h2>${state.user ? 'حيّاك الله ' + esc(state.user.name) : 'جيران حي الغدير'}</h2>
+        <p class="entry-subtitle">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'حيّ يجمعنا.. وجيرة تدوم'}</p></div>
+      </div>
+      ${state.user ? '<div class="entry-signed"><span>✓</span> أنت مسجّل الدخول</div>' : `<div class="entry-actions">
+        <button class="btn primary" data-login>🔑 دخول الأعضاء</button>
+        <button class="btn secondary" data-join>✨ الانضمام إلى الحي</button>
+        <button class="btn guest" data-guest>👁️ تصفح كزائر</button>
+      </div>
+      <p class="entry-note">تصفح الخدمات العامة بحرية. وعند اختيار خدمة للأعضاء ستظهر لك طريقة الانضمام.</p>`}
     </section>
     <section class="card upcoming" aria-label="القادم">
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-k">القهوة</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-k">الطلعة</span><span class="up-v" data-next-outing>…</span></a>
       <a href="#/news" class="up-row"><span class="up-ic">🔔</span><span class="up-k">آخر خبر</span><span class="up-v" data-latest>…</span></a>
     </section>
-    ${GROUPS.map(([g, items]) => { const vis = arrange(items, svc); if (!vis.length) return ''; return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${svc[id]?.enabled === false ? '<span class="lock" title="موقوفة">⏸️</span>' : !OPEN.has(id) && !state.manager && !(state.user && state.termsOk) ? '<span class="lock" title="للأعضاء">🔒</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
+    <div id="community-services" class="service-sections">
+    ${GROUPS.map(([g, items]) => { const vis = arrange(items, svc); if (!vis.length) return ''; return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${svc[id]?.enabled === false ? '<span class="lock" title="موقوفة">⏸️</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
+    </div>
     <div class="grid2">
       <section class="card widget" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
       <section class="card widget" data-weather><p class="muted">جارٍ تحميل الطقس…</p></section>
@@ -87,7 +99,12 @@ export async function render(el) {
       <span><button class="icon-btn" data-h="-1" aria-label="السابق">›</button><button class="icon-btn" data-h="1" aria-label="التالي">‹</button></span></div></section>
     <p class="muted center">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
-  $('[data-login]', el)?.addEventListener('click', () => showLogin());
+  $('[data-login]', el)?.addEventListener('click', async () => { if (await showLogin()) location.hash = '#/home'; });
+  $('[data-join]', el)?.addEventListener('click', showJoinRequest);
+  $('[data-guest]', el)?.addEventListener('click', () => {
+    const target = $('#community-services', el);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   const showHadith = () => {
     const h = HADITH[hadithIndex];

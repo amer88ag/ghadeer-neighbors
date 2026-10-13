@@ -184,19 +184,35 @@ async function messages(el, again) {
 
 /* ---------------- الأعضاء والأرقام ---------------- */
 async function members(el, again) {
-  const [reqs, all] = await Promise.all([list('manager_get_pin_reset_requests', M()), list('manager_list_members', M())]);
+  const [reqs, all, joins] = await Promise.all([list('manager_get_pin_reset_requests', M()), list('manager_list_members', M()), list('manager_list_ghadeer_join_requests', M())]);
   const rows = all.data;
   const active = rows.filter(m => m.active), inactive = rows.filter(m => !m.active);
   const row = m => `<div class="row-item${m.active ? '' : ' inactive'}"><div class="row-main"><b>${esc(m.name)}</b><small>${m.role === 'supervisor' ? '🛡️ مشرف · ' : ''}${m.phone ? esc(m.phone) : 'بدون جوال'}${m.last_seen_at ? ' · آخر دخول ' + fmtDateTime(m.last_seen_at) : ''}</small></div><div class="row-side">
       ${m.active ? `<button class="small-btn" data-act="rename" data-id="${m.id}">✏️ الاسم</button><button class="small-btn" data-act="pin" data-id="${m.id}">🔑 الرقم</button><button class="small-btn ghost" data-act="suspend" data-id="${m.id}">⏸️ إيقاف</button>`
                  : `<button class="small-btn" data-act="restore" data-id="${m.id}">↩️ إعادة العضو</button>`}</div></div>`;
-  el.innerHTML = `<div class="card"><h3>🔑 طلبات استعادة الرقم السري</h3>${!reqs.ok ? `<p class="status bad">${esc(reqs.message)}</p>` : reqs.data.length ? reqs.data.map(r => `
+  el.innerHTML = `<div class="card"><h3>✨ طلبات الانضمام الجديدة (${joins.data.length})</h3><p class="muted">راجع بيانات المتقدم، ثم أضفه من قسم «إضافة جار» إذا تمت الموافقة. بعد الإضافة، أغلق الطلب باعتباره تمت معالجته.</p>${!joins.ok ? `<p class="status bad">${esc(joins.message)}</p>` : joins.data.length ? joins.data.map(j => `
+      <div class="row-item col join-request-row"><div class="row-head"><b>${esc(j.full_name)}</b><span class="pill">بانتظار المراجعة</span></div>
+        <small>📱 ${esc(j.phone)} · 📍 ${esc(j.address)}</small>
+        ${j.occupation ? `<small>💼 ${esc(j.occupation)}</small>` : ''}
+        ${j.note ? `<p>${esc(j.note)}</p>` : ''}
+        <small class="muted">وصل الطلب: ${fmtDateTime(j.created_at)} · وافق على الشروط ${esc(j.terms_version)}</small>
+        <div class="actions"><button class="small-btn" data-join-act="processed" data-id="${j.id}">✓ تمت الإضافة والمعالجة</button><button class="small-btn ghost" data-join-act="declined" data-id="${j.id}">رفض الطلب</button></div>
+      </div>`).join('') : empty('لا توجد طلبات انضمام جديدة.')}</div>
+    <div class="card"><h3>🔑 طلبات استعادة الرقم السري</h3>${!reqs.ok ? `<p class="status bad">${esc(reqs.message)}</p>` : reqs.data.length ? reqs.data.map(r => `
       <form class="row-item col" data-f="reset" data-id="${r.id}"><b>${esc(r.full_name)}</b><small class="muted">${r.phone ? esc(r.phone) : 'لا يوجد جوال'} — ${fmtDateTime(r.created_at)}</small>
       <div class="inline-form"><input name="pin" type="password" inputmode="numeric" maxlength="12" placeholder="الرقم الجديد" required><button class="small-btn">تعيين وإغلاق الطلب</button></div></form>`).join('') : empty('لا توجد طلبات مفتوحة.')}</div>
     <details class="card"><summary><b>➕ إضافة جار</b></summary><form data-f="add"><label>الاسم</label><input name="name" required><label>الجوال (للتحقق عند الاستعادة)</label><input name="phone" inputmode="tel" placeholder="05xxxxxxxx"><label>ملاحظات</label><input name="notes"><label>الرقم السري الأولي (4–12 رقمًا)</label><input name="pin" inputmode="numeric" maxlength="12"><button class="btn primary block">إضافة</button></form></details>
     <div class="card"><h3>👥 الأعضاء النشطون (${active.length})</h3>${!all.ok ? `<p class="status bad">${esc(all.message)}</p>` : `<input class="search" type="search" placeholder="🔎 بحث" data-q><div class="list" data-list>${active.map(row).join('')}</div>`}</div>
     <div class="card"><h3>⏸️ الأعضاء الموقوفون (${inactive.length})</h3>${inactive.length ? `<div class="list">${inactive.map(row).join('')}</div>` : empty('لا يوجد أعضاء موقوفون.')}</div>
     <details class="card"><summary><b>🛠️ تغيير رقم المطور</b></summary><form data-f="mgrpin"><input name="old" type="password" inputmode="numeric" placeholder="الرقم الحالي" required><input name="next" type="password" inputmode="numeric" placeholder="الرقم الجديد" required><button class="btn secondary block">تغيير</button></form></details>`;
+  el.querySelectorAll('[data-join-act]').forEach(b => b.addEventListener('click', () => busy(b, async () => {
+    const action = b.dataset.joinAct;
+    if (action === 'declined' && !(await confirmBox('تأكيد رفض طلب الانضمام؟'))) return;
+    if (action === 'processed' && !(await confirmBox('هل أضفت هذا المتقدم إلى قائمة الأعضاء؟ أغلق الطلب بعد إتمام الإضافة فقط.'))) return;
+    const r = await call('manager_close_ghadeer_join_request', { ...M(), p_request_id: Number(b.dataset.id), p_status: action });
+    if (!r.ok) return toast(r.message || 'تعذر تحديث الطلب.', false);
+    toast(r.message || 'تم تحديث الطلب.'); again();
+  })));
   const reload = async () => { await loadMembers(); again(); };
   $('[data-q]', el)?.addEventListener('input', e => { const q = e.target.value.trim(); el.querySelectorAll('[data-list] .row-item').forEach(r => { r.hidden = q && !r.textContent.includes(q); }); });
   bind(el, '[data-f=reset]', f => PIN_PATTERN.test(f.pin.value) ? call('manager_reset_member_pin_from_request', { ...M(), p_request_id: Number(f.dataset.id), p_new_pin: f.pin.value }) : { ok: false, message: 'الرقم من 4 إلى 12 رقمًا.' }, again);

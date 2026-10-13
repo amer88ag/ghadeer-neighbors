@@ -24,6 +24,7 @@ import * as terms from './pages/terms.js';
 import * as install from './pages/install.js';
 import * as community from './pages/community.js';
 import * as stats from './pages/stats.js';
+import { showJoinRequest } from './lib/join.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -46,14 +47,25 @@ setGuard(async (id, params) => {
   if (!PUBLIC.has(id) && !state.manager && !(state.user && state.termsOk)) {
     const restored = state.user && !state.pin;
     setTimeout(() => {
-      document.querySelector('[data-gate]')?.addEventListener('click', async () => {
-        const ok = restored ? await requirePin() : await showLogin({ reason: 'سجّل دخولك ووافق على الأنظمة والشروط لاستخدام خدمات البرنامج.' });
+      document.querySelector('[data-gate-login]')?.addEventListener('click', async () => {
+        const ok = restored ? await requirePin() : await showLogin({ reason: 'سجّل دخولك للمتابعة. إذا لم تكن عضوًا، يمكنك إرسال طلب انضمام.' });
         if (ok) refresh();
       });
+      document.querySelector('[data-gate-join]')?.addEventListener('click', showJoinRequest);
     });
-    return `<div class="card center gate"><p class="tile-icon">🔒</p><h3>${restored ? 'أكّد دخولك للمتابعة' : 'هذه الخدمة للأعضاء'}</h3>
-      <p class="muted">${restored ? 'أدخل رقمك السري مرة واحدة لتأكيد هويتك وموافقتك على الأنظمة والشروط.' : 'يمكن للزائر مشاهدة الواجهة فقط. استخدام الخدمات يتطلب تسجيل الدخول والموافقة على الأنظمة والشروط.'}</p>
-      <button class="btn primary" data-gate>🔐 ${restored ? 'تأكيد الدخول' : 'تسجيل الدخول'}</button> <a class="btn secondary" href="#/terms">📜 الأنظمة والشروط</a></div>`;
+    return `<section class="card center gate gate-welcome">
+      <div class="gate-welcome-icon">🏡</div>
+      <p class="entry-kicker">يا مرحبًا بك بين جيرانك</p>
+      <h3>${restored ? 'أهلًا بعودتك' : 'جيران حي الغدير.. حيّ يجمعنا'}</h3>
+      <p class="gate-welcome-lead">التواصل الطيب يبدأ من الجيرة</p>
+      <p class="muted">تعرّف على أخبار الحي، ومواعيد القهوة والطلعات، ومناسبات الجيران، والخدمات والمبادرات التي تعزز التعاون والتراحم بين أهل الحي.</p>
+      <p class="muted">${restored ? 'أكّد هويتك للمتابعة إلى هذه الخدمة.' : 'هذه الخدمة متاحة للأعضاء. انضم إلينا لتشارك وتتواصل مع جيرانك.'}</p>
+      <div class="gate-welcome-actions">
+        <button class="btn primary block" data-gate-login>🔑 ${restored ? 'تأكيد الدخول' : 'دخول الأعضاء'}</button>
+        ${restored ? '' : '<button class="btn secondary block" data-gate-join>✨ طلب الانضمام إلى الحي</button>'}
+        <a class="btn guest block" href="#/home">👁️ متابعة التصفح كزائر</a>
+      </div>
+    </section>`;
   }
   if (ALWAYS_ON.has(id) || state.manager) return null;
   const svc = await serviceSettings();
@@ -66,8 +78,7 @@ function renderChrome() {
   const who = document.getElementById('who');
   who.innerHTML = state.user
     ? `<a href="#/account" class="chip">${state.manager ? '🛠️' : state.supervisor ? '🛡️' : '👤'} ${esc(state.user.name)}</a>`
-    : `<button class="chip light" data-login>🔐 دخول</button>`;
-  who.querySelector('[data-login]')?.addEventListener('click', () => showLogin());
+    : '';
   document.querySelector('[data-nav="manager"]').hidden = !canManage();
 }
 

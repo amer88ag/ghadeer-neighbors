@@ -40,7 +40,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 25 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
   ok('home: occasion shown, future hidden', (await page.textContent('[data-latest]')).includes('اليوم الوطني'));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
@@ -51,10 +51,10 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 26);
+  ok('guest icons count', (await checkAllTiles('guest')) === 25);
 
-  await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-gate]');
-  ok('guest: services gated until login + terms', (await page.textContent('.page-body')).includes('للأعضاء') && !(await page.$('[data-apology]')));
+  await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-gate-join]');
+  ok('guest: services gated until login + terms', (await page.textContent('.page-body')).includes('التواصل الطيب يبدأ من الجيرة') && !!(await page.$('[data-gate-login]')));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms');
   ok('guest: terms page open', true);
 
@@ -67,7 +67,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
 
   // 3) Login as member 1 with remember
   await page.goto(BASE + '#/home');
-  await page.click('#who [data-login]');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]');
   await page.selectOption('.modal [name=member]', '1');
   await page.fill('.modal [name=pin]', '١٢٣٤'); // Arabic digits must normalize
   await page.check('.modal [name=remember]');
@@ -156,7 +156,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('logout: token cleared + revoked on server', !(await page.evaluate(() => JSON.stringify(localStorage))).includes('tok-') && !!(await lastCall('member_revoke_device_token')));
 
   // 11) New member must accept terms
-  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '3');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]'); await page.selectOption('.modal [name=member]', '3');
   await page.fill('.modal [name=pin]', '7777'); await page.click('.modal .btn.primary');
   await page.waitForSelector('.modal [data-agree]');
   await page.click('.modal [data-read]'); await page.waitForSelector('.modal .terms');
@@ -168,7 +168,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/account'); await page.click('[data-logout]');
 
   // 12) Wrong pin
-  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]'); await page.selectOption('.modal [name=member]', '1');
   await page.fill('.modal [name=pin]', '0000'); await page.click('.modal .btn.primary'); await page.waitForTimeout(300);
   ok('login: wrong pin rejected', (await page.textContent('.modal [data-status]')).includes('غير صحيح'));
   await page.click('.modal [data-manager]');
@@ -199,7 +199,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
 
   // 13b) Supervisor tools
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
-  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '2');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]'); await page.selectOption('.modal [name=member]', '2');
   await page.fill('.modal [name=pin]', '5555'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
   ok('supervisor: admin nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
@@ -242,7 +242,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
   ok('guest: paused tile hidden', !(await page.$('[data-tile="services/lost"]')));
-  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
   await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);
   ok('member: paused page blocked with note', (await page.textContent('.page-body')).includes('موقوفة') && (await page.textContent('.page-body')).includes('قريبًا'));
@@ -257,7 +257,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-a=approve]'); await page.waitForSelector('.modal [name=v]'); await page.click('.modal .btn.primary'); await page.waitForTimeout(400);
   ok('community: developer approves request', (await lastCall('manager_review_community'))?.args.p_action === 'approve');
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
-  await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
+  await page.goto(BASE + '#/home'); await page.click('[data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
   await page.goto(BASE + '#/community'); await page.waitForSelector('[data-create]');
   ok('community: no stats tile for member', true);
