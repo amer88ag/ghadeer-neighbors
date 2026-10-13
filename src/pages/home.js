@@ -1,6 +1,7 @@
 import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
+import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
 
@@ -69,8 +70,8 @@ export async function render(el) {
     <div class="dhikr" aria-live="polite"><b>🤲</b><span data-dhikr>${esc(DHIKR[Math.floor(Date.now() / 60000) % DHIKR.length])}</span></div>
     <section class="hero">
       <div><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2>
-      <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'أنت تشاهد الواجهة كزائر. لاستخدام الخدمات سجّل دخولك ووافق على الأنظمة والشروط.'}</p></div>
-      ${state.user ? '' : '<button class="btn primary" data-login>🔐 دخول الأعضاء</button>'}
+      <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'تصفّح خدمات الحي وتعرّف على مجتمع يجمع الجيران على الألفة والتعاون والمساندة.'}</p></div>
+      ${state.user ? '' : '<div class="hero-actions"><button class="btn primary" data-join>🌟 انضم إلى الجيران</button><button class="btn secondary" data-login>🔐 دخول الأعضاء</button></div>'}
     </section>
     <section class="card upcoming" aria-label="القادم">
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-k">القهوة</span><span class="up-v" data-next-coffee>…</span></a>
@@ -88,6 +89,14 @@ export async function render(el) {
     <p class="muted center">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
   $('[data-login]', el)?.addEventListener('click', () => showLogin());
+  $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
+  el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
+    if (state.user && state.termsOk || state.manager) return;
+    const id = tile.dataset.tile || '';
+    if (['account', 'terms', 'about', 'install'].includes(id)) return;
+    event.preventDefault();
+    showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
+  }));
 
   const showHadith = () => {
     const h = HADITH[hadithIndex];
