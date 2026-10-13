@@ -62,8 +62,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
 
   ok('guest icons count', (await checkAllTiles('guest')) === 26);
 
-  await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-gate]');
-  ok('guest: services gated until login + terms', (await page.textContent('.page-body')).includes('للأعضاء') && !(await page.$('[data-apology]')));
+  await page.goto(BASE + '#/coffee'); await page.waitForSelector('.guest-gate');
+  ok('guest: direct service access shows welcome gate', (await page.textContent('.guest-gate')).includes('أهلًا بك في جيران حي الغدير') && !!(await page.$('[data-gate-join]')) && !!(await page.$('[data-gate]')) && !!(await page.$('[data-gate-browse]')) && !(await page.$('[data-apology]')));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms');
   ok('guest: terms page open', true);
 
