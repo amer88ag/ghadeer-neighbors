@@ -255,3 +255,31 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
   .entry-actions { grid-template-columns: 1fr; }
   .entry-actions .btn { width: 100%; }
 }
+
+
+/* تسجيل الجار الجديد ورسالة الترحيب للزائر */
+.join-intro, .join-welcome { text-align: center; }
+.join-mark, .join-welcome-icon, .gate-welcome-icon {
+  display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 12px;
+  border-radius: 24px; background: linear-gradient(145deg, #f7e7bd, #fff9e9); font-size: 38px;
+  box-shadow: inset 0 0 0 1px #d8bc80;
+}
+.join-intro h3, .join-welcome h3, .gate-welcome h3 { margin: 8px 0; line-height: 1.5; }
+.join-intro p { line-height: 1.8; }
+.join-terms { display: grid; gap: 8px; padding: 13px; margin: 12px 0; border-radius: 14px; background: var(--soft, #f1f6f2); }
+.join-terms .check { display: flex; align-items: flex-start; gap: 9px; font-weight: 700; }
+.join-terms input[type=checkbox] { width: 19px; height: 19px; flex: 0 0 auto; margin-top: 3px; accent-color: var(--g); }
+.join-terms .link-btn { justify-self: start; color: #1677ff; text-decoration: underline; font-weight: 700; }
+.join-welcome p { line-height: 1.9; }
+.join-next { text-align: right; margin: 16px 0; padding: 14px; border: 1px solid #d8e8dc; border-radius: 16px; background: #f2f8f3; }
+.join-next p { margin-bottom: 0; }
+.gate-welcome { padding: clamp(22px, 5vw, 38px); border-radius: 24px; }
+.gate-welcome .entry-kicker { color: var(--g); margin: 0; }
+.gate-welcome-lead { font-weight: 800; font-size: 18px; color: var(--g); }
+.gate-welcome .muted { line-height: 1.9; }
+.gate-welcome-actions { display: grid; gap: 10px; max-width: 440px; margin: 20px auto 0; }
+.gate-welcome-actions .btn { min-height: 50px; }
+@media (max-width: 480px) {
+  .join-mark, .join-welcome-icon, .gate-welcome-icon { width: 66px; height: 66px; border-radius: 20px; font-size: 33px; }
+  .gate-welcome { padding: 22px 16px; }
+}
