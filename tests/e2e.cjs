@@ -28,6 +28,15 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     for (const id of ids) {
       await page.goto(BASE + '#/home'); await page.waitForSelector(`[data-tile="${id}"]`);
       await page.click(`[data-tile="${id}"]`);
+      // Guests should see the welcome modal for member-only services, not navigate into them.
+      if (role === 'guest' && !['account', 'terms', 'about', 'install'].includes(id)) {
+        await page.waitForSelector('#modalRoot .guest-welcome', { timeout: 4000 });
+        const welcome = await page.locator('#modalRoot .guest-welcome').innerText();
+        ok(`guest icon opens welcome [${id}]`, welcome.includes('الجيرة الطيبة') && welcome.includes('طلب الانضمام'), welcome.slice(0, 100));
+        await page.click('#modalRoot .guest-welcome [data-close]');
+        await page.waitForSelector('#modalRoot .modal', { state: 'detached', timeout: 3000 }).catch(() => {});
+        continue;
+      }
       await page.waitForFunction(() => !document.querySelector('.page-body .skeleton'), null, { timeout: 8000 }).catch(() => {});
       const bad = await page.$('.page-body .status.bad');
       const hash = await page.evaluate(() => location.hash);
