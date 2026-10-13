@@ -1,7 +1,8 @@
-import { esc, fmtTime, todayISO, $, openModal } from '../lib/dom.js';
+import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
+import { showJoinRequest } from './join.js';
 import { LOCATION } from '../config.js';
 
 /*
@@ -56,6 +57,7 @@ const OPEN = new Set(['account', 'terms', 'about', 'install']);
 function arrange(items, svc) {
   return items
     .filter(t => (t[4] !== 'admin' || canManage()) && (t[4] !== 'dev' || state.manager))
+    .filter(t => state.user || t[0] !== 'terms')
     .filter(t => state.manager || svc[t[0]]?.enabled !== false)
     .map((t, i) => [t, svc[t[0]]?.sort_order ?? (100 + i)])
     .sort((a, b) => a[1] - b[1]).map(x => x[0]);
@@ -78,7 +80,7 @@ export async function render(el) {
         <button class="btn secondary" data-join>✨ الانضمام إلى الحي</button>
         <button class="btn guest" data-guest>👁️ تصفح كزائر</button>
       </div>
-      <p class="entry-note">التصفح العام متاح للجميع؛ بعض الخدمات تتطلب تسجيل الدخول والموافقة على الأنظمة والشروط.</p>`}
+      <p class="entry-note">تصفح الخدمات العامة بحرية. وعند اختيار خدمة للأعضاء ستظهر لك طريقة الانضمام.</p>`}
     </section>
     <section class="card upcoming" aria-label="القادم">
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-k">القهوة</span><span class="up-v" data-next-coffee>…</span></a>
@@ -98,10 +100,7 @@ export async function render(el) {
     <p class="muted center">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
   $('[data-login]', el)?.addEventListener('click', async () => { if (await showLogin()) location.hash = '#/home'; });
-  $('[data-join]', el)?.addEventListener('click', () => openModal({
-    title: '✨ الانضمام إلى الحي',
-    body: '<p>يسعدنا انضمامك إلى جيران حي الغدير.</p><p class="muted">لأن العضوية تُدار من إدارة الحي، تواصل مع الإدارة لإضافة اسمك إلى قائمة الأعضاء. بعد إضافتك يمكنك الدخول باستخدام اسمك والرقم السري المخصص لك.</p><div class="actions"><a class="btn primary" href="#/account">الانتقال إلى صفحة الدخول</a><button class="btn secondary" data-close>إغلاق</button></div>'
-  }));
+  $('[data-join]', el)?.addEventListener('click', showJoinRequest);
   $('[data-guest]', el)?.addEventListener('click', () => {
     const target = $('#community-services', el);
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
