@@ -2,7 +2,7 @@ import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
-import { showJoinRequest } from './join.js';
+import { showJoinRequest } from '../lib/join.js';
 import { LOCATION } from '../config.js';
 
 /*
