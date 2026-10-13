@@ -220,3 +220,23 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 .stat-box small { color: var(--muted); font-size: 12px; line-height: 1.4; }
 .code { background: var(--g-soft); color: var(--g); padding: 3px 10px; border-radius: 8px; font-size: 18px; letter-spacing: 3px; font-weight: 800; direction: ltr; display: inline-block; }
 .gate .btn { margin: 6px 2px 0; }
+
+
+/* Guest entry and new-member registration */
+.hero-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.hero-actions .btn { margin:0; }
+.guest-gate { max-width:680px; margin:18px auto; padding:clamp(22px,5vw,42px); border:1px solid var(--line); border-radius:24px; background:linear-gradient(145deg,var(--card),var(--g-soft)); }
+.guest-gate .tile-icon { font-size:44px; margin:0 0 10px; }
+.guest-gate h3 { font-size:clamp(22px,4vw,30px); margin:8px 0 12px; }
+.guest-gate p { line-height:1.95; max-width:540px; margin:0 auto 18px; }
+.join-intro,.join-welcome,.guest-welcome { text-align:center; }
+.join-mark,.join-welcome-icon { display:grid; place-items:center; width:70px; height:70px; margin:0 auto 12px; border-radius:22px; background:var(--g-soft); font-size:36px; }
+.join-intro h3,.join-welcome h3,.guest-welcome h3 { margin:8px 0; line-height:1.6; }
+.join-intro p,.join-welcome p,.guest-welcome p { line-height:1.9; }
+.join-terms { display:grid; gap:10px; padding:14px; margin:14px 0; border-radius:16px; background:var(--g-soft); }
+.join-terms .check { display:flex; align-items:flex-start; gap:10px; font-weight:700; }
+.join-terms input[type=checkbox] { width:19px; height:19px; flex:0 0 auto; margin-top:4px; accent-color:var(--g); }
+.join-terms .link-btn { justify-self:start; padding:0; border:0; background:none; color:#1677ff; text-decoration:underline; font-weight:700; cursor:pointer; }
+.join-next { text-align:right; margin:16px 0; padding:14px; border:1px solid #d8e8dc; border-radius:16px; background:#f2f8f3; }
+.join-next p { margin-bottom:0; }
+@media(max-width:560px){ .hero-actions { width:100%; } .hero-actions .btn { flex:1 1 145px; } .guest-gate .hero-actions .btn { flex:1 1 100%; } }
