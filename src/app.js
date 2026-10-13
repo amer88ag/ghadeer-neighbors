@@ -66,8 +66,7 @@ function renderChrome() {
   const who = document.getElementById('who');
   who.innerHTML = state.user
     ? `<a href="#/account" class="chip">${state.manager ? '🛠️' : state.supervisor ? '🛡️' : '👤'} ${esc(state.user.name)}</a>`
-    : `<button class="chip light" data-login>🔐 دخول</button>`;
-  who.querySelector('[data-login]')?.addEventListener('click', () => showLogin());
+    : '';
   document.querySelector('[data-nav="manager"]').hidden = !canManage();
 }
 
