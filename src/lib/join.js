@@ -1,6 +1,6 @@
 import { openModal, esc, toast, busy } from './dom.js';
 import { call } from './api.js';
-import { termsHtml } from './terms.js';
+import { termsHtml } from '../pages/terms.js';
 
 const TERMS_VERSION = '1.0';
 
