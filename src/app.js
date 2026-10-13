@@ -24,7 +24,7 @@ import * as terms from './pages/terms.js';
 import * as install from './pages/install.js';
 import * as community from './pages/community.js';
 import * as stats from './pages/stats.js';
-import { showJoinRequest } from './pages/join.js';
+import { showJoinRequest } from './lib/join.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
