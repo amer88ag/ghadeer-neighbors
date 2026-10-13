@@ -60,3 +60,19 @@ export function showJoinRequest() {
     }
   });
 }
+
+
+/** رسالة الزائر عند اختيار خدمة قبل التسجيل. */
+export function showGuestWelcome(serviceName = 'خدمات الحي') {
+  openModal({
+    title: '🏡 أهلًا بك في جيران حي الغدير',
+    body: `<div class="guest-welcome"><div class="join-welcome-icon">🤝</div><h3>الجيرة الطيبة تبدأ بالتواصل</h3><p>جيران حي الغدير مساحة تجمع أهل الحي للتعارف والتعاون وتبادل الأخبار والمناسبات وتنظيم اللقاءات ومساندة المحتاج، في أجواء يسودها الاحترام والتراحم.</p><div class="join-next"><b>✨ ما الذي ينتظرك؟</b><p>جدول القهوة والطلعات، مناسبات الحي، دليل الجيران، الرسائل، أخبار الحي، والخدمات والمبادرات المجتمعية.</p></div><p class="muted">اختر الانضمام لتصبح من أهل المجتمع وتستفيد من الخدمات التفاعلية. يمكنك مواصلة تصفح الواجهة دون تسجيل.</p><div class="actions"><button class="btn primary" type="button" data-guest-join>🌟 طلب الانضمام</button><button class="btn secondary" type="button" data-guest-login>🔐 دخول الأعضاء</button><button class="btn ghost" type="button" data-close>متابعة التصفح</button></div></div>`,
+    onMount(card) {
+      card.querySelector('[data-guest-join]')?.addEventListener('click', showJoinRequest);
+      card.querySelector('[data-guest-login]')?.addEventListener('click', async () => {
+        const { showLogin } = await import('./session.js');
+        showLogin();
+      });
+    }
+  });
+}
