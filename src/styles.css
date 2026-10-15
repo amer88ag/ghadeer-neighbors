@@ -240,3 +240,35 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 .join-next { text-align:right; margin:16px 0; padding:14px; border:1px solid #d8e8dc; border-radius:16px; background:#f2f8f3; }
 .join-next p { margin-bottom:0; }
 @media(max-width:560px){ .hero-actions { width:100%; } .hero-actions .btn { flex:1 1 145px; } .guest-gate .hero-actions .btn { flex:1 1 100%; } }
+
+
+/* اختبار تحسينات الواجهة: شبكات متوازنة وتوافق أفضل مع الهواتف */
+.tiles { align-items: stretch; }
+.tile { min-width: 0; min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; overflow-wrap: anywhere; }
+.tile small { line-height: 1.45; }
+.prayer-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.prayer-grid > div { min-width: 0; padding: 8px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.prayer-grid > div b { font-variant-numeric: tabular-nums; }
+.join-request-card { overflow-wrap: anywhere; }
+.join-request-card .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.join-request-card .actions .btn { flex: 1 1 150px; }
+.segmented a[href="#/manager/joinRequests"] { border: 1px solid #b8d7c5; background: var(--g-soft); font-weight: 800; }
+@media (max-width: 560px) {
+  .wrap { padding-inline: 12px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .tile { min-height: 126px; padding: 12px 8px; }
+  .tile b { font-size: 15px; line-height: 1.45; }
+  .tile small { font-size: 12px; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .prayer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .prayer-grid > div { min-height: 76px; }
+  .widget-head { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+  .hero { gap: 14px; }
+  .join-request-card .row-between { align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+}
+@media (min-width: 561px) and (max-width: 719px) {
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 720px) {
+  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
