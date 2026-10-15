@@ -55,8 +55,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
   ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
-  await page.waitForSelector('.prayer-grid'); await page.waitForSelector('.weather');
-  ok('home: prayer + weather', true);
+  await page.waitForSelector('.prayer-grid'); await page.waitForSelector('[data-weather-temp]');
+  ok('home: prayer + compact weather temperature', (await page.textContent('[data-weather]')).includes('اضغط') && !!(await page.$('[data-weather-temp]')) && !(await page.$('[data-weather] .muted')));
+  await page.click('[data-weather]'); await page.waitForTimeout(250);
+  ok('home: tap weather opens detailed forecast', page.url().endsWith('#/weather'));
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-weather-temp]');
+  ok('home: reminder panel appears before welcome', await page.evaluate(() => document.querySelector('.hadith').compareDocumentPosition(document.querySelector('.hero')) & Node.DOCUMENT_POSITION_FOLLOWING));
+  ok('home: no duplicate login button in welcome card', !(await page.$('.hero [data-login]')) && !!(await page.$('#who [data-login]')));
   const prayerGrid = await page.locator('.prayer-grid').innerText();
   ok('prayer: Fajr iqama +25 minutes', prayerGrid.includes('الإقامة 05:15'));
   ok('prayer: Dhuhr iqama +20 minutes', prayerGrid.includes('الإقامة 12:30'));
