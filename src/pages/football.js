@@ -1,7 +1,7 @@
 import { esc } from '../lib/dom.js';
 
 const LEAGUE = 'ksa.1';
-const STANDINGS_URL = `https://site.api.espn.com/apis/v2/sports/soccer/${LEAGUE}/standings`;
+const STANDINGS_URLS = [`https://site.api.espn.com/apis/v2/sports/soccer/${LEAGUE}/standings`, `https://site.web.api.espn.com/apis/v2/sports/soccer/${LEAGUE}/standings`];
 const SCOREBOARD_URL = `https://site.api.espn.com/apis/site/v2/sports/soccer/${LEAGUE}/scoreboard`;
 const CACHE_KEY = 'ghadeer.roshn.dashboard.v1';
 const DAY = 24 * 60 * 60 * 1000;
@@ -27,6 +27,11 @@ const getJSON = async url => {
   const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
   if (!response.ok) throw new Error('تعذر جلب البيانات الرياضية (' + response.status + ')');
   try { return await response.json(); } catch { throw new Error('رد مزود البيانات ليس بصيغة JSON صالحة.'); }
+};
+const getFirstAvailable = async urls => {
+  let lastError;
+  for (const url of urls) { try { return await getJSON(url); } catch (error) { lastError = error; } }
+  throw lastError || new Error('تعذر الاتصال بمصدر الترتيب.');
 };
 function standingsEntries(data) {
   const out = [];
@@ -106,7 +111,7 @@ export async function render(el) {
       }
       const now = new Date(), end = new Date(now.getTime() + 90 * DAY);
       const [standings, scoreboard] = await Promise.all([
-        getJSON(STANDINGS_URL), getJSON(`${SCOREBOARD_URL}?dates=${localDateKey(now)}-${localDateKey(end)}&limit=200`)
+        getFirstAvailable(STANDINGS_URLS), getJSON(`${SCOREBOARD_URL}?dates=${localDateKey(now)}-${localDateKey(end)}&limit=200`)
       ]);
       const teams = standingsEntries(standings), matches = matchesFrom(scoreboard);
       if (!teams.length) throw new Error('اتصلنا بمزود البيانات، لكن لم نجد جدول ترتيب صالحًا.');
