@@ -61,7 +61,7 @@ export async function render(el, [tab]) {
 
 /* ---------------- الجداول ---------------- */
 async function schedules(el, again) {
-  const [coffee, outings] = await Promise.all([data.coffee(true), data.outings(true)]);
+  const [coffee, outings, ruleSettings] = await Promise.all([data.coffee(true), data.outings(true), data.settings(true)]);
   const cLabel = x => `${fmtDate(x.coffee_date)} — ${memberName(x.member_id)}`;
   const oLabel = x => `${fmtDate(x.outing_date)} — ${x.outing_type || memberName(x.member1_id) + ' + ' + memberName(x.member2_id)}`;
   el.innerHTML = `
@@ -78,17 +78,59 @@ async function schedules(el, again) {
     <label>التاريخ الهجري (اختياري)</label><input name="hijri"><label>ملاحظات</label><input name="notes"><button class="btn primary block">➕ إنشاء</button></form></details>
   <details class="card"><summary><b>🚐 تعديل / حذف طلعة</b></summary><form data-f="outing-edit"><select name="rid" data-pick="outing">${options(outings, oLabel)}</select>
     <div class="grid2"><div><label>المنظم الأول</label><select name="m1">${memberOpts()}</select></div><div><label>المنظم الثاني</label><select name="m2">${memberOpts()}</select></div></div>
-    <div class="grid2"><div><label>التاريخ</label><input name="date" type="date"></div><div><label>الوقت</label><input name="time" type="time"></div></div>
+    <div class="grid2"><div><label>التاريخ</label><input name="date" type="date" data-outing-date></div><div><label>الوقت</label><input name="time" type="time"></div></div><p class="status bad" data-outing-warning hidden role="status" aria-live="polite"></p>
     <label>ملاحظات</label><input name="notes">
-    <div class="actions"><button class="btn primary" value="save">حفظ</button><button class="btn secondary" value="time">🕐 تعديل الوقت فقط</button><button class="btn secondary" value="cost">💰 التكاليف</button>${state.manager ? '<button class="btn danger" value="delete">🗑️ حذف</button>' : ''}</div></form></details>
+    <div class="actions"><button class="btn primary" value="save">حفظ التعديل</button><button class="btn secondary" value="time">🕐 تعديل الوقت فقط</button><button class="btn secondary" value="cost">💰 التكاليف</button>${state.manager ? '<button class="btn danger" value="delete">🗑️ حذف</button>' : ''}</div></form></details>
   ${state.manager ? `<details class="card"><summary><b>🔁 تبديل موعدي طلعتين</b></summary><form data-f="outing-swap"><select name="a">${options(outings, oLabel)}</select><select name="b">${options(outings, oLabel)}</select><button class="btn secondary block">تبديل</button></form></details>` : ''}
   <details class="card"><summary><b>🎲 جدول طلعات عشوائي جديد</b></summary><form data-f="outing-random"><p class="muted">يُنشئ جدولًا جديدًا من اليوم وفق القواعد (يتطلب عددًا زوجيًا من الجيران النشطين).</p><button class="btn secondary block">🎲 إنشاء الجدول</button></form></details>`;
 
-  const fillCoffee = f => { const x = coffee.find(c => String(c.id) === f.rid.value); if (!x) return; f.member.value = x.member_id; f.date.value = x.coffee_date; f.time.value = fmtTime(x.coffee_time).replace('—', ''); f.notes.value = x.notes || ''; };
-  const fillOuting = f => { const x = outings.find(c => String(c.id) === f.rid.value); if (!x) return; f.m1.value = x.member1_id ?? ''; f.m2.value = x.member2_id ?? ''; f.date.value = x.outing_date; f.time.value = fmtTime(x.outing_time).replace('—', ''); f.notes.value = x.notes || ''; };
+  const fillCoffee = f => { const x = coffee.find(c => String(c.id) === f.rid.value); if (!x) return; f.member.value = x.member_id; f.date.value = x.coffee_date || ''; f.time.value = String(x.coffee_time || '').slice(0, 5); f.notes.value = x.notes || ''; };
+  const fillOuting = f => { const x = outings.find(c => String(c.id) === f.rid.value); if (!x) return; f.m1.value = x.member1_id ?? ''; f.m2.value = x.member2_id ?? ''; f.date.value = x.outing_date || ''; f.time.value = String(x.outing_time || '').slice(0, 5); f.notes.value = x.notes || ''; updateOutingWarning(); };
   const ce = $('[data-f=coffee-edit]', el), oe = $('[data-f=outing-edit]', el);
+  const warning = $('[data-outing-warning]', el);
+  const isExpectedOutingDate = value => {
+    if (!value) return true;
+    const d = new Date(value + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return true;
+    const rule = ruleSettings.outing_day_rule || 'first_monday_after_27';
+    const monday = x => x.getDay() === 1;
+    const firstMondayAfter27 = (year, month) => {
+      const x = new Date(year, month, 28, 12);
+      while (!monday(x)) x.setDate(x.getDate() + 1);
+      return x.toISOString().slice(0, 10);
+    };
+    if (rule === 'first_monday_of_month') {
+      const x = new Date(d.getFullYear(), d.getMonth(), 1, 12);
+      while (!monday(x)) x.setDate(x.getDate() + 1);
+      return value === x.toISOString().slice(0, 10);
+    }
+    return value === firstMondayAfter27(d.getFullYear(), d.getMonth()) ||
+      value === firstMondayAfter27(d.getFullYear(), d.getMonth() - 1);
+  };
+  function updateOutingWarning() {
+    if (!warning || !oe) return;
+    const date = oe.date.value;
+    const notes = [];
+    if (date && !isExpectedOutingDate(date)) {
+      notes.push(ruleSettings.outing_day_rule === 'first_monday_of_month'
+        ? 'التاريخ يخالف قاعدة «أول اثنين من الشهر».'
+        : 'التاريخ يخالف قاعدة «أول اثنين بعد 27».');
+    }
+    if (date && ruleSettings.avoid_coffee_conflicts !== false && coffee.some(x => x.coffee_date === date)) {
+      notes.push('يوجد موعد قهوة في التاريخ نفسه، وقد يكون هناك تعارض.');
+    }
+    if (notes.length) {
+      warning.textContent = 'تنبيه: ' + notes.join(' ') + ' يمكنك متابعة الحفظ؛ التنبيه لا يمنع التعديل.';
+      warning.hidden = false;
+    } else {
+      warning.textContent = '';
+      warning.hidden = true;
+    }
+  }
   ce.rid.onchange = () => fillCoffee(ce); fillCoffee(ce);
   oe.rid.onchange = () => fillOuting(oe); fillOuting(oe);
+  oe.date.addEventListener('input', updateOutingWarning);
+  oe.date.addEventListener('change', updateOutingWarning);
 
   bind(el, '[data-f=coffee-new]', f => state.manager
     ? call('manager_create_coffee', { ...M(), p_member_id: Number(f.member.value), p_date: f.date.value, p_time: f.time.value || null, p_hijri: val(f, 'hijri'), p_notes: val(f, 'notes') })
