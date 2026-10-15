@@ -28,6 +28,15 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     for (const id of ids) {
       await page.goto(BASE + '#/home'); await page.waitForSelector(`[data-tile="${id}"]`);
       await page.click(`[data-tile="${id}"]`);
+      // Guests should see the welcome modal for member-only services, not navigate into them.
+      if (role === 'guest' && !['account', 'terms', 'about', 'install'].includes(id)) {
+        await page.waitForSelector('#modalRoot .guest-welcome', { timeout: 4000 });
+        const welcome = await page.locator('#modalRoot .guest-welcome').innerText();
+        ok(`guest icon opens welcome [${id}]`, welcome.includes('الجيرة الطيبة') && welcome.includes('طلب الانضمام'), welcome.slice(0, 100));
+        await page.click('#modalRoot .guest-welcome [data-close]');
+        await page.waitForSelector('#modalRoot .modal', { state: 'detached', timeout: 3000 }).catch(() => {});
+        continue;
+      }
       await page.waitForFunction(() => !document.querySelector('.page-body .skeleton'), null, { timeout: 8000 }).catch(() => {});
       const bad = await page.$('.page-body .status.bad');
       const hash = await page.evaluate(() => location.hash);
@@ -39,6 +48,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   // 1) Guest home
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
+  const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
+  ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
+  ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
   ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
@@ -46,15 +58,27 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
   ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
-  await page.waitForSelector('.prayer-grid'); await page.waitForSelector('.weather');
-  ok('home: prayer + weather', true);
+  await page.waitForSelector('.prayer-grid'); await page.waitForSelector('[data-weather-temp]');
+  ok('home: prayer + compact weather temperature', (await page.textContent('[data-weather]')).includes('اضغط') && !!(await page.$('[data-weather-temp]')) && !(await page.$('[data-weather] .muted')));
+  await page.click('[data-weather]'); await page.waitForTimeout(250);
+  ok('home: tap weather opens detailed forecast', page.url().endsWith('#/weather'));
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-weather-temp]');
+  ok('home: reminder panel appears before welcome', await page.evaluate(() => document.querySelector('.hadith').compareDocumentPosition(document.querySelector('.hero')) & Node.DOCUMENT_POSITION_FOLLOWING));
+  ok('home: no duplicate login button in welcome card', !(await page.$('.hero [data-login]')) && !!(await page.$('#who [data-login]')));
+  const prayerGrid = await page.locator('.prayer-grid').innerText();
+  ok('prayer: Fajr iqama +25 minutes', prayerGrid.includes('الإقامة 05:15'));
+  ok('prayer: Dhuhr iqama +20 minutes', prayerGrid.includes('الإقامة 12:30'));
+  ok('prayer: Asr iqama +20 minutes', prayerGrid.includes('الإقامة 15:55'));
+  ok('prayer: Maghrib iqama +10 minutes', prayerGrid.includes('الإقامة 18:20'));
+  ok('prayer: Isha iqama +20 minutes', prayerGrid.includes('الإقامة 20:00'));
+  ok('prayer: sunrise has no iqama', !await page.locator('.prayer-grid').locator('div').nth(1).innerText().then(t => t.includes('الإقامة')));
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
   ok('guest icons count', (await checkAllTiles('guest')) === 26);
 
-  await page.goto(BASE + '#/coffee'); await page.waitForSelector('[data-gate]');
-  ok('guest: services gated until login + terms', (await page.textContent('.page-body')).includes('للأعضاء') && !(await page.$('[data-apology]')));
+  await page.goto(BASE + '#/coffee'); await page.waitForSelector('.guest-gate');
+  ok('guest: direct service access shows welcome gate', (await page.textContent('.guest-gate')).includes('أهلًا بك في جيران حي الغدير') && !!(await page.$('[data-gate-join]')) && !!(await page.$('[data-gate]')) && !!(await page.$('[data-gate-browse]')) && !(await page.$('[data-apology]')));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms');
   ok('guest: terms page open', true);
 
@@ -177,7 +201,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
   await page.waitForSelector('[data-tab]');
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
-  for (const t of ['schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
+  for (const t of ['joinRequests', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
     await page.goto(BASE + '#/manager/' + t); await page.waitForTimeout(300);
     const bad = await page.$('.page-body .status.bad');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
@@ -206,6 +230,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-edit]', { state: 'attached' });
   ok('supervisor: no delete/swap controls', !(await page.$('[data-f=coffee-swap]')) && !(await page.$('[data-f=outing-swap]')) && !(await page.$('[data-f=coffee-edit] [value=delete]')));
   ok('supervisor: no manager-only tabs', !(await page.$('a[href="#/manager/members"]')) && !!(await page.$('a[href="#/manager/rules"]')));
+  await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
+  ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
   await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
   const sv = await lastCall('supervisor_update_coffee_assignment');
@@ -282,7 +308,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok('layout: no horizontal overflow (desktop)', !overflow);
   await page.setViewportSize({ width: 360, height: 780 });
-  for (const p of ['home', 'manager/schedules', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
+  for (const p of ['home', 'manager/schedules', 'manager/joinRequests', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
+  await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
+  ok('layout: two-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 2));
 
   await browser.close();
   const fails = results.filter(r => r[0] === 'FAIL');

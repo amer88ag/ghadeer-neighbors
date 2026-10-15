@@ -53,15 +53,14 @@ export async function weatherForecast() {
 export const weatherLabel = code => WEATHER_CODES[code] || ['🌡️', 'الطقس'];
 
 export async function renderWeather(el) {
+  const tone = temp => temp <= 5 ? 'temp-freezing' : temp <= 15 ? 'temp-cold' : temp <= 25 ? 'temp-mild' : temp <= 34 ? 'temp-warm' : 'temp-hot';
   try {
-    const j = await fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=${encodeURIComponent(TIMEZONE)}`);
-    const c = j.current, d = j.daily;
-    const [icon, text] = WEATHER_CODES[c.weather_code] || ['🌡️', 'الطقس'];
-    el.innerHTML = `<div class="widget-head"><b>${icon} الطقس الآن</b><span class="muted">${esc(LOCATION.label)}</span></div>
-      <div class="weather"><span class="temp">${Math.round(c.temperature_2m)}°</span><div><b>${text}</b><div class="muted">المحسوسة ${Math.round(c.apparent_temperature)}° · الرطوبة ${c.relative_humidity_2m}% · الرياح ${Math.round(c.wind_speed_10m)} كم/س</div>
-      ${d ? `<div class="muted">العظمى ${Math.round(d.temperature_2m_max[0])}° · الصغرى ${Math.round(d.temperature_2m_min[0])}°</div>` : ''}</div></div>`;
+    const j = await fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m&timezone=${encodeURIComponent(TIMEZONE)}`);
+    const temp = Math.round(j.current.temperature_2m);
+    el.innerHTML = `<span class="weather-quick-label">🌤️ الطقس الآن</span><span class="weather-quick-temp ${tone(temp)}" data-weather-temp>${temp}°</span><span class="weather-quick-hint">اضغط للاطلاع على التفاصيل</span>`;
+    el.setAttribute('aria-label', `درجة الحرارة ${temp}، اضغط لعرض تفاصيل الطقس`);
   } catch {
-    el.innerHTML = `<div class="widget-head"><b>🌤️ الطقس</b></div><p class="muted">تعذر جلب الطقس الآن.</p>`;
+    el.innerHTML = `<span class="weather-quick-label">🌤️ الطقس</span><span class="weather-quick-temp">—°</span><span class="weather-quick-hint">اضغط للمحاولة مجددًا</span>`;
   }
 }
 

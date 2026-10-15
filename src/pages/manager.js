@@ -8,6 +8,7 @@ import { GROUPS } from './home.js';
 import { refresh } from '../lib/router.js';
 
 const TABS = [
+  ['joinRequests', '📨 طلبات الانضمام الجديدة', 'any'],
   ['services', '🧩 الخدمات', 'manager'],
   ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
@@ -55,7 +56,7 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ services, schedules, plans, occasions, messages, members, joinRequests, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- الجداول ---------------- */
@@ -351,4 +352,50 @@ async function reports(el) {
       if (r.ok) { data.invalidate(); await loadMembers(); }
     } catch (err) { toast('تعذر قراءة الملف: ' + err.message, false); }
   };
+}
+
+
+/* ---------------- طلبات الانضمام ---------------- */
+async function joinRequests(el, again) {
+  const r = state.manager
+    ? await call('manager_list_ghadeer_join_requests', M())
+    : await call('supervisor_list_ghadeer_join_requests', { p_member_id: state.user?.id, p_pin: state.pin });
+  if (!r.ok) {
+    el.innerHTML = `<div class="card"><h3>📨 طلبات الانضمام الجديدة</h3><p class="muted">تعذر تحميل الطلبات. إذا لم تُطبّق ترحيلات قاعدة البيانات بعد، فستحتاج إلى تطبيق ترحيل طلبات الانضمام أولًا.</p><p class="status bad">${esc(r.message || 'تعذر الاتصال')}</p><button class="btn secondary" data-reload>إعادة المحاولة</button></div>`;
+    el.querySelector('[data-reload]').onclick = again;
+    return;
+  }
+  const rows = Array.isArray(r.data) ? r.data : Array.isArray(r.data?.requests) ? r.data.requests : [];
+  el.innerHTML = `<div class="card"><h3>📨 طلبات الانضمام</h3><p class="muted">راجع البيانات، وأضف العضو من قسم «الأعضاء والأرقام» بعد التحقق منه، ثم أغلق الطلب باعتباره تمت معالجته. لا تُضاف العضوية تلقائيًا.</p></div>
+    ${rows.length ? rows.map(x => `<article class="card join-request-card">
+      <div class="row-between"><h3>${esc(x.full_name)}</h3><span class="pill">${esc(fmtDateTime(x.created_at))}</span></div>
+      <p><b>الجوال:</b> <a href="tel:${esc(x.phone)}" dir="ltr">${esc(x.phone)}</a></p>
+      <p><b>العنوان:</b> ${esc(x.address)}</p>
+      ${x.occupation ? `<p><b>العمل:</b> ${esc(x.occupation)}</p>` : ''}
+      ${x.note ? `<p><b>رسالة للمدير:</b> ${esc(x.note)}</p>` : ''}
+      <p class="muted small">وافق على إصدار الشروط ${esc(x.terms_version)} بتاريخ ${esc(fmtDateTime(x.terms_accepted_at))}</p>
+      <div class="actions"><button class="btn primary" data-process="${esc(x.id)}">تمت الإضافة للعضوية</button><button class="btn danger" data-decline="${esc(x.id)}">رفض الطلب</button></div>
+    </article>`).join('') : '<div class="card center"><p class="tile-icon">🌿</p><h3>لا توجد طلبات معلّقة</h3><p class="muted">ستظهر هنا طلبات الانضمام الجديدة.</p></div>'}`;
+  el.querySelectorAll('[data-process]').forEach(btn => btn.onclick = async () => {
+    if (!await confirmBox('تأكد أنك أضفت هذا الشخص إلى قائمة الأعضاء قبل إغلاق الطلب باعتباره تمت معالجته.', { okText: 'نعم، تمت الإضافة', danger: false })) return;
+    await busy(btn, async () => {
+      const out = state.manager
+        ? await call('manager_close_ghadeer_join_request', { ...M(), p_request_id: Number(btn.dataset.process), p_status: 'processed' })
+        : await call('supervisor_close_ghadeer_join_request', { p_member_id: state.user?.id, p_pin: state.pin, p_request_id: Number(btn.dataset.process), p_status: 'processed' });
+      if (!out.ok || out.data?.success !== true) return toast(out.message || out.data?.message || 'تعذر تحديث الطلب.', false);
+      toast(out.data?.message || 'تم إغلاق الطلب.');
+      await again();
+    });
+  });
+  el.querySelectorAll('[data-decline]').forEach(btn => btn.onclick = async () => {
+    if (!await confirmBox('هل تريد رفض طلب الانضمام وإغلاقه؟', { okText: 'رفض الطلب' })) return;
+    await busy(btn, async () => {
+      const out = state.manager
+        ? await call('manager_close_ghadeer_join_request', { ...M(), p_request_id: Number(btn.dataset.decline), p_status: 'declined' })
+        : await call('supervisor_close_ghadeer_join_request', { p_member_id: state.user?.id, p_pin: state.pin, p_request_id: Number(btn.dataset.decline), p_status: 'declined' });
+      if (!out.ok || out.data?.success !== true) return toast(out.message || out.data?.message || 'تعذر تحديث الطلب.', false);
+      toast(out.data?.message || 'تم رفض الطلب.');
+      await again();
+    });
+  });
 }

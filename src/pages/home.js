@@ -1,6 +1,7 @@
 import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
 import { state, memberName, activeMembers, showLogin, canManage } from '../lib/session.js';
 import * as data from '../lib/data.js';
+import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
 
@@ -67,10 +68,13 @@ export async function render(el) {
   let hadithIndex = day % HADITH.length;
   el.innerHTML = `
     <div class="dhikr" aria-live="polite"><b>🤲</b><span data-dhikr>${esc(DHIKR[Math.floor(Date.now() / 60000) % DHIKR.length])}</span></div>
+        <section class="card hadith"><div class="widget-head"><b>🌿 لوحة التذكير</b><span class="pill" data-h-topic></span></div>
+      <p class="hadith-text" data-h-text></p><div class="hadith-foot"><a target="_blank" rel="noopener" data-h-src></a>
+      <span><button class="icon-btn" data-h="-1" aria-label="السابق">›</button><button class="icon-btn" data-h="1" aria-label="التالي">‹</button></span></div></section>
     <section class="hero">
       <div><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2>
-      <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'أنت تشاهد الواجهة كزائر. لاستخدام الخدمات سجّل دخولك ووافق على الأنظمة والشروط.'}</p></div>
-      ${state.user ? '' : '<button class="btn primary" data-login>🔐 دخول الأعضاء</button>'}
+      <p class="muted">${state.user ? 'كل خدمات الحي في مكان واحد.' : 'تصفّح خدمات الحي وتعرّف على مجتمع يجمع الجيران على الألفة والتعاون والمساندة.'}</p></div>
+      ${state.user ? '' : '<div class="hero-actions"><button class="btn primary" data-join>🌟 انضم إلى الجيران</button></div>'}
     </section>
     <section class="card upcoming" aria-label="القادم">
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-k">القهوة</span><span class="up-v" data-next-coffee>…</span></a>
@@ -80,14 +84,20 @@ export async function render(el) {
     ${GROUPS.map(([g, items]) => { const vis = arrange(items, svc); if (!vis.length) return ''; return `<h3 class="group-title">${g}</h3><nav class="tiles" aria-label="${g}">${vis.map(([id, i, t, d, acc]) => `<a class="tile${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}"><span class="tile-icon">${i}</span><b>${t}</b><small>${d}</small>${svc[id]?.enabled === false ? '<span class="lock" title="موقوفة">⏸️</span>' : !OPEN.has(id) && !state.manager && !(state.user && state.termsOk) ? '<span class="lock" title="للأعضاء">🔒</span>' : ''}</a>`).join('')}</nav>`; }).join('')}
     <div class="grid2">
       <section class="card widget" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
-      <section class="card widget" data-weather><p class="muted">جارٍ تحميل الطقس…</p></section>
+      <button type="button" class="card widget weather-quick" data-weather aria-label="افتح تفاصيل الطقس"><span class="weather-quick-label">الطقس</span><span class="weather-quick-temp" data-weather-temp>…°</span><span class="weather-quick-hint">اضغط للتفاصيل</span></button>
     </div>
-    <section class="card hadith"><div class="widget-head"><b>🌿 لوحة التذكير</b><span class="pill" data-h-topic></span></div>
-      <p class="hadith-text" data-h-text></p><div class="hadith-foot"><a target="_blank" rel="noopener" data-h-src></a>
-      <span><button class="icon-btn" data-h="-1" aria-label="السابق">›</button><button class="icon-btn" data-h="1" aria-label="التالي">‹</button></span></div></section>
+
     <p class="muted center">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
   $('[data-login]', el)?.addEventListener('click', () => showLogin());
+  $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
+  el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
+    if (state.user && state.termsOk || state.manager) return;
+    const id = tile.dataset.tile || '';
+    if (['account', 'terms', 'about', 'install'].includes(id)) return;
+    event.preventDefault();
+    showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
+  }));
 
   const showHadith = () => {
     const h = HADITH[hadithIndex];
@@ -113,6 +123,7 @@ export async function render(el) {
   };
   loadPrayer();
   renderWeather($('[data-weather]', el));
+  $('[data-weather]', el)?.addEventListener('click', () => { location.hash = '#/weather'; });
 
   const [coffee, outings, ann] = await Promise.all([data.coffee(), data.outings(), data.announcements()]);
   const today = todayISO();
