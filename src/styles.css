@@ -336,3 +336,18 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
   #main .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   #main .tile { min-height: 112px; }
 }
+
+
+/* منع تكبير الصفحة باللمس المزدوج أو بإيماءات التكبير على الأجهزة اللمسية */
+html {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+  overscroll-behavior-x: none;
+}
+body {
+  touch-action: pan-x pan-y;
+  -ms-touch-action: pan-x pan-y;
+}
+button, a, [role="button"], .tile, .bottom-nav {
+  touch-action: manipulation;
+}
