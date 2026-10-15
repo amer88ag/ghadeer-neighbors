@@ -56,7 +56,7 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ developer, services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- مركز المطور ---------------- */
