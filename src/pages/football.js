@@ -26,13 +26,13 @@ const dateLabel = value => {
 const getJSON = async url => {
   const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
   if (!response.ok) throw new Error('تعذر جلب البيانات الرياضية (' + response.status + ')');
-  return response.json();
+  try { return await response.json(); } catch { throw new Error('رد مزود البيانات ليس بصيغة JSON صالحة.'); }
 };
 function standingsEntries(data) {
   const out = [];
   const walk = node => {
     if (!node || typeof node !== 'object') return;
-    const entries = node.standings?.entries || node.entries;
+    const entries = node.standings?.entries || node.entries || node.standings?.groups?.[0]?.entries;
     if (Array.isArray(entries)) out.push(...entries);
     for (const child of node.children || []) walk(child);
   };
@@ -109,7 +109,7 @@ export async function render(el) {
         getJSON(STANDINGS_URL), getJSON(`${SCOREBOARD_URL}?dates=${localDateKey(now)}-${localDateKey(end)}&limit=200`)
       ]);
       const teams = standingsEntries(standings), matches = matchesFrom(scoreboard);
-      if (!teams.length) throw new Error('وصل رد البيانات لكن جدول الفرق فارغ.');
+      if (!teams.length) throw new Error('اتصلنا بمزود البيانات، لكن لم نجد جدول ترتيب صالحًا.');
       cached = { teams, matches, updatedAt: Date.now(), stale: false };
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(cached)); } catch {}
       draw();
@@ -119,7 +119,7 @@ export async function render(el) {
         cached = { ...fallback, stale: true }; draw();
         status.textContent = 'تعذر التحديث؛ نسخة محفوظة من ' + new Intl.DateTimeFormat('ar-SA', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(fallback.updatedAt));
       } else {
-        tableEl.innerHTML = `<div class="card roshn-empty"><h3>تعذر تحميل الترتيب</h3><p>${esc(err.message || 'تحقق من الاتصال ثم أعد المحاولة.')}</p><button class="btn primary" type="button" data-retry>إعادة المحاولة</button></div>`;
+        tableEl.innerHTML = `<div class="card roshn-empty"><h3>تعذر تحميل الترتيب</h3><p>${esc(err.message || 'تحقق من الاتصال ثم أعد المحاولة.')}</p><p class="muted small">قد يكون مزود البيانات غير متاح أو يمنع الاتصال المباشر من المتصفح.</p><button class="btn primary" type="button" data-retry>إعادة المحاولة</button></div>`;
         tableEl.querySelector('[data-retry]')?.addEventListener('click', () => load(true)); status.textContent = 'لم يتم جلب بيانات حديثة.';
       }
     } finally { refreshBusy = false; btn.disabled = false; btn.textContent = '↻ تحديث البيانات'; }
