@@ -179,7 +179,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
   for (const t of ['schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
     await page.goto(BASE + '#/manager/' + t); await page.waitForTimeout(300);
-    const bad = await page.$('.page-body .status.bad');
+    // The schedule page may show a non-blocking date-rule warning; it must not fail the page-render test.
+    const bad = await page.$('.page-body .status.bad:not([data-outing-warning])');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
   }
   ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
