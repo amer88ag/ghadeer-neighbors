@@ -272,3 +272,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 @media (min-width: 720px) {
   .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+
+/* تحسين الصفحة الرئيسية وفق المراجعة البصرية */
+.hadith { margin: 0 0 14px; }
+.weather-quick { width: 100%; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--txt); text-align: center; }
+.weather-quick:active { transform: scale(.99); }
+.weather-quick-label { color: var(--muted); font-weight: 700; font-size: 14px; }
+.weather-quick-temp { display: block; font-size: clamp(32px, 9vw, 48px); line-height: 1.15; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--g); }
+.weather-quick-temp.temp-freezing { color: #2563eb; }
+.weather-quick-temp.temp-cold { color: #0891b2; }
+.weather-quick-temp.temp-mild { color: #16834a; }
+.weather-quick-temp.temp-warm { color: #d97706; }
+.weather-quick-temp.temp-hot { color: #dc2626; }
+.weather-quick-hint { color: var(--muted); font-size: 11px; }
+@media (max-width: 560px) {
+  .grid2:has(.weather-quick) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .weather-quick { min-height: 110px; padding: 10px 6px; }
+  .weather-quick-temp { font-size: 38px; }
+}
