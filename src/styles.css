@@ -291,3 +291,48 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
   .weather-quick { min-height: 110px; padding: 10px 6px; }
   .weather-quick-temp { font-size: 38px; }
 }
+
+
+/* واجهة رئيسية موحدة ومضغوطة: مقاسات ثابتة للأيقونات والبطاقات */
+:root { --home-icon-size: 32px; --home-tile-gap: 4px; }
+#main.wrap { width: min(100%, 1180px); margin-inline: auto; }
+#main .dhikr { padding: 9px 12px; margin-bottom: 10px; font-size: 14px; }
+#main .hadith { padding: 12px 14px; margin-bottom: 10px; }
+#main .hadith .hadith-text { margin: 8px 0; font-size: clamp(14px, 2.3vw, 18px); line-height: 1.65; }
+#main .hadith .hadith-foot { gap: 8px; }
+#main .hero { padding: 14px 16px; margin-bottom: 10px; gap: 10px; }
+#main .hero h2 { font-size: clamp(19px, 3.2vw, 26px); margin: 0 0 5px; }
+#main .hero p { font-size: 13px; line-height: 1.6; margin: 0; }
+#main .hero-actions .btn { min-height: 38px; padding: 8px 12px; font-size: 13px; }
+#main .upcoming { padding: 8px 12px; margin-bottom: 12px; }
+#main .group-title { margin: 12px 0 7px; font-size: clamp(16px, 2.5vw, 20px); }
+#main .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#main .tile { min-height: 104px; padding: 9px 5px; gap: var(--home-tile-gap); border-radius: 15px; }
+#main .tile .tile-icon { font-size: var(--home-icon-size); line-height: 1.15; margin: 0 0 3px; }
+#main .tile .lock { font-size: 12px; top: 5px; inset-inline-start: 5px; }
+#main .tile b { font-size: clamp(12px, 1.8vw, 15px); line-height: 1.35; }
+#main .tile small { font-size: clamp(10px, 1.5vw, 12px); line-height: 1.3; }
+#main .grid2 { gap: 10px; margin-top: 12px; }
+#main .widget { padding: 12px; }
+#main .weather-quick { min-height: 94px; }
+#main .weather-quick-temp { font-size: 34px; }
+#main .prayer-grid > div { min-height: 66px; padding: 6px 3px; }
+#main .prayer-grid > div b { font-size: 16px; }
+#main .prayer-grid > div small { font-size: 11px; }
+#main .card { border-radius: 17px; }
+#main .tile-icon { flex: 0 0 auto; }
+@media (max-width: 380px) {
+  :root { --home-icon-size: 27px; }
+  #main.wrap { padding-inline: 8px; }
+  #main .tiles { gap: 6px; }
+  #main .tile { min-height: 94px; padding: 7px 3px; }
+  #main .tile b { font-size: 11px; }
+  #main .tile small { font-size: 9px; }
+  #main .hadith { padding: 10px; }
+  #main .grid2 { gap: 7px; }
+}
+@media (min-width: 700px) {
+  :root { --home-icon-size: 30px; }
+  #main .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  #main .tile { min-height: 112px; }
+}
