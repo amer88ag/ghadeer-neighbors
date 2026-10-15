@@ -8,13 +8,13 @@ import { GROUPS } from './home.js';
 import { refresh } from '../lib/router.js';
 
 const TABS = [
+  ['joinRequests', '📨 طلبات الانضمام الجديدة', 'any'],
   ['services', '🧩 الخدمات', 'manager'],
   ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
   ['occasions', '🎉 المناسبات', 'any'],
   ['messages', '💬 الرسائل والتنبيهات', 'manager'],
   ['members', '👥 الأعضاء والأرقام', 'manager'],
-  ['joinRequests', '📨 طلبات الانضمام', 'any'],
   ['permissions', '🛡️ المشرفون', 'manager'],
   ['rules', '⚙️ القواعد', 'any'],
   ['content', '🗂️ المحتوى', 'manager'],
