@@ -48,6 +48,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   // 1) Guest home
   await page.goto(BASE);
   await page.waitForSelector('.tiles');
+  const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
+  ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
+  ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
   ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
