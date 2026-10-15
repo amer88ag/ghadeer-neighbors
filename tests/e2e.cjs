@@ -57,6 +57,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
   await page.waitForSelector('.prayer-grid'); await page.waitForSelector('.weather');
   ok('home: prayer + weather', true);
+  const prayerGrid = await page.locator('.prayer-grid').innerText();
+  ok('prayer: Fajr iqama +25 minutes', prayerGrid.includes('الإقامة 05:15'));
+  ok('prayer: Dhuhr iqama +20 minutes', prayerGrid.includes('الإقامة 12:30'));
+  ok('prayer: Asr iqama +20 minutes', prayerGrid.includes('الإقامة 15:55'));
+  ok('prayer: Maghrib iqama +10 minutes', prayerGrid.includes('الإقامة 18:20'));
+  ok('prayer: Isha iqama +20 minutes', prayerGrid.includes('الإقامة 20:00'));
+  ok('prayer: sunrise has no iqama', !await page.locator('.prayer-grid').locator('div').nth(1).innerText().then(t => t.includes('الإقامة')));
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
@@ -186,7 +193,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
   await page.waitForSelector('[data-tab]');
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
-  for (const t of ['schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
+  for (const t of ['joinRequests', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
     await page.goto(BASE + '#/manager/' + t); await page.waitForTimeout(300);
     const bad = await page.$('.page-body .status.bad');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
@@ -215,6 +222,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-edit]', { state: 'attached' });
   ok('supervisor: no delete/swap controls', !(await page.$('[data-f=coffee-swap]')) && !(await page.$('[data-f=outing-swap]')) && !(await page.$('[data-f=coffee-edit] [value=delete]')));
   ok('supervisor: no manager-only tabs', !(await page.$('a[href="#/manager/members"]')) && !!(await page.$('a[href="#/manager/rules"]')));
+  await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
+  ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
   await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
   const sv = await lastCall('supervisor_update_coffee_assignment');
@@ -291,7 +300,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
   ok('layout: no horizontal overflow (desktop)', !overflow);
   await page.setViewportSize({ width: 360, height: 780 });
-  for (const p of ['home', 'manager/schedules', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
+  for (const p of ['home', 'manager/schedules', 'manager/joinRequests', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
+  await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
+  ok('layout: two-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 2));
 
   await browser.close();
   const fails = results.filter(r => r[0] === 'FAIL');
