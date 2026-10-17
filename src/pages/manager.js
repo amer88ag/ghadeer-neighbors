@@ -254,7 +254,7 @@ async function members(el, again) {
 
 /* ---------------- المشرفون ---------------- */
 const PERMS = [['coffee', 'إدارة القهوة'], ['outings', 'إدارة الطلعات'], ['dates', 'تقديم وتأخير المواعيد'], ['members', 'إدارة الأعضاء والأرقام'], ['rules', 'إدارة القواعد'], ['messages', 'إرسال رسائل المجموعة'], ['lottery', 'القرعة والجدول العشوائي'], ['apologies', 'إدارة الاعتذارات']];
-const PERM_COL = { coffee: 'can_manage_coffee', outings: 'can_manage_outings', dates: 'can_manage_dates', members: 'can_manage_members', rules: 'can_manage_rules', messages: 'can_send_messages', lottery: 'can_manage_lottery', apologies: 'can_manage_apologies' };
+const PERM_COL = { coffee: 'can_manage_coffee', outings: 'can_manage_outings', dates: 'can_manage_dates', members: 'can_manage_members', rules: 'can_manage_rules', messages: 'can_send_group_messages', lottery: 'can_manage_lottery', apologies: 'can_manage_apologies' };
 
 async function permissions(el, again) {
   const p = await table('member_permissions', { order: 'member_id' });
