@@ -28,7 +28,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     for (const id of ids) {
       await page.goto(BASE + '#/home'); await page.waitForSelector(`[data-tile="${id}"]`);
       await page.click(`[data-tile="${id}"]`);
-      await page.waitForFunction(() => !document.querySelector('.page-body .skeleton'), null, { timeout: 8000 }).catch(() => {});
+      await page.waitForFunction(pid => { const b = document.querySelector('.page-body'); return b && b.dataset.page === pid && !b.querySelector('.skeleton'); }, id.split('/')[0], { timeout: 8000 }).catch(() => {});
       const bad = await page.$('.page-body .status.bad:not([data-outing-warning])');
       const hash = await page.evaluate(() => location.hash);
       ok(`icon [${role}] ${id}`, hash === '#/' + id && !bad && !(await page.$('.page-body .skeleton')), bad ? await bad.textContent() : hash);
