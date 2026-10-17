@@ -239,6 +239,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.selectOption('[data-f=perm] [name=member]', '3'); await page.check('[data-f=perm] [name=messages]'); await page.click('[data-f=perm] .btn'); await page.waitForTimeout(400);
   const pp = await lastCall('manager_set_member_permissions');
   ok('dev: add second supervisor with chosen permissions', pp && pp.args.p_member_id === 3 && pp.args.p_can_send_group_messages === true && pp.args.p_can_manage_coffee === false);
+  ok('dev: permission args match live signature', pp && Object.keys(pp.args).sort().join() === ['p_manager_pin','p_member_id','p_can_manage_coffee','p_can_manage_outings','p_can_manage_dates','p_can_manage_members','p_can_manage_rules','p_can_send_group_messages','p_can_manage_lottery','p_can_manage_apologies'].sort().join(), JSON.stringify(pp && Object.keys(pp.args)));
   // guest sees paused service as hidden + blocked
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');

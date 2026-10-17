@@ -8,6 +8,7 @@ import { GROUPS } from './home.js';
 import { refresh } from '../lib/router.js';
 
 const TABS = [
+  ['developer', '🧰 مركز المطور', 'manager'],
   ['services', '🧩 الخدمات', 'manager'],
   ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
@@ -55,7 +56,44 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ developer, services, schedules, plans, occasions, messages, members, permissions, rules, content, communities, checks, reports })[tab](box, again);
+}
+
+/* ---------------- مركز المطور ---------------- */
+async function developer(el, again) {
+  const [stats, servicesResult, communitiesResult] = await Promise.all([
+    call('manager_activity_stats', { ...M(), p_limit: 100 }),
+    list('get_service_settings'),
+    list('manager_list_communities', M())
+  ]);
+  const status = r => r.ok ? '<span class="pill">✅ متاح</span>' : '<span class="pill danger">⚠️ يحتاج فحص</span>';
+  const communityPending = communitiesResult.ok ? communitiesResult.data.filter(x => x.status === 'pending').length : null;
+  const serviceCount = servicesResult.ok ? servicesResult.data.length : null;
+  el.innerHTML = `
+    <section class="card"><h3>🧰 مركز المطور</h3>
+      <p class="muted">لوحة تشخيص وروابط إدارة. لا تُجري هذه الصفحة أي نشر أو تغييرات تلقائية في قاعدة البيانات.</p>
+      <div class="list">
+        <div class="row-item"><div class="row-main"><b>اتصال الإحصاءات</b><small>فحص صلاحية لوحة التقارير</small></div>${status(stats)}</div>
+        <div class="row-item"><div class="row-main"><b>إعدادات الخدمات</b><small>${serviceCount === null ? 'تعذر قراءة الخدمات' : serviceCount + ' إعداد خدمة'}</small></div>${status(servicesResult)}</div>
+        <div class="row-item"><div class="row-main"><b>طلبات المجتمعات</b><small>${communityPending === null ? 'تعذر قراءة الطلبات أو لم تُفعّل قاعدة البيانات' : communityPending + ' طلب قيد المراجعة'}</small></div>${status(communitiesResult)}</div>
+      </div>
+      ${[stats, servicesResult, communitiesResult].some(x => !x.ok) ? '<p class="status bad">بعض وظائف الإدارة غير متاحة. راجع رسالة الخطأ قبل اعتماد أي تغيير.</p>' : ''}
+      <button class="btn secondary block" data-dev-refresh>🔄 إعادة الفحص</button>
+    </section>
+    <section class="card"><h3>⚡ اختصارات المطور</h3>
+      <div class="grid2">
+        <a class="btn secondary block" href="#/manager/services">🧩 الخدمات</a>
+        <a class="btn secondary block" href="#/manager/permissions">🛡️ صلاحيات المشرفين</a>
+        <a class="btn secondary block" href="#/manager/communities">🏘️ مراجعة المجتمعات</a>
+        <a class="btn secondary block" href="#/manager/reports">📊 التقارير والنسخ</a>
+        <a class="btn secondary block" href="#/manager/members">👥 الأعضاء</a>
+        <a class="btn secondary block" href="#/manager/rules">⚙️ القواعد</a>
+      </div>
+    </section>
+    ${!stats.ok ? '<section class="card"><h3>تفاصيل فحص الإحصاءات</h3><p class="status bad">' + esc(stats.message) + '</p></section>' : ''}
+    ${!servicesResult.ok ? '<section class="card"><h3>تفاصيل فحص الخدمات</h3><p class="status bad">' + esc(servicesResult.message) + '</p></section>' : ''}
+    ${!communitiesResult.ok ? '<section class="card"><h3>تفاصيل فحص المجتمعات</h3><p class="status bad">' + esc(communitiesResult.message) + '</p></section>' : ''}`;
+  $('[data-dev-refresh]', el).onclick = () => { data.invalidate(); developer(el, again); };
 }
 
 /* ---------------- الجداول ---------------- */
