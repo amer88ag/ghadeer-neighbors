@@ -350,4 +350,50 @@ body {
 }
 button, a, [role="button"], .tile, .bottom-nav {
   touch-action: manipulation;
+/* لوحة دوري روشن داخل التطبيق */
+.roshn-hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;margin:12px 0;background:linear-gradient(135deg,#123c31,#1e6950);color:#fff;border-radius:18px}
+.roshn-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.roshn-ball{display:grid;place-items:center;flex:0 0 52px;width:52px;height:52px;border-radius:16px;background:#ffffff20;font-size:30px}
+.roshn-brand .eyebrow{font-size:12px;opacity:.8}
+.roshn-brand h2{margin:3px 0;font-size:22px}
+.roshn-brand p{margin:0;font-size:13px;opacity:.85}
+.roshn-hero .btn{white-space:nowrap}
+.roshn-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:0 3px 12px;color:var(--muted,#68756e);font-size:12px}
+.roshn-tabs{display:flex;gap:6px;margin:8px 0 14px}
+.roshn-tabs button{border:0;background:transparent;padding:10px 14px;border-radius:10px;color:inherit;font:inherit;cursor:pointer}
+.roshn-tabs button.active{background:var(--primary,#176b50);color:#fff}
+.roshn-table-wrap{width:100%;overflow-x:auto;border:1px solid var(--line,#e2e8e4);border-radius:14px;background:var(--card,#fff)}
+.roshn-table{border-collapse:collapse;width:100%;min-width:650px;font-size:13px;text-align:center}
+.roshn-table th{background:var(--surface,#f4f7f5);font-weight:700;white-space:nowrap}
+.roshn-table th,.roshn-table td{padding:10px 8px;border-bottom:1px solid var(--line,#e6ebe8)}
+.roshn-table tbody tr:last-child td{border-bottom:0}
+.roshn-table tbody tr.selected{background:#eaf5ef}
+.roshn-team{display:flex;align-items:center;gap:8px;min-width:150px;border:0;background:transparent;text-align:right;font:inherit;font-weight:650;cursor:pointer;color:inherit}
+.roshn-team img,.roshn-side img{width:26px;height:26px;object-fit:contain;flex:0 0 auto}
+.roshn-placeholder{display:inline-grid;place-items:center;width:26px;height:26px;flex:0 0 26px}
+.roshn-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}
+.roshn-section-head h3{margin:0 0 4px}
+.roshn-section-head p{margin:0;font-size:12px}
+.roshn-fixtures{display:grid;gap:9px}
+.roshn-match{display:grid;grid-template-columns:minmax(95px,1.1fr) minmax(0,1fr) 54px minmax(0,1fr);align-items:center;gap:8px;padding:12px;border:1px solid var(--line,#e2e8e4);border-radius:14px;background:var(--card,#fff)}
+.roshn-match-date{font-size:12px;color:var(--muted,#68756e);line-height:1.6}
+.roshn-match-date small{display:block}
+.roshn-side{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;font-size:12px;font-weight:650;text-align:center}
+.roshn-side span:last-child{overflow-wrap:anywhere}
+.roshn-score,.roshn-vs{font-size:14px;text-align:center;white-space:nowrap}
+.roshn-vs{color:var(--muted,#68756e);font-size:11px}
+.roshn-empty,.roshn-loading{padding:22px;text-align:center}
+.roshn-loading .roshn-ball{margin:0 auto 10px}
+.roshn-empty h3{margin-top:0}
+.roshn-note{margin-top:14px;font-size:12px}
+@media(max-width:560px){
+ .roshn-hero{align-items:flex-start;flex-direction:column;padding:14px}
+ .roshn-brand h2{font-size:19px}
+ .roshn-hero .btn{width:100%}
+ .roshn-match{grid-template-columns:1fr 44px 1fr;gap:7px;padding:10px}
+ .roshn-match-date{grid-column:1/-1;text-align:center}
+ .roshn-side{flex-direction:column;gap:4px}
+ .roshn-side img{width:24px;height:24px}
+ .roshn-table{font-size:12px}
+ .roshn-table th,.roshn-table td{padding:9px 6px}
 }

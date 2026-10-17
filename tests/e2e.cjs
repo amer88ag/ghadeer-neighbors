@@ -13,6 +13,18 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await ctx.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: mock }));
   await ctx.route('https://api.aladhan.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: { timings: { Fajr: '04:50', Sunrise: '06:05', Dhuhr: '12:10', Asr: '15:35', Maghrib: '18:10', Isha: '19:40' }, date: { hijri: { day: '29', month: { ar: 'ربيع الآخر' }, year: '1448' } } } }) }));
   await ctx.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 21.4, relative_humidity_2m: 40, apparent_temperature: 20.9, weather_code: 1, wind_speed_10m: 12 }, daily: { time: ['2026-10-11','2026-10-12','2026-10-13'], weather_code: [1,3,61], precipitation_probability_max: [0,10,60], temperature_2m_max: [26,25,22], temperature_2m_min: [14,13,12] } }) }));
+  const espnTeam = (id, name) => ({ id: String(id), displayName: name, abbreviation: name.slice(0, 3) });
+  await ctx.route('https://site.api.espn.com/apis/v2/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ children: [{ standings: { entries: [
+    { team: espnTeam(101, 'النصر'), stats: [{ name: 'rank', value: 1 }, { name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 6 }, { name: 'ties', value: 1 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 18 }, { name: 'pointsAgainst', value: 5 }, { name: 'pointDifferential', value: 13 }, { name: 'points', value: 19 }] },
+    { team: espnTeam(102, 'الهلال'), stats: [{ name: 'rank', value: 2 }, { name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 5 }, { name: 'ties', value: 2 }, { name: 'losses', value: 0 }, { name: 'points', value: 17 }] }] } }] }) }));
+  await ctx.route('https://site.api.espn.com/apis/site/v2/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ events: [
+    { id: 'e1', date: new Date(Date.now() + 3 * 864e5).toISOString(), name: 'النصر ضد الهلال', status: { type: { completed: false, shortDetail: 'قادمة' } },
+      competitions: [{ competitors: [{ homeAway: 'home', team: espnTeam(101, 'النصر') }, { homeAway: 'away', team: espnTeam(102, 'الهلال') }] }] }] }) }));
+  await ctx.route('**/apis/v2/sports/soccer/ksa.1/standings**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ children: [{ standings: { entries: [
+    { rank: 1, team: { id: '101', displayName: 'النصر', abbreviation: 'NAS' }, stats: [{ name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 6 }, { name: 'ties', value: 1 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 18 }, { name: 'pointsAgainst', value: 4 }, { name: 'pointDifferential', value: 14 }, { name: 'points', value: 19 }] },
+    { rank: 2, team: { id: '102', displayName: 'الهلال', abbreviation: 'HIL' }, stats: [{ name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 5 }, { name: 'ties', value: 2 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 15 }, { name: 'pointsAgainst', value: 5 }, { name: 'pointDifferential', value: 10 }, { name: 'points', value: 17 }] }
+  ] } }] }) }));
+  await ctx.route('**/apis/site/v2/sports/soccer/ksa.1/scoreboard**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ events: [{ id: 'match-1', date: '2026-10-20T17:00:00Z', name: 'Al Nassr vs Al Hilal', status: { type: { completed: false, shortDetail: 'قادمة' } }, competitions: [{ competitors: [ { homeAway: 'home', team: { id: '101', displayName: 'النصر' } }, { homeAway: 'away', team: { id: '102', displayName: 'الهلال' } } ] }] }] }) }));
   const page = await ctx.newPage();
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
@@ -76,6 +88,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
   ok('guest icons count', (await checkAllTiles('guest')) === 26);
+  await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
+  ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
   await page.goto(BASE + '#/coffee'); await page.waitForSelector('.guest-gate');
   ok('guest: direct service access shows welcome gate', (await page.textContent('.guest-gate')).includes('أهلًا بك في جيران حي الغدير') && !!(await page.$('[data-gate-join]')) && !!(await page.$('[data-gate]')) && !!(await page.$('[data-gate-browse]')) && !(await page.$('[data-apology]')));
@@ -103,6 +117,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
   ok('member icons count', (await checkAllTiles('member')) === 26);
+  await page.goto(BASE + '#/links/sports'); await page.waitForSelector('.roshn-table');
+  ok('football: Roshn standings render in app', (await page.textContent('.roshn-table')).includes('النصر') && (await page.textContent('.roshn-table')).includes('19'));
+  await page.click('[data-team="101"]'); await page.waitForSelector('.roshn-match');
+  ok('football: selecting a team shows upcoming fixture', (await page.textContent('.roshn-fixtures')).includes('الهلال') && (await page.textContent('.roshn-section-head')).includes('النصر'));
+
   await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
   ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));
   await page.click('[data-add]'); await page.selectOption('.modal [name=mode]', 'معثور عليه'); await page.fill('.modal [name=title]', 'محفظة'); await page.click('.modal [data-post] .btn');
