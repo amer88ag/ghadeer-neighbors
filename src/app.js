@@ -92,6 +92,10 @@ document.getElementById('refreshBtn').addEventListener('click', async e => {
   toast('تم التحديث.');
 });
 
+// منع تكبير الواجهة بالإصبعين (Safari في iPhone يتجاهل user-scalable=no).
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
 window.addEventListener('unhandledrejection', e => { console.error(e.reason); });
 
 (async function boot() {

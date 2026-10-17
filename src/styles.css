@@ -350,6 +350,8 @@ body {
 }
 button, a, [role="button"], .tile, .bottom-nav {
   touch-action: manipulation;
+}
+
 /* لوحة دوري روشن داخل التطبيق */
 .roshn-hero{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;margin:12px 0;background:linear-gradient(135deg,#123c31,#1e6950);color:#fff;border-radius:18px}
 .roshn-brand{display:flex;align-items:center;gap:12px;min-width:0}
@@ -397,3 +399,70 @@ button, a, [role="button"], .tile, .bottom-nav {
  .roshn-table{font-size:12px}
  .roshn-table th,.roshn-table td{padding:9px 6px}
 }
+
+/* ================= الرئيسية في صفحة واحدة (الإصدار 3) ================= */
+#main .page-head:has(+ .page-body[data-page="home"]) { display: none; }
+#main .page-body[data-page="home"] { display: grid; gap: 8px; }
+#main .page-body[data-page="home"] > * { margin: 0; }
+
+/* شريط متحرك: أخبار الحي والذكر والأحاديث */
+.ticker { overflow: hidden; background: var(--g2); color: #fff; border-radius: 12px; height: 34px; display: flex; align-items: center; position: relative; }
+.ticker::before, .ticker::after { content: ''; position: absolute; inset-block: 0; width: 18px; z-index: 1; pointer-events: none; }
+.ticker::before { right: 0; background: linear-gradient(to left, var(--g2), transparent); }
+.ticker::after { left: 0; background: linear-gradient(to right, var(--g2), transparent); }
+.ticker-track { display: inline-flex; width: max-content; white-space: nowrap; animation: ticker-rtl 60s linear infinite; will-change: transform; }
+.ticker:hover .ticker-track, .ticker:active .ticker-track { animation-play-state: paused; }
+.tk-run { display: inline-flex; align-items: center; }
+.tk-item { color: #fff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 0 4px; }
+.tk-news { color: #ffe3a3; }
+.tk-sep { color: var(--gold); padding: 0 10px; font-size: 11px; }
+@keyframes ticker-rtl { from { transform: translateX(0); } to { transform: translateX(50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ticker { overflow-x: auto; }
+  .ticker-track { animation: none; }
+}
+
+/* الترحيب والطقس في الزاوية */
+.home-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.home-hello { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.home-hello h2 { margin: 0; font-size: clamp(16px, 4.4vw, 22px); line-height: 1.3; }
+.home-hello .small-btn { padding: 5px 10px; font-size: 12px; min-height: 30px; }
+.weather-badge { flex: 0 0 auto; min-width: 58px; height: 40px; padding: 0 12px; border-radius: 999px; border: 0; cursor: pointer; font: inherit; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; color: #fff; background: var(--g); box-shadow: 0 3px 10px #0000001f; display: grid; place-items: center; }
+.weather-badge:active { transform: scale(.96); }
+.temp-freezing { --tc: #2563eb; } .temp-cold { --tc: #0891b2; } .temp-mild { --tc: #16834a; } .temp-warm { --tc: #d97706; } .temp-hot { --tc: #dc2626; }
+.weather-badge[class*="temp-"] { background: var(--tc); }
+.weather .temp[class*="temp-"] { color: var(--tc); }
+
+/* مواقيت الصلاة المصغّرة */
+.prayer-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 6px; font-size: 14px; }
+.prayer-head b b { color: var(--g); }
+#main .prayer-card { padding: 8px 10px; }
+#main .prayer-grid.compact { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+#main .prayer-grid.compact > div { min-height: 0; padding: 4px 2px; border-radius: 9px; }
+#main .prayer-grid.compact small { font-size: 11px; line-height: 1.3; }
+#main .prayer-grid.compact b { font-size: 13px; line-height: 1.3; white-space: nowrap; }
+#main .prayer-grid.compact .iq { font-size: 10px; color: var(--gold); white-space: nowrap; }
+.prayer-grid .now { background: var(--g-soft); border-color: var(--g) !important; }
+
+/* القادم: سطر واحد للقهوة وآخر للطلعة */
+#main .page-body[data-page="home"] .upcoming { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0; background: none; border: 0; }
+#main .page-body[data-page="home"] .up-row { grid-template-columns: 22px 1fr; padding: 6px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 12px; }
+#main .page-body[data-page="home"] .up-v { font-size: 12px; }
+
+/* الأيقونات: شبكة واحدة مضغوطة */
+#main .page-body[data-page="home"] .home-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; }
+#main .page-body[data-page="home"] .home-tiles .tile { min-height: 0; padding: 8px 2px 6px; gap: 2px; border-radius: 14px; position: relative; }
+#main .page-body[data-page="home"] .home-tiles .tile-icon { font-size: 24px; margin: 0; line-height: 1.1; }
+#main .page-body[data-page="home"] .home-tiles .tile b { font-size: 11px; line-height: 1.25; }
+#main .page-body[data-page="home"] .home-tiles .off-tag { position: absolute; top: 2px; inset-inline-start: 2px; font-size: 9px; font-style: normal; color: var(--red, #c0392b); }
+#main .page-body[data-page="home"] .home-foot { margin: 2px 0 0; font-size: 12px; }
+@media (max-width: 340px) { #main .page-body[data-page="home"] .home-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 700px) {
+  #main .page-body[data-page="home"] .home-tiles { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  #main .page-body[data-page="home"] .home-tiles .tile { padding: 12px 4px 10px; }
+  #main .page-body[data-page="home"] .home-tiles .tile-icon { font-size: 30px; }
+  #main .page-body[data-page="home"] .home-tiles .tile b { font-size: 13px; }
+}
+
+/* منع التكبير التلقائي في iPhone عند الكتابة */
+input, select, textarea { font-size: 16px; }

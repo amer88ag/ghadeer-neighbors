@@ -65,25 +65,29 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
   ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
-  ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 3);
-  ok('home: occasion shown, future hidden', (await page.textContent('[data-latest]')).includes('اليوم الوطني'));
+  ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
+  await page.waitForFunction(() => document.querySelector('[data-ticker] .tk-news'));
+  ok('home: news in ticker, future hidden', (await page.textContent('[data-ticker]')).includes('اليوم الوطني'));
+  ok('home: ticker moves with dhikr + hadith', await page.evaluate(() => { const t = document.querySelector('[data-ticker]'); return getComputedStyle(t).animationName === 'ticker-rtl' && t.textContent.includes('سبحان الله') && t.textContent.includes('قال ﷺ'); }));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
   ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
   await page.waitForSelector('.prayer-grid'); await page.waitForSelector('[data-weather-temp]');
-  ok('home: prayer + compact weather temperature', (await page.textContent('[data-weather]')).includes('اضغط') && !!(await page.$('[data-weather-temp]')) && !(await page.$('[data-weather] .muted')));
+  ok('home: weather is a colored temperature only', (await page.textContent('[data-weather]')).trim() === '21°' && (await page.getAttribute('[data-weather]', 'class')).includes('temp-mild'));
+  ok('home: weather sits in the top corner', await page.evaluate(() => { const w = document.querySelector('[data-weather]').getBoundingClientRect(), t = document.querySelector('.home-tiles').getBoundingClientRect(); return w.top < t.top && w.left < 60; }));
   await page.click('[data-weather]'); await page.waitForTimeout(250);
   ok('home: tap weather opens detailed forecast', page.url().endsWith('#/weather'));
   await page.goto(BASE + '#/home'); await page.waitForSelector('[data-weather-temp]');
-  ok('home: reminder panel appears before welcome', await page.evaluate(() => document.querySelector('.hadith').compareDocumentPosition(document.querySelector('.hero')) & Node.DOCUMENT_POSITION_FOLLOWING));
-  ok('home: no duplicate login button in welcome card', !(await page.$('.hero [data-login]')) && !!(await page.$('#who [data-login]')));
+  ok('home: ticker at top of page', await page.evaluate(() => document.querySelector('.page-body[data-page=home]').firstElementChild.classList.contains('ticker')));
+  ok('home: fits one screen on phone', await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight * 1.2), await page.evaluate(() => document.documentElement.scrollHeight + '/' + window.innerHeight));
+  ok('home: no duplicate login button in welcome card', !(await page.$('.home-top [data-login]')) && !!(await page.$('#who [data-login]')));
   const prayerGrid = await page.locator('.prayer-grid').innerText();
-  ok('prayer: Fajr iqama +25 minutes', prayerGrid.includes('الإقامة 05:15'));
-  ok('prayer: Dhuhr iqama +20 minutes', prayerGrid.includes('الإقامة 12:30'));
-  ok('prayer: Asr iqama +20 minutes', prayerGrid.includes('الإقامة 15:55'));
-  ok('prayer: Maghrib iqama +10 minutes', prayerGrid.includes('الإقامة 18:20'));
-  ok('prayer: Isha iqama +20 minutes', prayerGrid.includes('الإقامة 20:00'));
-  ok('prayer: sunrise has no iqama', !await page.locator('.prayer-grid').locator('div').nth(1).innerText().then(t => t.includes('الإقامة')));
+  ok('prayer: Fajr iqama +25 minutes', prayerGrid.includes('إقامة 5:15'));
+  ok('prayer: Dhuhr iqama +20 minutes', prayerGrid.includes('إقامة 12:30'));
+  ok('prayer: Asr iqama +20 minutes', prayerGrid.includes('إقامة 3:55'));
+  ok('prayer: Maghrib iqama +10 minutes', prayerGrid.includes('إقامة 6:20'));
+  ok('prayer: Isha iqama +20 minutes', prayerGrid.includes('إقامة 8:00'));
+  ok('prayer: home shows 5 prayers compactly, sunrise in header', (await page.$$('.prayer-grid.compact > div')).length === 5 && (await page.textContent('.prayer-head')).includes('الشروق 6:05 ص'));
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
@@ -128,7 +132,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.waitForTimeout(400); const lc = await lastCall('create_neighbor_market');
   ok('lost: posts with valid kind', lc && lc.args.p_kind === 'معثور عليه');
   await page.goto(BASE + '#/prayer'); await page.waitForSelector('.prayer-grid');
-  ok('prayer: iqama shown', (await page.textContent('.prayer-grid')).includes('الإقامة 05:15'));
+  ok('prayer: iqama shown', (await page.textContent('.prayer-grid')).includes('الإقامة 5:15 ص') && !(await page.locator('.prayer-grid > div').nth(1).innerText()).includes('الإقامة'));
   await page.goto(BASE + '#/azkar'); await page.click('[data-tap]'); await page.click('[data-tap]');
   ok('azkar: counter works', (await page.textContent('[data-count]')) === '2');
 
@@ -331,7 +335,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.setViewportSize({ width: 360, height: 780 });
   for (const p of ['home', 'manager/schedules', 'manager/joinRequests', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
-  ok('layout: three-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 3));
+  ok('layout: five-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 5));
 
   await browser.close();
   const fails = results.filter(r => r[0] === 'FAIL');
