@@ -4,6 +4,7 @@ import { state, onChange, loadMembers, restoreDevice, showLogin, canManage, requ
 import { toast, esc } from './lib/dom.js';
 import { invalidate, serviceSettings } from './lib/data.js';
 import * as home from './pages/home.js';
+import { showJoinRequest, showGuestWelcome } from './lib/join.js';
 import * as coffee from './pages/coffee.js';
 import * as outings from './pages/outings.js';
 import * as events from './pages/events.js';
@@ -47,13 +48,15 @@ setGuard(async (id, params) => {
     const restored = state.user && !state.pin;
     setTimeout(() => {
       document.querySelector('[data-gate]')?.addEventListener('click', async () => {
-        const ok = restored ? await requirePin() : await showLogin({ reason: 'سجّل دخولك ووافق على الأنظمة والشروط لاستخدام خدمات البرنامج.' });
+        const ok = restored ? await requirePin() : await showLogin({ reason: 'أهلًا بك في جيران حي الغدير. سجّل دخولك للاستفادة من خدمات الأعضاء.' });
         if (ok) refresh();
       });
+      document.querySelector('[data-gate-join]')?.addEventListener('click', () => showJoinRequest());
+      document.querySelector('[data-gate-browse]')?.addEventListener('click', () => { location.hash = '#/home'; });
     });
-    return `<div class="card center gate"><p class="tile-icon">🔒</p><h3>${restored ? 'أكّد دخولك للمتابعة' : 'هذه الخدمة للأعضاء'}</h3>
-      <p class="muted">${restored ? 'أدخل رقمك السري مرة واحدة لتأكيد هويتك وموافقتك على الأنظمة والشروط.' : 'يمكن للزائر مشاهدة الواجهة فقط. استخدام الخدمات يتطلب تسجيل الدخول والموافقة على الأنظمة والشروط.'}</p>
-      <button class="btn primary" data-gate>🔐 ${restored ? 'تأكيد الدخول' : 'تسجيل الدخول'}</button> <a class="btn secondary" href="#/terms">📜 الأنظمة والشروط</a></div>`;
+    return `<div class="card center gate guest-gate"><p class="tile-icon">🏡</p><h3>${restored ? 'مرحبًا بعودتك إلى جيرانك' : 'أهلًا بك في جيران حي الغدير'}</h3>
+      <p class="muted">${restored ? 'أكّد دخولك للعودة إلى خدمات الحي.' : 'مجتمع يجمع الجيران على التواصل الطيب، والمناسبات، والتعاون، ومساندة بعضنا بعضًا. تصفّح الواجهة بحرية، وانضم إلينا متى رغبت.'}</p>
+      <div class="hero-actions"><button class="btn primary" data-gate-join>🌟 طلب الانضمام</button><button class="btn secondary" data-gate>${restored ? '🔐 تأكيد الدخول' : '🔐 دخول الأعضاء'}</button><button class="btn ghost" data-gate-browse>متابعة التصفح</button></div></div>`;
   }
   if (ALWAYS_ON.has(id) || state.manager) return null;
   const svc = await serviceSettings();
@@ -88,6 +91,10 @@ document.getElementById('refreshBtn').addEventListener('click', async e => {
   btn.classList.remove('spin');
   toast('تم التحديث.');
 });
+
+// منع تكبير الواجهة بالإصبعين (Safari في iPhone يتجاهل user-scalable=no).
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
 window.addEventListener('unhandledrejection', e => { console.error(e.reason); });
 
