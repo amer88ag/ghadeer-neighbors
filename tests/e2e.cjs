@@ -37,7 +37,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
         await page.waitForSelector('#modalRoot .modal', { state: 'detached', timeout: 3000 }).catch(() => {});
         continue;
       }
-      await page.waitForFunction(() => !document.querySelector('.page-body .skeleton'), null, { timeout: 8000 }).catch(() => {});
+      await page.waitForFunction(pid => { const b = document.querySelector('.page-body'); return b && b.dataset.page === pid && !b.querySelector('.skeleton'); }, id.split('/')[0], { timeout: 8000 }).catch(() => {});
       const bad = await page.$('.page-body .status.bad');
       const hash = await page.evaluate(() => location.hash);
       ok(`icon [${role}] ${id}`, hash === '#/' + id && !bad && !(await page.$('.page-body .skeleton')), bad ? await bad.textContent() : hash);
@@ -230,12 +230,12 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-edit]', { state: 'attached' });
   ok('supervisor: no delete/swap controls', !(await page.$('[data-f=coffee-swap]')) && !(await page.$('[data-f=outing-swap]')) && !(await page.$('[data-f=coffee-edit] [value=delete]')));
   ok('supervisor: no manager-only tabs', !(await page.$('a[href="#/manager/members"]')) && !!(await page.$('a[href="#/manager/rules"]')));
-  await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
-  ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
   await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
   const sv = await lastCall('supervisor_update_coffee_assignment');
   ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
+  await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
+  ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
 
   ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 27);
 
@@ -310,7 +310,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.setViewportSize({ width: 360, height: 780 });
   for (const p of ['home', 'manager/schedules', 'manager/joinRequests', 'housing', 'services/catalog']) { await page.goto(BASE + '#/' + p); await page.waitForTimeout(300); ok('layout 360px no overflow: ' + p, !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth))); }
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tiles');
-  ok('layout: two-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 2));
+  ok('layout: three-column home tiles on mobile', await page.locator('.tiles').first().evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 3));
 
   await browser.close();
   const fails = results.filter(r => r[0] === 'FAIL');

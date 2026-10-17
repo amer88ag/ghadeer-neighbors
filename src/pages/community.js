@@ -1,5 +1,5 @@
 import { esc, toast, busy, empty, val, fmtDateTime, confirmBox, $ } from '../lib/dom.js';
-import { creds, requirePin } from '../lib/session.js';
+import { state, creds, requirePin } from '../lib/session.js';
 import { call, list } from '../lib/api.js';
 
 /*
@@ -10,6 +10,11 @@ const STATUS = { pending: '⏳ قيد مراجعة المطور', active: '✅ �
 const ROLE = { owner: '👑 صاحب المجتمع', admin: '🛡️ مشرف', member: '👤 عضو' };
 
 export async function render(el, [tab = 'mine', arg]) {
+  if (state.manager) {
+    el.innerHTML = `<div class="card"><h3>🏘️ المجتمعات الجديدة</h3><p>بصفتك المطور، تراجع طلبات المجتمعات وتعتمدها أو توقفها من لوحة الإدارة.</p>
+      <a class="btn primary block" href="#/manager/communities">🛠️ إدارة المجتمعات</a></div>`;
+    return;
+  }
   if (!(await requirePin())) { el.innerHTML = '<div class="card"><p>سجّل الدخول لإدارة مجتمعاتك.</p></div>'; return; }
   if (tab === 'manage') return manage(el, Number(arg));
   const r = await list('community_my_list', creds());
