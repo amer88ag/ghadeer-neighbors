@@ -340,6 +340,23 @@ export function linkList(items) {
 }
 
 export const GOV = [
+  ['https://www.absher.sa/', '🪪 أبشر — خدمات الأفراد'],
+  ['https://www.iam.gov.sa/', '🔐 النفاذ الوطني الموحد'],
+  ['https://balady.gov.sa/', '🏙️ بلدي — الخدمات البلدية'],
+  ['https://najiz.sa/', '⚖️ ناجز — الخدمات العدلية'],
   ['https://www.moi.gov.sa/', '🏛️ وزارة الداخلية — الخدمات الإلكترونية'],
-  ['https://www.google.com/maps/search/مساجد+قريبة+من+المحالة+أبها', '🕌 المساجد القريبة من المحالة (خرائط)']
+  ['https://www.moh.gov.sa/', '🏥 وزارة الصحة'],
+  ['https://noor.moe.gov.sa/', '📘 نظام نور'],
+  ['https://www.se.com.sa/', '⚡ الشركة السعودية للكهرباء'],
+  ['https://www.nwc.com.sa/', '💧 شركة المياه الوطنية'],
+  ['https://ncm.gov.sa/', '🌦️ المركز الوطني للأرصاد'],
+  ['https://ehsan.sa/', '🤲 منصة إحسان للعمل الخيري']
+];
+export const MOSQUES = [
+  ['https://www.google.com/maps/search/مساجد+قريبة+من+المحالة+أبها', '🕌 المساجد القريبة من المحالة (خرائط Google)'],
+  ['https://www.google.com/maps/search/جامع+المحالة+أبها', '🕌 الجوامع في المحالة (خرائط Google)']
+];
+export const EMERGENCY = [
+  ['tel:911', '🚨 الطوارئ الموحد — 911'], ['tel:999', '👮 الشرطة — 999'], ['tel:998', '🚒 الدفاع المدني — 998'],
+  ['tel:997', '🚑 الهلال الأحمر (الإسعاف) — 997'], ['tel:993', '🚓 المرور — 993'], ['tel:937', '🏥 مركز اتصال وزارة الصحة — 937']
 ];

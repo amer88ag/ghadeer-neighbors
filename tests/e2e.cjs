@@ -174,8 +174,12 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-tpl=app]'); await page.click('[data-group] button.wa');
   const gw = await page.evaluate(() => window.__lastWa || '');
   ok('whatsapp: group message opens WhatsApp chooser with text', gw.startsWith('https://wa.me/?text=') && decodeURIComponent(gw).includes('برنامج جيران حي الغدير'));
-  await page.goto(BASE + '#/links/jobs'); await page.waitForSelector('.segmented');
-  ok('links: useful links has only jobs + public services (no news, no football)', (await page.$$('.page-body .segmented a')).length === 2 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
+  await page.goto(BASE + '#/links'); await page.waitForSelector('.link-tiles');
+  ok('links: useful links shows icon sections (no news, no football)', (await page.$$('.link-tiles [data-links]')).length === 6 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
+  await page.click('[data-links=emergency]'); await page.waitForSelector('.link-item');
+  ok('links: section opens its links (emergency calls)', (await page.$$('a.link-item[href^="tel:"]')).length >= 5);
+  await page.goto(BASE + '#/links/gov'); await page.waitForSelector('.link-item');
+  ok('links: government services list', (await page.$$('.link-item')).length >= 10);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.home-tiles');
   ok('home: news + WhatsApp tiles, display settings appears once', !!(await page.$('[data-tile="links/news"]')) && !!(await page.$('[data-tile=whatsapp]')) && (await page.$$('a[href="#/display"]')).length === 1);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('.roshn-table');
