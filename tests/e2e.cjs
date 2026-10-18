@@ -12,6 +12,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-SA', acceptDownloads: true });
   await ctx.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: mock }));
   await ctx.route('https://api.aladhan.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: { timings: { Fajr: '04:50', Sunrise: '06:05', Dhuhr: '12:10', Asr: '15:35', Maghrib: '18:10', Isha: '19:40' }, date: { hijri: { day: '29', month: { ar: 'ربيع الآخر' }, year: '1448' } } } }) }));
+  await ctx.route('https://xewjakfmdfkbhcnxglct.supabase.co/functions/v1/ghadeer-local-news', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ items: [{ title: 'تعليق الدراسة الحضورية في أبها غدًا', source: 'واس', link: 'https://www.spa.gov.sa/x', date: new Date().toISOString() }] }) }));
   await ctx.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 21.4, relative_humidity_2m: 40, apparent_temperature: 20.9, weather_code: 1, wind_speed_10m: 12 }, daily: { time: ['2026-10-11','2026-10-12','2026-10-13'], weather_code: [1,3,61], precipitation_probability_max: [0,10,60], temperature_2m_max: [26,25,22], temperature_2m_min: [14,13,12] } }) }));
   const espnUrls = []; ctx.on('request', q => { if (q.url().includes('espn.com')) espnUrls.push(q.url()); });
   const lastEspn = async () => espnUrls.slice(-3).join(' ');
@@ -72,8 +73,19 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
   ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
-  await page.waitForFunction(() => document.querySelector('[data-ticker] .tk-news'));
-  ok('home: news in ticker, future hidden', (await page.textContent('[data-ticker]')).includes('اليوم الوطني'));
+  await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
+  const newsT = await page.textContent('[data-news-ticker]');
+  ok('news ticker: occasion greeting + staff announcement in period', newsT.includes('اليوم الوطني') && newsT.includes('صيانة شبكة المياه'));
+  ok('news ticker: future and expired hidden', !newsT.includes('مستقبلي') && !newsT.includes('إعلان منتهي'));
+  ok('news ticker: dua for leaders and armed forces', newsT.includes('خادم الحرمين الشريفين') && newsT.includes('قواتنا المسلحة'));
+  ok('news ticker: local news from trusted source', newsT.includes('تعليق الدراسة الحضورية') && newsT.includes('واس'));
+  ok('news ticker: below dhikr ticker', await page.evaluate(() => document.querySelector('[data-ticker]').closest('.ticker').nextElementSibling.classList.contains('news-ticker')));
+  ok('news ticker: thanks only the day after coffee/outing', await page.evaluate(async () => {
+    const m = await import('./src/lib/ticker.js');
+    const d = n => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date(Date.now() + n * 864e5));
+    const mk = n => m.newsItems({ coffee: [{ coffee_date: d(n), member_id: 1, status: 'مقرر' }], outings: [{ outing_date: d(n), member1_id: 1, member2_id: 2, status: 'scheduled' }], memberName: id => 'ع' + id }).filter(i => i.kind === 'thanks').length;
+    return mk(-1) === 2 && mk(0) === 0 && mk(-2) === 0;
+  }));
   ok('home: ticker moves with dhikr + hadith', await page.evaluate(() => { const t = document.querySelector('[data-ticker]'); return getComputedStyle(t).animationName === 'ticker-rtl' && t.textContent.includes('سبحان الله') && t.textContent.includes('قال ﷺ'); }));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
   ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
@@ -236,12 +248,18 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
   await page.waitForSelector('[data-tab]');
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
-  for (const t of ['joinRequests', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
+  for (const t of ['joinRequests', 'ticker', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
     await page.goto(BASE + '#/manager/' + t); await page.waitForTimeout(300);
     // The schedule page may show a non-blocking date-rule warning; it must not fail the page-render test.
     const bad = await page.$('.page-body .status.bad:not([data-outing-warning])');
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
-  }
+  }  await page.goto(BASE + '#/manager/ticker'); await page.waitForSelector('[data-f=ticker-new]');
+  ok('ticker admin: current announcement listed, expired not', (await page.textContent('[data-tab]')).includes('صيانة شبكة المياه') && !(await page.textContent('[data-tab]')).includes('إعلان منتهي'));
+  await page.fill('[data-f=ticker-new] [name=ttl]', 'اجتماع الجيران'); await page.selectOption('[data-f=ticker-new] [name=dur]', '7');
+  await page.click('[data-f=ticker-new] button.primary'); await page.waitForTimeout(400);
+  const tk = await lastCall('staff_post_ticker_news');
+  ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7);
+
   ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');

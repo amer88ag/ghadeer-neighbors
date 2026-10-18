@@ -71,3 +71,14 @@ export async function publicMembers() {
   const v = await table('public_members', { select: 'id,name,active', order: 'id' });
   return v.ok ? v.data.filter(m => m.active !== false) : [];
 }
+
+/** دالة طرفية عامة للقراءة فقط (مثل الأخبار المحلية). */
+export async function edge(name) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { headers: { apikey: SUPABASE_KEY } });
+    if (!r.ok) return { ok: false, data: null, message: 'HTTP ' + r.status };
+    return { ok: true, data: await r.json(), message: '' };
+  } catch (e) {
+    return { ok: false, data: null, message: friendly(e) };
+  }
+}
