@@ -98,7 +98,7 @@ export async function render(el) {
     ...HADITH.map(h => `<a class="tk-item tk-hadith" href="#/azkar">🌿 قال ﷺ: «${esc(h.text)}»</a>`)
   ]);
   const newsTrack = $('[data-news-ticker]', el);
-  const drawNews = (src = {}) => fillTicker(newsTrack, newsItems({ ...src, memberName }).map(i => `<span class="tk-item tk-${i.kind}">${i.html}</span>`));
+  const drawNews = (src = {}) => fillTicker(newsTrack, newsItems({ ...src, memberName }).map(i => `<span class="tk-item tk-${i.kind}"${i.color ? ` style="color:${i.color}"` : ''}>${i.html}</span>`));
   drawNews();
 
   const prayerEl = $('[data-prayer]', el);

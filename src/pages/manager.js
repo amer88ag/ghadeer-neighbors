@@ -99,6 +99,7 @@ async function developer(el, again) {
 }
 
 /* ---------------- شريط الأخبار ---------------- */
+const TICKER_COLORS = [['', 'عادي'], ['#c62828', 'أحمر'], ['#1b7a46', 'أخضر'], ['#b98b35', 'ذهبي'], ['#1565c0', 'أزرق'], ['#6a1b9a', 'بنفسجي'], ['#e65100', 'برتقالي'], ['#ad1457', 'وردي']];
 async function ticker(el, again) {
   const now = Date.now();
   const rows = (await data.announcements(true)).filter(a => a.in_ticker && (!a.expires_at || new Date(a.expires_at).getTime() > now))
@@ -110,21 +111,26 @@ async function ticker(el, again) {
       <label>نص الإعلان</label><input name="ttl" maxlength="200" required placeholder="مثال: صيانة شبكة المياه يوم الخميس">
       <label>تفاصيل (اختياري)</label><input name="msg" maxlength="300">
       <label>يبدأ</label><input name="from" type="datetime-local" value="${local(now)}" required>
-      <label>المدة</label><select name="dur"><option value="1">يوم واحد</option><option value="2">يومان</option><option value="3" selected>3 أيام</option><option value="7">أسبوع</option><option value="14">أسبوعان</option><option value="30">شهر</option><option value="custom">تحديد تاريخ النهاية</option></select>
+      <label>المدة</label><select name="dur"><option value="1">ساعة</option><option value="3">3 ساعات</option><option value="6">6 ساعات</option><option value="12">12 ساعة</option><option value="24">يوم واحد</option><option value="48">يومان</option><option value="72" selected>3 أيام</option><option value="168">أسبوع</option><option value="336">أسبوعان</option><option value="720">شهر</option><option value="custom">تحديد وقت النهاية</option></select>
       <div data-end hidden><label>ينتهي</label><input name="to" type="datetime-local"></div>
+      <label>لون الرسالة في الشريط</label><div class="color-pick">${TICKER_COLORS.map(([c, n], i) => `<label title="${n}"><input type="radio" name="color" value="${c}"${i ? '' : ' checked'}><span style="--sw:${c || 'var(--txt)'}"></span><small>${n}</small></label>`).join('')}</div>
+      <div class="ticker-preview"><span class="tk-label">معاينة</span><b data-preview>نص الرسالة يظهر هنا</b></div>
       <button class="btn primary block">📢 نشر في الشريط</button></form>
-    <div class="card"><h3>🗓️ الإعلانات الحالية والمجدولة</h3>${rows.length ? `<div class="list">${rows.map(a => `<div class="row-item"><div class="row-main"><b>${esc(a.title)}</b>
+    <div class="card"><h3>🗓️ الإعلانات الحالية والمجدولة</h3>${rows.length ? `<div class="list">${rows.map(a => `<div class="row-item"><div class="row-main"><b${/^#[0-9a-f]{6}$/i.test(a.ticker_color || '') ? ` style="color:${a.ticker_color}"` : ''}>${esc(a.title)}</b>
       <small>${new Date(a.scheduled_at).getTime() > now ? '⏳ مجدول' : '🟢 ظاهر الآن'} · من ${esc(fmtDateTime(a.scheduled_at))} إلى ${esc(fmtDateTime(a.expires_at))} · ${esc(a.sender_name || '')}</small></div>
       <button class="small-btn danger" data-del="${a.id}">⏹️ إيقاف</button></div>`).join('')}</div>` : empty('لا توجد إعلانات حالية في الشريط.')}</div>`;
   const f = $('[data-f=ticker-new]', el);
   f.elements.dur.onchange = () => { $('[data-end]', f).hidden = f.elements.dur.value !== 'custom'; };
+  const prev = $('[data-preview]', f);
+  const paint = () => { prev.textContent = val(f, 'ttl') || 'نص الرسالة يظهر هنا'; prev.style.color = f.querySelector('[name=color]:checked')?.value || ''; };
+  f.addEventListener('input', paint); f.addEventListener('change', paint);
   f.onsubmit = e => {
     e.preventDefault();
     busy(f.querySelector('button.primary'), async () => {
       const start = new Date(f.elements.from.value || Date.now());
-      const end = f.elements.dur.value === 'custom' ? new Date(f.elements.to.value) : new Date(start.getTime() + Number(f.elements.dur.value) * 864e5);
+      const end = f.elements.dur.value === 'custom' ? new Date(f.elements.to.value) : new Date(start.getTime() + Number(f.elements.dur.value) * 36e5);
       if (Number.isNaN(end.getTime())) return toast('حدد تاريخ نهاية الإعلان.', false);
-      const r = await call('staff_post_ticker_news', { ...who(), p_title: val(f, 'ttl'), p_message: val(f, 'msg'), p_starts_at: start.toISOString(), p_ends_at: end.toISOString() });
+      const r = await call('staff_post_ticker_message', { ...who(), p_title: val(f, 'ttl'), p_message: val(f, 'msg'), p_starts_at: start.toISOString(), p_ends_at: end.toISOString(), p_color: f.querySelector('[name=color]:checked')?.value || null });
       if (!r.ok) return toast(r.message, false);
       toast(r.data?.message || 'تم النشر.'); data.invalidate('announcements'); again();
     });

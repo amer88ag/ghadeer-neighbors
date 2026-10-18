@@ -513,3 +513,14 @@ input, select, textarea { font-size: 16px; }
 .invite-features .feat small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .invite-compose textarea { min-height: 200px; line-height: 1.7; }
 .btn.wa, .small-btn.wa { background: #25d366; color: #fff; border-color: #25d366; text-decoration: none; }
+
+/* اختيار لون رسالة الشريط */
+.color-pick { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 10px; }
+.color-pick label { display: grid; justify-items: center; gap: 2px; cursor: pointer; font-size: 11px; color: var(--muted); }
+.color-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.color-pick span { width: 30px; height: 30px; border-radius: 50%; background: var(--sw); border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--line); }
+.color-pick input:checked + span { box-shadow: 0 0 0 2px var(--g); transform: scale(1.08); }
+.color-pick input:focus-visible + span { outline: 2px solid var(--g); outline-offset: 2px; }
+.ticker-preview { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+.ticker-preview .tk-label { background: var(--gold); color: #fff; font-size: 12px; font-weight: 800; padding: 8px 10px; }
+.news-ticker .tk-news[style] b { color: inherit; }

@@ -76,6 +76,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
   ok('news ticker: occasion greeting + staff announcement in period', newsT.includes('اليوم الوطني') && newsT.includes('صيانة شبكة المياه'));
+  ok('news ticker: staff message shown in its chosen color', await page.$eval('[data-news-ticker] .tk-news', e => getComputedStyle(e).color) === 'rgb(21, 101, 192)');
   ok('news ticker: future and expired hidden', !newsT.includes('مستقبلي') && !newsT.includes('إعلان منتهي'));
   ok('news ticker: dua for leaders and armed forces', newsT.includes('خادم الحرمين الشريفين') && newsT.includes('قواتنا المسلحة'));
   ok('news ticker: local news from trusted source', newsT.includes('تعليق الدراسة الحضورية') && newsT.includes('واس'));
@@ -267,10 +268,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
     ok('manager tab: ' + t, !bad && !!(await page.$('[data-tab] .card')), bad ? await bad.textContent() : '');
   }  await page.goto(BASE + '#/manager/ticker'); await page.waitForSelector('[data-f=ticker-new]');
   ok('ticker admin: current announcement listed, expired not', (await page.textContent('[data-tab]')).includes('صيانة شبكة المياه') && !(await page.textContent('[data-tab]')).includes('إعلان منتهي'));
-  await page.fill('[data-f=ticker-new] [name=ttl]', 'اجتماع الجيران'); await page.selectOption('[data-f=ticker-new] [name=dur]', '7');
+  await page.fill('[data-f=ticker-new] [name=ttl]', 'اجتماع الجيران'); await page.selectOption('[data-f=ticker-new] [name=dur]', '168'); await page.click('[data-f=ticker-new] .color-pick label[title="أحمر"]');
+  ok('ticker admin: color preview', (await page.$eval('[data-preview]', e => getComputedStyle(e).color)) === 'rgb(198, 40, 40)');
   await page.click('[data-f=ticker-new] button.primary'); await page.waitForTimeout(400);
-  const tk = await lastCall('staff_post_ticker_news');
-  ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7);
+  const tk = await lastCall('staff_post_ticker_message');
+  ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
   ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 30);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
