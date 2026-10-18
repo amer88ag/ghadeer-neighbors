@@ -17,9 +17,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await ctx.route('https://site.api.espn.com/apis/v2/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ children: [{ standings: { entries: [
     { team: espnTeam(101, 'النصر'), stats: [{ name: 'rank', value: 1 }, { name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 6 }, { name: 'ties', value: 1 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 18 }, { name: 'pointsAgainst', value: 5 }, { name: 'pointDifferential', value: 13 }, { name: 'points', value: 19 }] },
     { team: espnTeam(102, 'الهلال'), stats: [{ name: 'rank', value: 2 }, { name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 5 }, { name: 'ties', value: 2 }, { name: 'losses', value: 0 }, { name: 'points', value: 17 }] }] } }] }) }));
-  await ctx.route('https://site.api.espn.com/apis/site/v2/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ events: [
-    { id: 'e1', date: new Date(Date.now() + 3 * 864e5).toISOString(), name: 'النصر ضد الهلال', status: { type: { completed: false, shortDetail: 'قادمة' } },
-      competitions: [{ competitors: [{ homeAway: 'home', team: espnTeam(101, 'النصر') }, { homeAway: 'away', team: espnTeam(102, 'الهلال') }] }] }] }) }));
+  const espnEv = (id, days, home, away, done) => ({ id, date: new Date(Date.now() + days * 864e5).toISOString(), status: { type: { completed: done, state: done ? 'post' : 'pre' } },
+    competitions: [{ competitors: [{ homeAway: 'home', team: espnTeam(home[0], home[1]), score: done ? '2' : undefined }, { homeAway: 'away', team: espnTeam(away[0], away[1]), score: done ? '1' : undefined }] }] });
+  await ctx.route('https://site.api.espn.com/apis/site/v2/**', r => {
+    const u = r.request().url();
+    const events = u.includes('/teams/') && !u.includes('fixture=true') ? [espnEv('p1', -7, [101, 'النصر'], [103, 'الاتحاد'], true)] : [espnEv('e1', 3, [101, 'النصر'], [102, 'الهلال'], false)];
+    r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ events, leagues: [{ calendar: [] }] }) });
+  });
   await ctx.route('**/apis/v2/sports/soccer/ksa.1/standings**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ children: [{ standings: { entries: [
     { rank: 1, team: { id: '101', displayName: 'النصر', abbreviation: 'NAS' }, stats: [{ name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 6 }, { name: 'ties', value: 1 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 18 }, { name: 'pointsAgainst', value: 4 }, { name: 'pointDifferential', value: 14 }, { name: 'points', value: 19 }] },
     { rank: 2, team: { id: '102', displayName: 'الهلال', abbreviation: 'HIL' }, stats: [{ name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 5 }, { name: 'ties', value: 2 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 15 }, { name: 'pointsAgainst', value: 5 }, { name: 'pointDifferential', value: 10 }, { name: 'points', value: 17 }] }
@@ -125,6 +129,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('football: Roshn standings render in app', (await page.textContent('.roshn-table')).includes('النصر') && (await page.textContent('.roshn-table')).includes('19'));
   await page.click('[data-team="101"]'); await page.waitForSelector('.roshn-match');
   ok('football: selecting a team shows upcoming fixture', (await page.textContent('.roshn-fixtures')).includes('الهلال') && (await page.textContent('.roshn-section-head')).includes('النصر'));
+  ok('football: team page shows rank, points, results', (await page.textContent('[data-roshn-team]')).includes('المركز') && (await page.textContent('.roshn-stats')).includes('19') && (await page.textContent('[data-roshn-team]')).includes('الاتحاد') && !!(await page.$('.roshn-res.win')));
+  await page.click('[data-roshn-tab=fixtures]'); await page.waitForSelector('[data-roshn-fixtures] .roshn-match');
+  ok('football: league upcoming fixtures tab', (await page.textContent('[data-roshn-fixtures]')).includes('الهلال'));
 
   await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
   ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));
