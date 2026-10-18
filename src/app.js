@@ -27,6 +27,8 @@ import * as community from './pages/community.js';
 import * as stats from './pages/stats.js';
 import * as invite from './pages/invite.js';
 import * as whatsapp from './pages/whatsapp.js';
+import * as display from './pages/display.js';
+import * as P from './lib/prefs.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -35,18 +37,18 @@ const PAGES = [
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
   ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms], ['install', 'النشر والتثبيت', '📲', install],
-  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp]
+  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp], ['display', 'إعداد الشاشة', '🎨', display]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 
 // صفحات متاحة للزائر: الواجهة فقط والتعريف والشروط والدخول. كل ما عداها يتطلب دخول عضو وموافقته على الشروط.
-const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager', 'invite']);
+const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager', 'invite', 'display']);
 // صفحات لا يمكن إيقافها حتى لا يُحجب الدخول أو الإدارة أو الشروط.
-const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats', 'invite']);
+const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats', 'invite', 'display']);
 export const isPublicRoute = id => PUBLIC.has(String(id).split('/')[0]);
 
 setGuard(async (id, params) => {
-  if (!state.manager && !['account', 'manager', 'about', 'terms'].includes(id)) {
+  if (!state.manager && !['account', 'manager', 'about', 'terms', 'display'].includes(id)) {
     const st = await appStatus().catch(() => ({}));
     if (st.paused) return `<div class="card center"><p class="tile-icon">⏸️</p><h3>البرنامج في صيانة مؤقتة</h3><p>${esc(st.pause_message || 'سيعود البرنامج للعمل قريبًا بإذن الله.')}</p></div>`;
   }
@@ -81,7 +83,11 @@ function renderChrome() {
 }
 
 let lastUser = undefined;
+let prefsOwner, prefsPulled;
 onChange(() => {
+  const owner = state.user && !state.manager ? state.user.id : null;
+  if (owner !== prefsOwner) { prefsOwner = owner; prefsPulled = false; P.useOwner(owner); }
+  if (owner && state.pin && !prefsPulled) { prefsPulled = true; P.pull({ p_member_id: owner, p_pin: state.pin }).then(changed => { if (changed && currentPage()) refresh(); }).catch(() => {}); }
   renderChrome();
   const key = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   if (lastUser !== undefined && key !== lastUser) { invalidate(); if (currentPage()) refresh(); }
@@ -105,6 +111,7 @@ document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preven
 window.addEventListener('unhandledrejection', e => { console.error(e.reason); });
 
 (async function boot() {
+  P.useOwner(null);
   renderChrome();
   try {
     await loadMembers();
@@ -113,6 +120,7 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); })
     console.error(e);
     toast(e.message || 'تعذر الاتصال بقاعدة البيانات.', false);
   }
+  prefsOwner = state.user && !state.manager ? state.user.id : null; P.useOwner(prefsOwner);
   lastUser = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   start();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
