@@ -5,6 +5,7 @@ import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
 import { newsItems, fillTicker } from '../lib/ticker.js';
+import { arrangeTiles, widgetOn } from '../lib/prefs.js';
 
 /*
  * أيقونات الرئيسية مصنفة. access: all = متاح للجميع، member = يحتاج دخول عضو للمشاركة، admin = للمدير والمشرفين فقط.
@@ -35,6 +36,7 @@ export const GROUPS = [
   ]],
   ['👤 حسابي', [
     ['account', '👤', 'حسابي', 'الدخول وبطاقتي', 'all'],
+    ['display', '🎨', 'إعداد الشاشة', 'الحجم والترتيب والمظهر', 'all'],
     ['about', '©️', 'عن البرنامج', 'الشروط والخصوصية', 'all'],
     ['manager', '🛠️', 'لوحة الإدارة', 'للمطور والمشرفين', 'admin'],
     ['stats', '📊', 'الإحصاءات', 'إحصاء شامل للمطور', 'dev']
@@ -43,7 +45,7 @@ export const GROUPS = [
 export const DEFAULT_WELCOME = 'مجتمع يجمع جيران الحي على التواصل والتعاون والتكاتف.';
 export const TILES = GROUPS.flatMap(([, items]) => items);
 // أيقونات يفتحها الزائر دون تسجيل (يطابق PUBLIC في app.js).
-const OPEN = new Set(['account', 'terms', 'about', 'install', 'invite']);
+const OPEN = new Set(['account', 'terms', 'about', 'install', 'invite', 'display']);
 
 /** ترتيب الأيقونات حسب إعدادات المطور وإخفاء الموقوفة عن غير المدير. */
 function arrange(items, svc) {
@@ -56,22 +58,25 @@ function arrange(items, svc) {
 
 export async function render(el) {
   const svc = await data.serviceSettings();
-  const groups = GROUPS.map(([g, items]) => [g, arrange(items, svc)]).filter(([, v]) => v.length);
+  const groupOf = new Map(); const meta = new Map();
+  GROUPS.forEach(([g, items], gi) => arrange(items, svc).forEach(t => { groupOf.set(t[0], [g, gi]); meta.set(t[0], t); }));
+  const tiles = arrangeTiles([...meta.keys()]).map(id => meta.get(id));
+  if (!tiles.some(t => t[0] === 'display') && meta.has('display')) tiles.push(meta.get('display'));
   el.innerHTML = `
-    <div class="ticker" aria-label="الذكر والأحاديث"><div class="ticker-track" data-ticker></div></div>
-    <div class="ticker news-ticker" aria-label="أخبار الحي"><span class="tk-label">أخبار الحي</span><div class="ticker-track" data-news-ticker></div></div>
+    <div class="ticker"${widgetOn('dhikr') ? '' : ' hidden'} aria-label="الذكر والأحاديث"><div class="ticker-track" data-ticker></div></div>
+    <div class="ticker news-ticker"${widgetOn('news') ? '' : ' hidden'} aria-label="أخبار الحي"><span class="tk-label">أخبار الحي</span><div class="ticker-track" data-news-ticker></div></div>
     <section class="home-top">
       <div class="home-hello"><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2><p class="home-tagline" data-welcome>${esc(DEFAULT_WELCOME)}</p>
         ${state.user ? '' : '<button class="btn primary small-btn" data-join>🌟 انضم إلى الجيران</button>'}</div>
-      <button type="button" class="weather-badge" data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button>
+      <button type="button" class="weather-badge"${widgetOn('weather') ? '' : ' hidden'} data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button>
     </section>
-    <section class="card prayer-card" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
-    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${groups.map(([g, items], gi) => items.map(([id, i, t, d]) => `<a class="tile g${gi}${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}" title="${esc(g + ' — ' + d)}"><span class="tile-icon">${i}</span><b>${esc(t)}</b>${svc[id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`).join('')).join('')}</nav>
-    <section class="upcoming" aria-label="لقاءات الجيران القادمة"><span class="up-title">☕ لقاءات الجيران القادمة <small>(اختيارية)</small></span>
+    <section class="card prayer-card"${widgetOn('prayer') ? '' : ' hidden'} data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
+    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${tiles.map(([id, i, t, d]) => { const [g, gi] = groupOf.get(id); return `<a class="tile g${gi}${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}" title="${esc(g + ' — ' + d)}"><span class="tile-icon">${i}</span><b>${esc(t)}</b>${svc[id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`; }).join('')}</nav>
+    <section class="upcoming"${widgetOn('upcoming') ? '' : ' hidden'} aria-label="لقاءات الجيران القادمة"><span class="up-title">☕ لقاءات الجيران القادمة <small>(اختيارية)</small></span>
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-v" data-next-outing>…</span></a>
     </section>
-    <p class="muted center home-foot">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
+    <p class="muted center home-foot">${widgetOn('foot') ? `👥 ${activeMembers().length} جار نشط في البرنامج · ` : ''}<a href="#/display">🎨 تخصيص الشاشة</a></p>`;
 
   $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
   el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
