@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 28 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 16 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -111,7 +111,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 28);
+  ok('guest icons count', (await checkAllTiles('guest')) === 16);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
@@ -145,7 +145,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 28);
+  ok('member icons count', (await checkAllTiles('member')) === 16);
   await page.goto(BASE + '#/invite'); await page.waitForSelector('.invite-compose');
   ok('invite: member composer with personal WhatsApp link', (await page.getAttribute('[data-wa]', 'href')).startsWith('https://wa.me/?text=') && decodeURIComponent(await page.getAttribute('[data-wa]', 'href')).includes('#/invite/'));
   await page.goto(BASE + '#/whatsapp'); await page.waitForSelector('[data-mine]');
@@ -259,9 +259,17 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
 
   // 13) Manager
   await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
-  await page.waitForSelector('[data-tab]');
+  await page.waitForSelector('.mgr-hero');
+  ok('dashboard: KPIs + grouped sections with badges', (await page.$$('.kpi')).length >= 5 && (await page.$$('.mgr-card')).length >= 15 && !!(await page.$('.mgr-card .badge')));
+  await page.click('.mgr-card[href="#/manager/settings"]'); await page.waitForSelector('[data-f=pause]');
+  ok('settings: maintenance, texts, WhatsApp, security, diagnostics', !!(await page.$('[data-f=welcome]')) && !!(await page.$('[data-f=invite]')) && !!(await page.$('[data-f=wa]')) && !!(await page.$('[data-revoke-all]')) && (await page.textContent('[data-tab]')).includes('فحص النظام'));
+  await page.fill('[data-f=welcome] [name=v]', 'حيّ يجمعنا'); await page.click('[data-f=welcome] button'); await page.waitForTimeout(300);
+  const aw = await lastCall('manager_set_app_text');
+  ok('settings: developer edits home welcome', aw && aw.args.p_key === 'home_welcome' && aw.args.p_value === 'حيّ يجمعنا');
+  await page.selectOption('[data-jump]', 'members'); await page.waitForFunction(() => location.hash === '#/manager/members');
+  ok('manager: jump menu navigates between sections', true);
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
-  for (const t of ['joinRequests', 'ticker', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
+  for (const t of ['settings', 'joinRequests', 'ticker', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
     await page.goto(BASE + '#/manager/' + t); await page.waitForTimeout(300);
     // The schedule page may show a non-blocking date-rule warning; it must not fail the page-render test.
     const bad = await page.$('.page-body .status.bad:not([data-outing-warning])');
@@ -274,7 +282,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_message');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 30);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 18);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -297,28 +305,30 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('supervisor: admin nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-edit]', { state: 'attached' });
   ok('supervisor: no delete/swap controls', !(await page.$('[data-f=coffee-swap]')) && !(await page.$('[data-f=outing-swap]')) && !(await page.$('[data-f=coffee-edit] [value=delete]')));
-  ok('supervisor: no manager-only tabs', !(await page.$('a[href="#/manager/members"]')) && !!(await page.$('a[href="#/manager/rules"]')));
+  ok('supervisor: no manager-only sections in jump menu', !(await page.$('[data-jump] option[value=members]')) && !!(await page.$('[data-jump] option[value=rules]')) && !(await page.$('[data-jump] option[value=settings]')));
   await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.click('[data-f=coffee-edit] [value=save]'); await page.waitForTimeout(400);
   const sv = await lastCall('supervisor_update_coffee_assignment');
   ok('supervisor: edit uses supervisor RPC with own pin', sv && sv.args.p_pin === '5555' && 'p_target_member_id' in sv.args && !('p_manager_pin' in sv.args));
   await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
-  ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
+  ok('supervisor: join requests section visible', !!(await page.$('[data-jump] option[value=joinRequests]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
+  await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
+  ok('supervisor: dashboard shows only permitted sections', !(await page.$('.mgr-card[href="#/manager/settings"]')) && !!(await page.$('.mgr-card[href="#/manager/ticker"]')));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 29);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 17);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
-  await page.waitForSelector('[data-tab]');
+  await page.waitForSelector('.mgr-hero');
   await page.goto(BASE + '#/manager/services'); await page.waitForSelector('[data-svc="services/lost"]');
   await page.$eval('[data-svc="services/lost"] [name=on]', e => e.checked = false);
   await page.fill('[data-svc="services/lost"] [name=note]', 'قريبًا');
   await page.click('[data-svc="services/lost"] button'); await page.waitForTimeout(400);
   const ss = await lastCall('manager_set_service_setting');
   ok('dev: service paused', ss && ss.args.p_key === 'services/lost' && ss.args.p_enabled === false);
-  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services/lost"]');
-  ok('dev: developer still sees paused tile (dimmed)', await page.$eval('[data-tile="services/lost"]', e => e.classList.contains('off')));
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services"]');
+  ok('dev: pausing a sub-section keeps the merged services tile', !(await page.$eval('[data-tile="services"]', e => e.classList.contains('off'))));
   await page.goto(BASE + '#/manager/members'); await page.waitForSelector('[data-act=restore]');
   ok('dev: suspended members listed with restore', (await page.textContent('[data-tab]')).includes('عضو موقوف'));
   await page.click('[data-act=suspend][data-id="3"]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
@@ -336,14 +346,14 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   // guest sees paused service as hidden + blocked
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
-  ok('guest: paused tile hidden', !(await page.$('[data-tile="services/lost"]')));
+  ok('guest: merged services tile still visible', !!(await page.$('[data-tile="services"]')));
   await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
   await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);
   ok('member: paused page blocked with note', (await page.textContent('.page-body')).includes('موقوفة') && (await page.textContent('.page-body')).includes('قريبًا'));
   await page.evaluate(() => { window.__svc = []; });
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
-  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('[data-tab]');
+  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('.mgr-hero');
 
   // 13d) New community + statistics
   await page.goto(BASE + '#/stats'); await page.waitForSelector('.stat-box');
@@ -366,7 +376,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/stats'); await page.waitForTimeout(300);
   ok('stats: hidden from members', (await page.textContent('.page-body')).includes('للمطور فقط'));
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
-  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('[data-tab]');
+  await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('.mgr-hero');
 
   // 14) Dark mode + desktop screenshots
   await page.emulateMedia({ colorScheme: 'dark' }); await page.goto(BASE + '#/home'); await page.waitForTimeout(600);

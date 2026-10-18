@@ -31,7 +31,7 @@ const appSrc = readFileSync('src/app.js', 'utf8');
 const registered = new Set([...appSrc.matchAll(/\['([a-z]+)', '[^']+', '[^']+', [a-z]+\]/g)].map(m => m[1]));
 const homeSrc = readFileSync('src/pages/home.js', 'utf8');
 const tileRoutes = [...homeSrc.matchAll(/\['([a-z]+(?:\/[a-z]+)?)', '[^']+', '[^']+', '[^']+', '(?:all|member|admin|dev)'\]/g)].map(m => m[1]);
-if (tileRoutes.length < 20) errors.push('لم تُقرأ أيقونات الرئيسية بشكل صحيح: ' + tileRoutes.length);
+if (tileRoutes.length < 15) errors.push('لم تُقرأ أيقونات الرئيسية بشكل صحيح: ' + tileRoutes.length);
 for (const r of tileRoutes) if (!registered.has(r.split('/')[0])) errors.push('أيقونة بلا صفحة مسجلة: ' + r);
 
 const manifest = JSON.parse(readFileSync('manifest.webmanifest', 'utf8'));

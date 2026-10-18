@@ -2,7 +2,7 @@
 import { register, start, refresh, currentPage, setGuard } from './lib/router.js';
 import { state, onChange, loadMembers, restoreDevice, showLogin, canManage, requirePin } from './lib/session.js';
 import { toast, esc } from './lib/dom.js';
-import { invalidate, serviceSettings } from './lib/data.js';
+import { invalidate, serviceSettings, appStatus } from './lib/data.js';
 import * as home from './pages/home.js';
 import { showJoinRequest, showGuestWelcome } from './lib/join.js';
 import * as coffee from './pages/coffee.js';
@@ -46,6 +46,10 @@ const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'inst
 export const isPublicRoute = id => PUBLIC.has(String(id).split('/')[0]);
 
 setGuard(async (id, params) => {
+  if (!state.manager && !['account', 'manager', 'about', 'terms'].includes(id)) {
+    const st = await appStatus().catch(() => ({}));
+    if (st.paused) return `<div class="card center"><p class="tile-icon">⏸️</p><h3>البرنامج في صيانة مؤقتة</h3><p>${esc(st.pause_message || 'سيعود البرنامج للعمل قريبًا بإذن الله.')}</p></div>`;
+  }
   if (!PUBLIC.has(id) && !state.manager && !(state.user && state.termsOk)) {
     const restored = state.user && !state.pin;
     setTimeout(() => {
