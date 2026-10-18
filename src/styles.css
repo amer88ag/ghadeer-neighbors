@@ -486,3 +486,16 @@ input, select, textarea { font-size: 16px; }
 .league-picker::-webkit-scrollbar { display: none; }
 .league-picker .chip { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--txt); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .league-picker .chip.active { background: var(--g); color: #fff; border-color: var(--g); }
+
+/* شريط أخبار الحي (تحت شريط الذكر) */
+.news-ticker { background: var(--card); color: var(--txt); border: 1px solid var(--line); padding-inline-start: 0; }
+.news-ticker::before { background: linear-gradient(to left, var(--card), transparent); right: 86px; }
+.news-ticker::after { background: linear-gradient(to right, var(--card), transparent); }
+.news-ticker .tk-label { position: relative; z-index: 2; flex: 0 0 auto; align-self: stretch; display: grid; place-items: center; padding: 0 10px; background: var(--gold); color: #fff; font-size: 12px; font-weight: 800; border-radius: 0 11px 11px 0; }
+.news-ticker .tk-item, .news-ticker .tk-item a { color: var(--txt); text-decoration: none; }
+.news-ticker .tk-item small { color: var(--muted); font-weight: 600; }
+.news-ticker .tk-occasion { color: var(--g); }
+.news-ticker .tk-thanks { color: #b05d1f; }
+.news-ticker .tk-dua { color: var(--g); }
+.news-ticker .ticker-track { flex: 1 1 auto; }
+@media (prefers-color-scheme: dark) { .news-ticker .tk-thanks { color: #f0a868; } }

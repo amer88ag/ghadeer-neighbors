@@ -4,6 +4,7 @@ import * as data from '../lib/data.js';
 import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
+import { newsItems, fillTicker } from '../lib/ticker.js';
 
 /*
  * أيقونات الرئيسية مصنفة. access: all = متاح للجميع، member = يحتاج دخول عضو للمشاركة، admin = للمدير والمشرفين فقط.
@@ -66,7 +67,8 @@ export async function render(el) {
   const svc = await data.serviceSettings();
   const tiles = GROUPS.flatMap(([, items]) => arrange(items, svc));
   el.innerHTML = `
-    <div class="ticker" aria-label="الذكر والأحاديث وأخبار الحي"><div class="ticker-track" data-ticker></div></div>
+    <div class="ticker" aria-label="الذكر والأحاديث"><div class="ticker-track" data-ticker></div></div>
+    <div class="ticker news-ticker" aria-label="أخبار الحي"><span class="tk-label">أخبار الحي</span><div class="ticker-track" data-news-ticker></div></div>
     <section class="home-top">
       <div class="home-hello"><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2>
         ${state.user ? '' : '<button class="btn primary small-btn" data-join>🌟 انضم إلى الجيران</button>'}</div>
@@ -89,17 +91,13 @@ export async function render(el) {
     showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
   }));
 
-  const ticker = $('[data-ticker]', el);
-  const fillTicker = (news = []) => {
-    const items = [
-      ...news.map(a => `<a class="tk-item tk-news" href="#/news">📢 ${esc(a.title)}</a>`),
-      ...DHIKR.map(x => `<span class="tk-item">🤲 ${esc(x)}</span>`),
-      ...HADITH.map(h => `<a class="tk-item tk-hadith" href="#/azkar">🌿 قال ﷺ: «${esc(h.text)}»</a>`)
-    ].join('<span class="tk-sep">✦</span>');
-    ticker.innerHTML = `<span class="tk-run">${items}<span class="tk-sep">✦</span></span><span class="tk-run" aria-hidden="true">${items}<span class="tk-sep">✦</span></span>`;
-    requestAnimationFrame(() => { const w = ticker.firstElementChild?.offsetWidth || 0; ticker.style.animationDuration = Math.max(30, Math.round(w / 45)) + 's'; });
-  };
-  fillTicker();
+  fillTicker($('[data-ticker]', el), [
+    ...DHIKR.map(x => `<span class="tk-item">🤲 ${esc(x)}</span>`),
+    ...HADITH.map(h => `<a class="tk-item tk-hadith" href="#/azkar">🌿 قال ﷺ: «${esc(h.text)}»</a>`)
+  ]);
+  const newsTrack = $('[data-news-ticker]', el);
+  const drawNews = (src = {}) => fillTicker(newsTrack, newsItems({ ...src, memberName }).map(i => `<span class="tk-item tk-${i.kind}">${i.html}</span>`));
+  drawNews();
 
   const prayerEl = $('[data-prayer]', el);
   prayerTimes().then(p => renderPrayer(prayerEl, p, LOCATION.label, { compact: true }))
@@ -112,7 +110,8 @@ export async function render(el) {
   const today = todayISO();
   const c = coffee.find(x => x.coffee_date >= today);
   const o = outings.find(x => x.outing_date >= today);
-  fillTicker(data.visibleAnnouncements(ann).slice(0, 5));
+  drawNews({ announcements: ann, coffee, outings });
+  data.localNews().then(local => { if (newsTrack.isConnected) drawNews({ announcements: ann, coffee, outings, local }); }).catch(() => {});
   const short = d => new Date(d + 'T00:00:00').toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' });
   $('[data-next-coffee]', el).innerHTML = c ? `<b>${esc(memberName(c.member_id))}</b> · ${short(c.coffee_date)}${c.coffee_time ? ' · ' + fmtTime(c.coffee_time) : ''}` : 'لا يوجد موعد قهوة قادم';
   $('[data-next-outing]', el).innerHTML = o ? `<b>${esc(o.outing_type || [memberName(o.member1_id), memberName(o.member2_id)].join(' + '))}</b> · ${short(o.outing_date)}${o.outing_time ? ' · ' + fmtTime(o.outing_time) : ''}` : 'لا توجد طلعة قادمة';

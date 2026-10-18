@@ -13,6 +13,7 @@ const TABS = [
   ['services', '🧩 الخدمات', 'manager'],
   ['schedules', '☕🚐 الجداول', 'any'],
   ['plans', '🗳️ الطلعات المقترحة', 'any'],
+  ['ticker', '📢 شريط الأخبار', 'any'],
   ['occasions', '🎉 المناسبات', 'any'],
   ['messages', '💬 الرسائل والتنبيهات', 'manager'],
   ['members', '👥 الأعضاء والأرقام', 'manager'],
@@ -57,7 +58,7 @@ export async function render(el, [tab]) {
   el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
   const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ developer, services, schedules, plans, occasions, messages, members, joinRequests, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ developer, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- مركز المطور ---------------- */
@@ -95,6 +96,45 @@ async function developer(el, again) {
     ${!servicesResult.ok ? '<section class="card"><h3>تفاصيل فحص الخدمات</h3><p class="status bad">' + esc(servicesResult.message) + '</p></section>' : ''}
     ${!communitiesResult.ok ? '<section class="card"><h3>تفاصيل فحص المجتمعات</h3><p class="status bad">' + esc(communitiesResult.message) + '</p></section>' : ''}`;
   $('[data-dev-refresh]', el).onclick = () => { data.invalidate(); developer(el, again); };
+}
+
+/* ---------------- شريط الأخبار ---------------- */
+async function ticker(el, again) {
+  const now = Date.now();
+  const rows = (await data.announcements(true)).filter(a => a.in_ticker && (!a.expires_at || new Date(a.expires_at).getTime() > now))
+    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+  const local = d => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 16); };
+  const who = () => state.manager ? { p_member_id: 0, p_pin: state.pin } : S();
+  el.innerHTML = `<form class="card" data-f="ticker-new"><h3>📢 إعلان جديد في شريط أخبار الحي</h3>
+      <p class="muted">يظهر في الشريط المتحرك أعلى الرئيسية طوال الفترة التي تحددها، ثم يختفي تلقائيًا. رسائل الشكر بعد القهوة والطلعة وتهاني المناسبات والدعاء والأخبار المحلية تُضاف للشريط تلقائيًا.</p>
+      <label>نص الإعلان</label><input name="ttl" maxlength="200" required placeholder="مثال: صيانة شبكة المياه يوم الخميس">
+      <label>تفاصيل (اختياري)</label><input name="msg" maxlength="300">
+      <label>يبدأ</label><input name="from" type="datetime-local" value="${local(now)}" required>
+      <label>المدة</label><select name="dur"><option value="1">يوم واحد</option><option value="2">يومان</option><option value="3" selected>3 أيام</option><option value="7">أسبوع</option><option value="14">أسبوعان</option><option value="30">شهر</option><option value="custom">تحديد تاريخ النهاية</option></select>
+      <div data-end hidden><label>ينتهي</label><input name="to" type="datetime-local"></div>
+      <button class="btn primary block">📢 نشر في الشريط</button></form>
+    <div class="card"><h3>🗓️ الإعلانات الحالية والمجدولة</h3>${rows.length ? `<div class="list">${rows.map(a => `<div class="row-item"><div class="row-main"><b>${esc(a.title)}</b>
+      <small>${new Date(a.scheduled_at).getTime() > now ? '⏳ مجدول' : '🟢 ظاهر الآن'} · من ${esc(fmtDateTime(a.scheduled_at))} إلى ${esc(fmtDateTime(a.expires_at))} · ${esc(a.sender_name || '')}</small></div>
+      <button class="small-btn danger" data-del="${a.id}">🗑️ حذف</button></div>`).join('')}</div>` : empty('لا توجد إعلانات حالية في الشريط.')}</div>`;
+  const f = $('[data-f=ticker-new]', el);
+  f.elements.dur.onchange = () => { $('[data-end]', f).hidden = f.elements.dur.value !== 'custom'; };
+  f.onsubmit = e => {
+    e.preventDefault();
+    busy(f.querySelector('button.primary'), async () => {
+      const start = new Date(f.elements.from.value || Date.now());
+      const end = f.elements.dur.value === 'custom' ? new Date(f.elements.to.value) : new Date(start.getTime() + Number(f.elements.dur.value) * 864e5);
+      if (Number.isNaN(end.getTime())) return toast('حدد تاريخ نهاية الإعلان.', false);
+      const r = await call('staff_post_ticker_news', { ...who(), p_title: val(f, 'ttl'), p_message: val(f, 'msg'), p_starts_at: start.toISOString(), p_ends_at: end.toISOString() });
+      if (!r.ok) return toast(r.message, false);
+      toast(r.data?.message || 'تم النشر.'); data.invalidate('announcements'); again();
+    });
+  };
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (!await confirmBox('حذف هذا الإعلان من الشريط؟', { okText: 'حذف' })) return;
+    const r = await call('staff_delete_ticker_news', { ...who(), p_id: Number(b.dataset.del) });
+    if (!r.ok) return toast(r.message, false);
+    toast('تم الحذف.'); data.invalidate('announcements'); again();
+  });
 }
 
 /* ---------------- الجداول ---------------- */

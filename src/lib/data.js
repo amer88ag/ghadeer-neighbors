@@ -1,5 +1,5 @@
 /* بيانات مشتركة بين الصفحات مع ذاكرة مؤقتة قصيرة. */
-import { table, list, call } from './api.js';
+import { table, list, call, edge } from './api.js';
 import { state, creds } from './session.js';
 
 const cache = new Map();
@@ -16,7 +16,7 @@ export const invalidate = (...keys) => keys.length ? keys.forEach(k => cache.del
 
 export const coffee = force => cached('coffee', async () => (await table('coffee_schedule', { order: 'coffee_date' })).data, force);
 export const outings = force => cached('outings', async () => (await table('outings_schedule', { order: 'outing_date' })).data, force);
-export const announcements = force => cached('announcements', async () => (await table('announcements', { order: 'created_at', ascending: false, limit: 30 })).data, force);
+export const announcements = force => cached('announcements', async () => (await table('announcements', { order: 'created_at', ascending: false, limit: 60 })).data, force);
 // أحدث 150 رسالة ثم ترتيبها تصاعديًا للعرض (وإلا تختفي الرسائل الجديدة بعد تجاوز الحد).
 export const groupMessages = force => cached('messages', async () => (await table('group_messages', { order: 'created_at', ascending: false, limit: 150 })).data.slice().reverse(), force);
 export const neighborProfiles = force => cached('nprofiles', async () => (await list('get_neighbor_profiles')).data, force);
@@ -52,5 +52,7 @@ export function visibleOccasions(rows) {
 /** الإعلانات العامة الظاهرة (غير المجدولة للمستقبل). */
 export function visibleAnnouncements(rows) {
   const now = Date.now();
-  return rows.filter(a => !a.scheduled_at || new Date(a.scheduled_at).getTime() <= now);
+  return rows.filter(a => (!a.scheduled_at || new Date(a.scheduled_at).getTime() <= now) && (!a.expires_at || new Date(a.expires_at).getTime() > now));
 }
+/** أخبار محلية من مصادر سعودية موثوقة (دالة طرفية، تُحدَّث كل 30 دقيقة). */
+export const localNews = force => cached('localNews', async () => { const r = await edge('ghadeer-local-news'); return r.ok ? (r.data?.items || []) : []; }, force);
