@@ -115,7 +115,7 @@ async function ticker(el, again) {
       <button class="btn primary block">📢 نشر في الشريط</button></form>
     <div class="card"><h3>🗓️ الإعلانات الحالية والمجدولة</h3>${rows.length ? `<div class="list">${rows.map(a => `<div class="row-item"><div class="row-main"><b>${esc(a.title)}</b>
       <small>${new Date(a.scheduled_at).getTime() > now ? '⏳ مجدول' : '🟢 ظاهر الآن'} · من ${esc(fmtDateTime(a.scheduled_at))} إلى ${esc(fmtDateTime(a.expires_at))} · ${esc(a.sender_name || '')}</small></div>
-      <button class="small-btn danger" data-del="${a.id}">🗑️ حذف</button></div>`).join('')}</div>` : empty('لا توجد إعلانات حالية في الشريط.')}</div>`;
+      <button class="small-btn danger" data-del="${a.id}">⏹️ إيقاف</button></div>`).join('')}</div>` : empty('لا توجد إعلانات حالية في الشريط.')}</div>`;
   const f = $('[data-f=ticker-new]', el);
   f.elements.dur.onchange = () => { $('[data-end]', f).hidden = f.elements.dur.value !== 'custom'; };
   f.onsubmit = e => {
@@ -130,10 +130,10 @@ async function ticker(el, again) {
     });
   };
   el.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-    if (!await confirmBox('حذف هذا الإعلان من الشريط؟', { okText: 'حذف' })) return;
+    if (!await confirmBox('إيقاف هذا الإعلان وإخفاؤه من الشريط الآن؟', { okText: 'إيقاف' })) return;
     const r = await call('staff_delete_ticker_news', { ...who(), p_id: Number(b.dataset.del) });
     if (!r.ok) return toast(r.message, false);
-    toast('تم الحذف.'); data.invalidate('announcements'); again();
+    toast('تم إيقاف الإعلان.'); data.invalidate('announcements'); again();
   });
 }
 

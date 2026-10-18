@@ -45,7 +45,7 @@ export function newsItems({ announcements = [], coffee = [], outings = [], local
   items.push({ kind: 'dua', html: `🇸🇦 ${esc(DUA)}` });
 
   // 5) أخبار محلية من مصادر موثوقة.
-  for (const n of local.slice(0, 10)) {
+  for (const n of local.filter(x => x.source && x.link).slice(0, 10)) {
     items.push({ kind: 'local', html: `<a href="${esc(n.link)}" target="_blank" rel="noopener">📰 ${esc(n.title)}</a> <small>(${esc(n.source)})</small>` });
   }
   return items;

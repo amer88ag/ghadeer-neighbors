@@ -1,5 +1,5 @@
 -- شريط أخبار الحي: إعلانات بفترة زمنية يحددها المطور أو المشرف المخوّل بالرسائل.
--- إضافة فقط: عمود expires_at في announcements ودالتان للنشر والحذف.
+-- إضافة فقط: عمودا expires_at و in_ticker في announcements، ودالتا النشر والإيقاف (طُبّق على القاعدة الحية 2026-10-18).
 alter table public.announcements add column if not exists expires_at timestamptz;
 alter table public.announcements add column if not exists in_ticker boolean not null default false;
 
@@ -41,10 +41,11 @@ declare n text;
 begin
   n := public._ticker_actor(p_member_id, p_pin);
   if n is null then return jsonb_build_object('success', false, 'message', 'غير مصرح أو بيانات الدخول غير صحيحة'); end if;
-  delete from public.announcements where id = p_id and in_ticker;
+  -- إيقاف الإعلان فورًا (يبقى في السجل).
+  update public.announcements set expires_at = now(), scheduled_at = least(coalesce(scheduled_at, now()), now()) where id = p_id and in_ticker;
   if not found then return jsonb_build_object('success', false, 'message', 'الإعلان غير موجود'); end if;
-  insert into public.ghadeer_security_log(action, member_id, metadata) values ('ticker_news_deleted', nullif(p_member_id, 0), jsonb_build_object('id', p_id));
-  return jsonb_build_object('success', true, 'message', 'تم حذف الإعلان');
+  insert into public.ghadeer_security_log(action, member_id, metadata) values ('ticker_news_stopped', nullif(p_member_id, 0), jsonb_build_object('id', p_id));
+  return jsonb_build_object('success', true, 'message', 'تم إيقاف الإعلان');
 end; $$;
 
 grant execute on function public.staff_post_ticker_news(bigint, text, text, text, timestamptz, timestamptz), public.staff_delete_ticker_news(bigint, text, bigint) to anon, authenticated;
