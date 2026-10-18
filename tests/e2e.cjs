@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 17 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 19 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -111,7 +111,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 17);
+  ok('guest icons count', (await checkAllTiles('guest')) === 19);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
@@ -145,7 +145,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 17);
+  ok('member icons count', (await checkAllTiles('member')) === 19);
   await page.goto(BASE + '#/display'); await page.waitForSelector('[data-tiles-list]');
   await page.click('[data-tiles-btn=lg]'); await page.waitForSelector('[data-tiles-btn=lg].active');
   await page.click('[data-tiles-list] [data-id=coffee] [data-eye]'); await page.waitForSelector('[data-tiles-list] [data-id=coffee].inactive');
@@ -156,16 +156,28 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const up = await lastCall('member_set_ui_prefs');
   ok('display: settings synced to member account', up && up.args.p_prefs.tiles === 'lg' && up.args.p_prefs.hidden.includes('coffee') && up.args.p_prefs.theme === 'dark');
   await page.goto(BASE + '#/home'); await page.waitForSelector('.home-tiles');
-  ok('display: hidden tile removed, order changed, big tiles', !(await page.$('[data-tile=coffee]')) && (await page.$$eval('[data-tile]', t => t.map(x => x.dataset.tile))).indexOf('invite') === 4 && await page.locator('.home-tiles').evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 4));
+  ok('display: hidden tile removed, order changed, big tiles', !(await page.$('[data-tile=coffee]')) && (await page.$$eval('[data-tile]', t => t.map(x => x.dataset.tile))).indexOf('invite') === 5 && await page.locator('.home-tiles').evaluate(e => getComputedStyle(e).gridTemplateColumns.split(' ').length === 4));
   ok('display: prayer hidden, zoom + dark theme applied', await page.$eval('[data-prayer]', e => e.hidden) && await page.evaluate(() => document.body.style.zoom === '1.05' && document.documentElement.dataset.theme === 'dark'));
   await page.goto(BASE + '#/display'); await page.waitForSelector('[data-reset]'); await page.click('[data-reset]'); await page.waitForTimeout(200);
   ok('display: reset restores defaults', await page.evaluate(() => !document.body.style.zoom && document.documentElement.dataset.theme === 'auto' && document.documentElement.dataset.tiles === 'md'));
   await page.goto(BASE + '#/invite'); await page.waitForSelector('.invite-compose');
   ok('invite: member composer with personal WhatsApp link', (await page.getAttribute('[data-wa]', 'href')).startsWith('https://wa.me/?text=') && decodeURIComponent(await page.getAttribute('[data-wa]', 'href')).includes('#/invite/'));
-  await page.goto(BASE + '#/whatsapp'); await page.waitForSelector('[data-mine]');
+  await page.goto(BASE + '#/whatsapp/mine'); await page.waitForSelector('[data-mine]');
   await page.fill('[data-mine] [name=phone]', '0512345678'); await page.check('[data-mine] [name=allow]'); await page.click('[data-mine] button'); await page.waitForTimeout(300);
   const ws = await lastCall('member_set_whatsapp');
   ok('whatsapp: member saves own number with consent', ws && ws.args.p_phone === '0512345678' && ws.args.p_allow === true);
+  await page.goto(BASE + '#/whatsapp'); await page.waitForSelector('[data-person]');
+  await page.evaluate(() => { window.__waOpen = u => { window.__lastWa = u; }; });
+  await page.fill('[data-person] [name=phone]', '0551234567'); await page.click('[data-person] button.wa');
+  ok('whatsapp: message a person opens WhatsApp directly with the number', (await page.evaluate(() => window.__lastWa || '')).startsWith('https://wa.me/966551234567?text='));
+  await page.click('a[href="#/whatsapp/group"]'); await page.waitForSelector('[data-group]');
+  await page.click('[data-tpl=app]'); await page.click('[data-group] button.wa');
+  const gw = await page.evaluate(() => window.__lastWa || '');
+  ok('whatsapp: group message opens WhatsApp chooser with text', gw.startsWith('https://wa.me/?text=') && decodeURIComponent(gw).includes('برنامج جيران حي الغدير'));
+  await page.goto(BASE + '#/links/jobs'); await page.waitForSelector('.segmented');
+  ok('links: useful links has only jobs + public services (no news, no football)', (await page.$$('.page-body .segmented a')).length === 2 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
+  await page.goto(BASE + '#/home'); await page.waitForSelector('.home-tiles');
+  ok('home: news + WhatsApp tiles, display settings appears once', !!(await page.$('[data-tile="links/news"]')) && !!(await page.$('[data-tile=whatsapp]')) && (await page.$$('a[href="#/display"]')).length === 1);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('.roshn-table');
   ok('football: Roshn standings render in app', (await page.textContent('.roshn-table')).includes('النصر') && (await page.textContent('.roshn-table')).includes('19'));
   await page.click('[data-team="101"]'); await page.waitForSelector('.roshn-match');
@@ -296,7 +308,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_message');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 19);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 21);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -329,7 +341,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
   ok('supervisor: dashboard shows only permitted sections', !(await page.$('.mgr-card[href="#/manager/settings"]')) && !!(await page.$('.mgr-card[href="#/manager/ticker"]')));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 18);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 20);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);

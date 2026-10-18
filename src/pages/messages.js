@@ -1,4 +1,3 @@
-import { render as renderWhatsapp } from './whatsapp.js';
 import { esc, toast, busy, empty, val, fmtDateTime, $ } from '../lib/dom.js';
 import { state, memberName, requirePin, creds, showLogin } from '../lib/session.js';
 import { call, list } from '../lib/api.js';
@@ -10,9 +9,9 @@ function needLogin(el, tabs, again) {
 }
 
 export async function render(el, [tab = 'group', arg]) {
-  const tabs = `<div class="segmented"><a href="#/messages" class="${tab === 'group' ? 'active' : ''}">📢 المجموعة</a><a href="#/messages/private" class="${tab === 'private' || tab === 'chat' ? 'active' : ''}">💬 الخاص</a><a href="#/messages/suggest" class="${tab === 'suggest' ? 'active' : ''}">💡 اقتراح</a><a href="#/messages/whatsapp" class="${tab === 'whatsapp' ? 'active' : ''}">📱 واتساب</a></div>`;
+  const tabs = `<div class="segmented"><a href="#/messages" class="${tab === 'group' ? 'active' : ''}">📢 المجموعة</a><a href="#/messages/private" class="${tab === 'private' || tab === 'chat' ? 'active' : ''}">💬 الخاص</a><a href="#/messages/suggest" class="${tab === 'suggest' ? 'active' : ''}">💡 اقتراح</a></div>`;
   const again = () => render(el, [tab, arg]);
-  if (tab === 'whatsapp') { el.innerHTML = tabs + '<div data-wa-box></div>'; return renderWhatsapp(el.querySelector('[data-wa-box]')); }
+  if (tab === 'whatsapp') { location.replace('#/whatsapp'); return; }
 
   if (tab === 'suggest') {
     el.innerHTML = tabs + `<form class="card" data-sug><label>التصنيف</label><select name="cat">${['عام', 'القهوة', 'الطلعات', 'البرنامج', 'خدمات الحي'].map(c => `<option>${c}</option>`).join('')}</select>
