@@ -48,7 +48,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
       await page.goto(BASE + '#/home'); await page.waitForSelector(`[data-tile="${id}"]`);
       await page.click(`[data-tile="${id}"]`);
       // Guests should see the welcome modal for member-only services, not navigate into them.
-      if (role === 'guest' && !['account', 'terms', 'about', 'install'].includes(id)) {
+      if (role === 'guest' && !['account', 'terms', 'about', 'install', 'invite'].includes(id)) {
         await page.waitForSelector('#modalRoot .guest-welcome', { timeout: 4000 });
         const welcome = await page.locator('#modalRoot .guest-welcome').innerText();
         ok(`guest icon opens welcome [${id}]`, welcome.includes('الجيرة الطيبة') && welcome.includes('طلب الانضمام'), welcome.slice(0, 100));
@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 28 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -80,12 +80,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('news ticker: dua for leaders and armed forces', newsT.includes('خادم الحرمين الشريفين') && newsT.includes('قواتنا المسلحة'));
   ok('news ticker: local news from trusted source', newsT.includes('تعليق الدراسة الحضورية') && newsT.includes('واس'));
   ok('news ticker: below dhikr ticker', await page.evaluate(() => document.querySelector('[data-ticker]').closest('.ticker').nextElementSibling.classList.contains('news-ticker')));
-  ok('news ticker: thanks only the day after coffee/outing', await page.evaluate(async () => {
+  ok('news ticker: thanks start after the appointment, last 24h, in red', await page.evaluate(async () => {
     const m = await import('./src/lib/ticker.js');
-    const d = n => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date(Date.now() + n * 864e5));
-    const mk = n => m.newsItems({ coffee: [{ coffee_date: d(n), member_id: 1, status: 'مقرر' }], outings: [{ outing_date: d(n), member1_id: 1, member2_id: 2, status: 'scheduled' }], memberName: id => 'ع' + id }).filter(i => i.kind === 'thanks').length;
-    return mk(-1) === 2 && mk(0) === 0 && mk(-2) === 0;
-  }));
+    const at = h => { const d = new Date(Date.now() + h * 36e5 + 3 * 36e5); return [d.toISOString().slice(0, 10), d.toISOString().slice(11, 16)]; };
+    const mk = h => { const [dt, tm] = at(h); return m.newsItems({ coffee: [{ coffee_date: dt, coffee_time: tm, member_id: 1, status: 'مقرر' }], outings: [{ outing_date: dt, outing_time: tm, member1_id: 1, member2_id: 2, status: 'scheduled' }], memberName: id => 'ع' + id }).filter(i => i.kind === 'thanks').length; };
+    return mk(-2) === 2 && mk(-23) === 2 && mk(-25) === 0 && mk(2) === 0;
+  }) && await page.evaluate(() => { const s = document.createElement('span'); s.className = 'tk-item tk-thanks'; document.querySelector('.news-ticker').appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c === 'rgb(198, 40, 40)'; }));
+
   ok('home: ticker moves with dhikr + hadith', await page.evaluate(() => { const t = document.querySelector('[data-ticker]'); return getComputedStyle(t).animationName === 'ticker-rtl' && t.textContent.includes('سبحان الله') && t.textContent.includes('قال ﷺ'); }));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms h3');
   ok('terms page: full text + official laws', (await page.$$('.terms h3')).length === 15 && (await page.$$('.terms .link-item')).length === 6);
@@ -109,10 +110,15 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 26);
+  ok('guest icons count', (await checkAllTiles('guest')) === 28);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
+  await page.goto(BASE + '#/invite/' + encodeURIComponent('عامر القحطاني')); await page.waitForSelector('.invite-hero');
+  ok('invite: guest landing shows inviter + features + join', (await page.textContent('.invite-hero')).includes('عامر القحطاني') && (await page.$$('.invite-features .feat')).length === 6);
+  await page.click('.invite-hero [data-join]'); await page.waitForSelector('[data-join-request]');
+  ok('invite: join request form opens from invitation', true);
+  await page.click('.modal [data-close]').catch(() => {}); await page.waitForTimeout(200);
   await page.goto(BASE + '#/coffee'); await page.waitForSelector('.guest-gate');
   ok('guest: direct service access shows welcome gate', (await page.textContent('.guest-gate')).includes('أهلًا بك في جيران حي الغدير') && !!(await page.$('[data-gate-join]')) && !!(await page.$('[data-gate]')) && !!(await page.$('[data-gate-browse]')) && !(await page.$('[data-apology]')));
   await page.goto(BASE + '#/terms'); await page.waitForSelector('.terms');
@@ -138,7 +144,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 26);
+  ok('member icons count', (await checkAllTiles('member')) === 28);
+  await page.goto(BASE + '#/invite'); await page.waitForSelector('.invite-compose');
+  ok('invite: member composer with personal WhatsApp link', (await page.getAttribute('[data-wa]', 'href')).startsWith('https://wa.me/?text=') && decodeURIComponent(await page.getAttribute('[data-wa]', 'href')).includes('#/invite/'));
+  await page.goto(BASE + '#/whatsapp'); await page.waitForSelector('[data-mine]');
+  await page.fill('[data-mine] [name=phone]', '0512345678'); await page.check('[data-mine] [name=allow]'); await page.click('[data-mine] button'); await page.waitForTimeout(300);
+  const ws = await lastCall('member_set_whatsapp');
+  ok('whatsapp: member saves own number with consent', ws && ws.args.p_phone === '0512345678' && ws.args.p_allow === true);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('.roshn-table');
   ok('football: Roshn standings render in app', (await page.textContent('.roshn-table')).includes('النصر') && (await page.textContent('.roshn-table')).includes('19'));
   await page.click('[data-team="101"]'); await page.waitForSelector('.roshn-match');
@@ -260,7 +272,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_news');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7);
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 30);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -291,7 +303,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager/joinRequests'); await page.waitForSelector('[data-tab] .card');
   ok('supervisor: join requests tab visible', !!(await page.$('a[href="#/manager/joinRequests"]')) && (await page.textContent('[data-tab]')).includes('طلبات الانضمام'));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 27);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 29);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);

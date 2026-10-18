@@ -1,9 +1,7 @@
 /* شريط أخبار الحي: إعلانات الإدارة، الشكر بعد القهوة والطلعة، تهاني المناسبات، الدعاء، والأخبار المحلية. */
 import { esc } from './dom.js';
-import { TIMEZONE } from '../config.js';
 
 const DAY = 864e5;
-const ymd = d => new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 const THANKS_TITLE = /رسالة شكر/;
 
 export const DUA = 'اللهم احفظ خادم الحرمين الشريفين وولي عهده الأمين، ووفقهما لما تحب وترضى، واحفظ رجال قواتنا المسلحة وانصرهم، وأدم على بلادنا الأمن والأمان.';
@@ -14,7 +12,6 @@ export const DUA = 'اللهم احفظ خادم الحرمين الشريفين
  */
 export function newsItems({ announcements = [], coffee = [], outings = [], local = [], memberName = id => '', now = Date.now() }) {
   const items = [];
-  const yesterday = ymd(new Date(now - DAY));
 
   // 1) تهاني المناسبات الدينية والوطنية: 24 ساعة من وقت المناسبة.
   for (const a of announcements) {
@@ -31,13 +28,16 @@ export function newsItems({ announcements = [], coffee = [], outings = [], local
     if (start <= now && now < end) items.push({ kind: 'news', html: `📢 <b>${esc(a.title)}</b>${a.message ? ' — ' + esc(a.message) : ''}` });
   }
 
-  // 3) الشكر والعرفان: طوال اليوم التالي للقهوة أو الطلعة (24 ساعة).
+  // 3) الشكر والعرفان: يبدأ تلقائيًا بعد موعد القهوة أو الطلعة ويستمر 24 ساعة.
+  //    إن لم يُحدد وقت للموعد يُعدّ بعد صلاة العشاء (9 مساءً بتوقيت الرياض).
+  const after = (date, time) => Date.parse(`${date}T${String(time || '21:00').slice(0, 5)}:00+03:00`);
+  const active = start => start <= now && now < start + DAY;
   for (const c of coffee) {
-    if (c.coffee_date === yesterday && c.status !== 'مؤجل') items.push({ kind: 'thanks', html: `🌷 شكرًا وعرفانًا لـ <b>${esc(memberName(c.member_id))}</b> على استضافة قهوة الجيران أمس، جزاه الله خيرًا وبارك في كرمه.` });
+    if (c.status !== 'مؤجل' && active(after(c.coffee_date, c.coffee_time))) items.unshift({ kind: 'thanks', html: `🌹 شكرًا وعرفانًا لـ <b>${esc(memberName(c.member_id))}</b> على استضافة قهوة الجيران، جزاه الله خيرًا وبارك في كرمه.` });
   }
   for (const o of outings) {
-    if (o.outing_date === yesterday && !['مؤجل', 'ملغاة', 'cancelled', 'postponed'].includes(o.status)) {
-      items.push({ kind: 'thanks', html: `🌷 شكرًا وعرفانًا لـ <b>${esc(memberName(o.member1_id))}</b> و<b>${esc(memberName(o.member2_id))}</b> على تنظيم طلعة الجيران أمس، جزاهما الله خيرًا.` });
+    if (!['مؤجل', 'ملغاة', 'cancelled', 'postponed'].includes(o.status) && active(after(o.outing_date, o.outing_time))) {
+      items.unshift({ kind: 'thanks', html: `🌹 شكرًا وعرفانًا لـ <b>${esc(memberName(o.member1_id))}</b> و<b>${esc(memberName(o.member2_id))}</b> على تنظيم طلعة الجيران، جزاهما الله خيرًا.` });
     }
   }
 

@@ -19,6 +19,8 @@ export const GROUPS = [
     ['news', '📢', 'أخبار الحي', 'الإعلانات والمناسبات', 'all'],
     ['messages', '💬', 'الرسائل', 'المجموعة والخاص', 'member'],
     ['check', '❤️', 'تفقد جارك', 'مريض • محتاج • مساعدة', 'member'],
+    ['invite', '💌', 'ادعُ جارك', 'دعوة للانضمام للبرنامج', 'all'],
+    ['whatsapp', '📱', 'واتساب الجيران', 'القروب والمراسلة', 'member'],
     ['community', '🏘️', 'مجتمع جديد', 'أنشئ مجتمعك الخاص', 'member']
   ]],
   ['🤝 خدمات الحي', [
@@ -52,7 +54,7 @@ export const GROUPS = [
 ];
 export const TILES = GROUPS.flatMap(([, items]) => items);
 // أيقونات يفتحها الزائر دون تسجيل (يطابق PUBLIC في app.js).
-const OPEN = new Set(['account', 'terms', 'about', 'install']);
+const OPEN = new Set(['account', 'terms', 'about', 'install', 'invite']);
 
 /** ترتيب الأيقونات حسب إعدادات المطور وإخفاء الموقوفة عن غير المدير. */
 function arrange(items, svc) {
@@ -86,7 +88,7 @@ export async function render(el) {
   el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
     if (state.user && state.termsOk || state.manager) return;
     const id = tile.dataset.tile || '';
-    if (['account', 'terms', 'about', 'install'].includes(id)) return;
+    if (OPEN.has(id)) return;
     event.preventDefault();
     showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
   }));

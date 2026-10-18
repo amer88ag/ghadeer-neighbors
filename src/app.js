@@ -25,6 +25,8 @@ import * as terms from './pages/terms.js';
 import * as install from './pages/install.js';
 import * as community from './pages/community.js';
 import * as stats from './pages/stats.js';
+import * as invite from './pages/invite.js';
+import * as whatsapp from './pages/whatsapp.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -33,14 +35,14 @@ const PAGES = [
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
   ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms], ['install', 'النشر والتثبيت', '📲', install],
-  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats]
+  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 
 // صفحات متاحة للزائر: الواجهة فقط والتعريف والشروط والدخول. كل ما عداها يتطلب دخول عضو وموافقته على الشروط.
-const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager']);
+const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager', 'invite']);
 // صفحات لا يمكن إيقافها حتى لا يُحجب الدخول أو الإدارة أو الشروط.
-const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats']);
+const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats', 'invite']);
 export const isPublicRoute = id => PUBLIC.has(String(id).split('/')[0]);
 
 setGuard(async (id, params) => {
