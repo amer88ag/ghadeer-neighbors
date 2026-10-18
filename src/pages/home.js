@@ -11,47 +11,36 @@ import { newsItems, fillTicker } from '../lib/ticker.js';
  * كل مسار هنا يجب أن يكون صفحة مسجلة في app.js (يتحقق منها scripts/check.js).
  */
 export const GROUPS = [
-  ['🏘️ الحي', [
-    ['coffee', '☕', 'القهوة', 'الجدول والاعتذار', 'all'],
-    ['outings', '🚐', 'الطلعات', 'التصويت والجدول', 'all'],
-    ['events', '🎉', 'مناسبات الحي', 'المناسبات والمشاركون', 'all'],
-    ['neighbors', '👥', 'الجيران', 'دليل الجيران', 'all'],
+  ['🤝 مجتمعنا', [
     ['news', '📢', 'أخبار الحي', 'الإعلانات والمناسبات', 'all'],
-    ['messages', '💬', 'الرسائل', 'المجموعة والخاص', 'member'],
+    ['messages', '💬', 'الرسائل', 'المجموعة والخاص والواتساب', 'member'],
+    ['neighbors', '👥', 'الجيران', 'دليل الجيران', 'all'],
     ['check', '❤️', 'تفقد جارك', 'مريض • محتاج • مساعدة', 'member'],
-    ['invite', '💌', 'ادعُ جارك', 'دعوة للانضمام للبرنامج', 'all'],
-    ['whatsapp', '📱', 'واتساب الجيران', 'القروب والمراسلة', 'member'],
+    ['events', '🎉', 'مناسبات الحي', 'أفراح ومواساة ولقاءات', 'all'],
+    ['invite', '💌', 'ادعُ جارك', 'دعوة ونشر وتثبيت', 'all']
+  ]],
+  ['🛠️ تعاون وخدمات', [
+    ['services', '🤝', 'خدمات الحي', 'خدمات • سوق • مفقودات • مبادرات', 'all'],
+    ['housing', '🏠', 'سكن الحي', 'عروض وطلبات الإيجار', 'all'],
     ['community', '🏘️', 'مجتمع جديد', 'أنشئ مجتمعك الخاص', 'member']
   ]],
-  ['🤝 خدمات الحي', [
-    ['services/help', '🤝', 'خدمات الجيران', 'اطلب أو اعرض خدمة', 'all'],
-    ['services/market', '🛍️', 'سوق الحي', 'بيع وإهداء وطلب', 'all'],
-    ['services/lost', '🔎', 'المفقودات', 'مفقود أو معثور عليه', 'all'],
-    ['services/initiative', '💡', 'المبادرات', 'أفكار لخدمة الحي', 'all'],
-    ['housing', '🏠', 'سكن الحي', 'عروض وطلبات الإيجار', 'all'],
-    ['services/catalog', '📚', 'دليل الخدمات', 'صيانة • نقل • تعليم', 'all'],
-    ['links/jobs', '💼', 'الوظائف', 'بوابات التوظيف', 'all']
+  ['☕ لقاءات اختيارية', [
+    ['coffee', '☕', 'القهوة', 'لمن يرغب بالمشاركة', 'all'],
+    ['outings', '🚐', 'الطلعات', 'لمن يرغب بالمشاركة', 'all']
   ]],
   ['🕌 يومياتي', [
-    ['prayer', '🕌', 'مواقيت الصلاة', 'الأذان والإقامة', 'all'],
-    ['weather', '🌤️', 'الطقس', 'الآن والأيام القادمة', 'all'],
-    ['azkar', '📿', 'الذكر', 'مسبحة وأحاديث الجوار', 'all']
-  ]],
-  ['🔗 روابط', [
-    ['links/news', '📰', 'الأخبار والصحف', 'السعودية والعالم', 'all'],
-    ['links/sports', '⚽', 'الرياضة', 'الدوري والبطولات', 'all'],
-    ['links/gov', '🏛️', 'خدمات عامة', 'حكومية • المساجد', 'all']
+    ['azkar', '📿', 'الذكر', 'مسبحة وأحاديث الجوار', 'all'],
+    ['links/sports', '⚽', 'الرياضة', 'الدوريات والمباريات', 'all'],
+    ['links/news', '🔗', 'روابط مفيدة', 'أخبار • وظائف • خدمات عامة', 'all']
   ]],
   ['👤 حسابي', [
-    ['account', '👤', 'حسابي', 'الدخول والرقم السري', 'all'],
-    ['neighbors/me', '🪪', 'بطاقتي', 'بياناتي وطرق التواصل', 'member'],
-    ['install', '📲', 'النشر والتثبيت', 'شارك وثبّت البرنامج', 'all'],
-    ['terms', '📜', 'الشروط والأحكام', 'الأنظمة والإقرارات', 'all'],
-    ['about', '©️', 'عن البرنامج', 'الملكية والخصوصية', 'all'],
+    ['account', '👤', 'حسابي', 'الدخول وبطاقتي', 'all'],
+    ['about', '©️', 'عن البرنامج', 'الشروط والخصوصية', 'all'],
     ['manager', '🛠️', 'لوحة الإدارة', 'للمطور والمشرفين', 'admin'],
     ['stats', '📊', 'الإحصاءات', 'إحصاء شامل للمطور', 'dev']
   ]]
 ];
+export const DEFAULT_WELCOME = 'مجتمع يجمع جيران الحي على التواصل والتعاون والتكاتف.';
 export const TILES = GROUPS.flatMap(([, items]) => items);
 // أيقونات يفتحها الزائر دون تسجيل (يطابق PUBLIC في app.js).
 const OPEN = new Set(['account', 'terms', 'about', 'install', 'invite']);
@@ -67,21 +56,21 @@ function arrange(items, svc) {
 
 export async function render(el) {
   const svc = await data.serviceSettings();
-  const tiles = GROUPS.flatMap(([, items]) => arrange(items, svc));
+  const groups = GROUPS.map(([g, items]) => [g, arrange(items, svc)]).filter(([, v]) => v.length);
   el.innerHTML = `
     <div class="ticker" aria-label="الذكر والأحاديث"><div class="ticker-track" data-ticker></div></div>
     <div class="ticker news-ticker" aria-label="أخبار الحي"><span class="tk-label">أخبار الحي</span><div class="ticker-track" data-news-ticker></div></div>
     <section class="home-top">
-      <div class="home-hello"><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2>
+      <div class="home-hello"><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2><p class="home-tagline" data-welcome>${esc(DEFAULT_WELCOME)}</p>
         ${state.user ? '' : '<button class="btn primary small-btn" data-join>🌟 انضم إلى الجيران</button>'}</div>
       <button type="button" class="weather-badge" data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button>
     </section>
     <section class="card prayer-card" data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
-    <section class="upcoming" aria-label="القادم">
+    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${groups.map(([g, items], gi) => items.map(([id, i, t, d]) => `<a class="tile g${gi}${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}" title="${esc(g + ' — ' + d)}"><span class="tile-icon">${i}</span><b>${esc(t)}</b>${svc[id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`).join('')).join('')}</nav>
+    <section class="upcoming" aria-label="لقاءات الجيران القادمة"><span class="up-title">☕ لقاءات الجيران القادمة <small>(اختيارية)</small></span>
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-v" data-next-outing>…</span></a>
     </section>
-    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${tiles.map(([id, i, t, d]) => `<a class="tile${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}" title="${esc(d)}"><span class="tile-icon">${i}</span><b>${esc(t)}</b>${svc[id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`).join('')}</nav>
     <p class="muted center home-foot">👥 ${activeMembers().length} جار نشط في البرنامج</p>`;
 
   $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
@@ -104,6 +93,8 @@ export async function render(el) {
   const prayerEl = $('[data-prayer]', el);
   prayerTimes().then(p => renderPrayer(prayerEl, p, LOCATION.label, { compact: true }))
     .catch(() => { prayerEl.innerHTML = '<p class="muted">🕌 تعذر جلب المواقيت الآن.</p>'; });
+  prayerEl.addEventListener('click', e => { if (!e.target.closest('a,button')) location.hash = '#/prayer'; });
+  data.appStatus().then(st => { const w = $('[data-welcome]', el); if (w && st.home_welcome) w.textContent = st.home_welcome; }).catch(() => {});
   const weatherBtn = $('[data-weather]', el);
   renderWeather(weatherBtn);
   weatherBtn.addEventListener('click', () => { location.hash = '#/weather'; });

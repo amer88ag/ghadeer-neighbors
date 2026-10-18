@@ -7,23 +7,23 @@ import { PIN_PATTERN } from '../config.js';
 import { GROUPS } from './home.js';
 import { refresh } from '../lib/router.js';
 
-const TABS = [
-  ['developer', '🧰 مركز المطور', 'manager'],
-  ['joinRequests', '📨 طلبات الانضمام الجديدة', 'any'],
-  ['services', '🧩 الخدمات', 'manager'],
-  ['schedules', '☕🚐 الجداول', 'any'],
-  ['plans', '🗳️ الطلعات المقترحة', 'any'],
-  ['ticker', '📢 شريط الأخبار', 'any'],
-  ['occasions', '🎉 المناسبات', 'any'],
-  ['messages', '💬 الرسائل والتنبيهات', 'manager'],
-  ['members', '👥 الأعضاء والأرقام', 'manager'],
-  ['permissions', '🛡️ المشرفون', 'manager'],
-  ['rules', '⚙️ القواعد', 'any'],
-  ['content', '🗂️ المحتوى', 'manager'],
-  ['communities', '🏘️ المجتمعات', 'any'],
-  ['checks', '❤️ التفقد', 'manager'],
-  ['reports', '📊 التقارير والنسخ', 'manager']
+// أقسام لوحة الإدارة مجمّعة حسب الغرض. access: manager = المطور فقط، any = المطور والمشرف المفوض.
+const SECTIONS = [
+  ['👥 المجتمع والأعضاء', [
+    ['members', '👥', 'الأعضاء والأرقام', 'manager'], ['joinRequests', '📨', 'طلبات الانضمام', 'any'], ['permissions', '🛡️', 'المشرفون والصلاحيات', 'manager'],
+    ['communities', '🏘️', 'المجتمعات الجديدة', 'any'], ['checks', '❤️', 'التفقد', 'manager']
+  ]],
+  ['📢 التواصل والنشر', [
+    ['ticker', '📢', 'شريط الأخبار', 'any'], ['occasions', '🎉', 'المناسبات والتهاني', 'any'], ['messages', '💬', 'الرسائل والتنبيهات', 'manager']
+  ]],
+  ['☕ اللقاءات (اختيارية)', [
+    ['schedules', '📅', 'جداول القهوة والطلعات', 'any'], ['plans', '🗳️', 'الطلعات المقترحة', 'any'], ['rules', '⚙️', 'قواعد الجداول', 'any']
+  ]],
+  ['🧩 النظام والتحكم', [
+    ['settings', '🧰', 'إعدادات المطور', 'manager'], ['services', '🧩', 'الأيقونات والخدمات', 'manager'], ['content', '🗂️', 'إدارة المحتوى', 'manager'], ['reports', '💾', 'التقارير والنسخ', 'manager']
+  ]]
 ];
+const TABS = SECTIONS.flatMap(([, items]) => items.map(([k, i, l, acc]) => [k, i + ' ' + l, acc]));
 
 const M = () => ({ p_manager_pin: state.pin });
 const S = () => ({ p_member_id: state.user?.id, p_pin: state.pin });
@@ -54,11 +54,71 @@ export async function render(el, [tab]) {
     return;
   }
   const allowed = TABS.filter(t => state.manager || t[2] === 'any');
-  if (!allowed.some(t => t[0] === tab)) tab = allowed[0][0];
-  el.innerHTML = `<div class="segmented scroll">${allowed.map(([k, l]) => `<a href="#/manager/${k}" class="${k === tab ? 'active' : ''}">${l}</a>`).join('')}</div><div data-tab></div>`;
-  const box = $('[data-tab]', el);
   const again = () => { data.invalidate(); render(el, [tab]); };
-  await ({ developer, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  if (!tab || tab === 'home' || !allowed.some(t => t[0] === tab)) return dashboard(el);
+  const cur = allowed.find(t => t[0] === tab);
+  el.innerHTML = `<div class="mgr-bar"><a class="btn secondary" href="#/manager">🏠 اللوحة</a>
+      <select data-jump aria-label="الانتقال إلى قسم">${SECTIONS.map(([g, items]) => { const v = items.filter(t => state.manager || t[3] === 'any'); return v.length ? `<optgroup label="${g}">${v.map(([k, i, l]) => `<option value="${k}"${k === tab ? ' selected' : ''}>${i} ${l}</option>`).join('')}</optgroup>` : ''; }).join('')}</select></div>
+    <h2 class="mgr-title">${cur[1]}</h2><div data-tab></div>`;
+  $('[data-jump]', el).onchange = e => { location.hash = '#/manager/' + e.target.value; };
+  const box = $('[data-tab]', el);
+  await ({ settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
+}
+
+/* ---------------- لوحة التحكم الرئيسية ---------------- */
+async function dashboard(el) {
+  const now = Date.now();
+  const [st, joins, comms, pins, ann, status] = await Promise.all([
+    state.manager ? call('manager_full_stats', M()) : Promise.resolve({ ok: false }),
+    state.manager ? call('manager_list_ghadeer_join_requests', M()) : call('supervisor_list_ghadeer_join_requests', S()),
+    state.manager ? list('manager_list_communities', M()) : list('supervisor_list_communities', S()),
+    state.manager ? list('manager_get_pin_reset_requests', M()) : Promise.resolve({ ok: false, data: [] }),
+    data.announcements(true), data.appStatus(true)
+  ]);
+  const rows = x => Array.isArray(x) ? x : Array.isArray(x?.requests) ? x.requests : [];
+  const badge = {
+    joinRequests: joins.ok ? rows(joins.data).filter(r => !r.status || r.status === 'pending').length : 0,
+    communities: comms.ok ? comms.data.filter(c => c.status === 'pending').length : 0,
+    members: pins.ok ? pins.data.filter(r => !r.status || r.status === 'open' || r.status === 'pending').length : 0,
+    ticker: ann.filter(a => a.in_ticker && (!a.expires_at || new Date(a.expires_at).getTime() > now)).length
+  };
+  const d = st.ok ? st.data : null;
+  const kpi = (v, l, href) => `<a class="kpi" href="${href}"><b>${v ?? '—'}</b><small>${l}</small></a>`;
+  el.innerHTML = `
+    ${status.paused ? '<div class="status bad">⏸️ البرنامج في وضع الصيانة الآن — الأعضاء يرون رسالة الإيقاف. <a href="#/manager/settings">إدارة الوضع</a></div>' : ''}
+    <section class="mgr-hero"><div><small>${state.manager ? 'المطور' : 'مشرف'}</small><h2>لوحة التحكم</h2></div><span class="pill">${new Intl.DateTimeFormat('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}</span></section>
+    <div class="kpi-row">
+      ${d ? kpi(d.members?.active, 'عضو نشط', '#/manager/members') + kpi(d.members?.seen_7d, 'دخلوا هذا الأسبوع', '#/stats') : ''}
+      ${kpi(badge.joinRequests, 'طلب انضمام', '#/manager/joinRequests')}${kpi(badge.communities, 'طلب مجتمع', '#/manager/communities')}
+      ${kpi(badge.ticker, 'رسالة في الشريط', '#/manager/ticker')}${state.manager ? kpi(badge.members, 'طلب رقم سري', '#/manager/members') : ''}
+    </div>
+    <div class="quick-actions"><a class="btn primary" href="#/manager/ticker">📢 رسالة للشريط</a><a class="btn secondary" href="#/manager/joinRequests">📨 الطلبات</a>${state.manager ? '<a class="btn secondary" href="#/manager/members">➕ عضو جديد</a><a class="btn secondary" href="#/stats">📊 الإحصاءات</a>' : ''}</div>
+    ${SECTIONS.map(([g, items]) => { const v = items.filter(t => state.manager || t[3] === 'any'); return v.length ? `<h3 class="tile-group">${g}</h3><nav class="mgr-grid">${v.map(([k, i, l]) => `<a class="mgr-card" href="#/manager/${k}"><span>${i}</span><b>${l}</b>${badge[k] ? `<em class="badge">${badge[k]}</em>` : ''}</a>`).join('')}</nav>` : ''; }).join('')}`;
+}
+
+/* ---------------- إعدادات المطور ---------------- */
+async function settings(el, again) {
+  const st = await data.appStatus(true);
+  el.innerHTML = `
+    <form class="card" data-f="pause"><h3>⏸️ وضع الصيانة</h3><p class="muted">عند التفعيل يرى الأعضاء والزوار رسالة الإيقاف بدل الخدمات، وتبقى لوحة الإدارة متاحة لك.</p>
+      <label class="switch"><input type="checkbox" name="on" ${st.paused ? 'checked' : ''}> إيقاف البرنامج مؤقتًا</label>
+      <label>رسالة الإيقاف</label><input name="msg" value="${esc(st.pause_message || 'البرنامج متوقف مؤقتًا للصيانة، وسيعود قريبًا بإذن الله.')}">
+      <button class="btn primary block">💾 حفظ</button></form>
+    <form class="card" data-f="welcome"><h3>🏠 عبارة الترحيب في الرئيسية</h3><input name="v" maxlength="200" value="${esc(st.home_welcome || '')}" placeholder="مجتمع يجمع جيران الحي على التواصل والتعاون والتكاتف."><button class="btn primary block">💾 حفظ</button></form>
+    <form class="card" data-f="invite"><h3>💌 مقدمة رسالة الدعوة</h3><p class="muted">تظهر في أول رسالة «ادعُ جارك». اتركها فارغة لاستخدام النص الافتراضي.</p><textarea name="v" rows="4" maxlength="800">${esc(st.invite_intro || '')}</textarea><button class="btn primary block">💾 حفظ</button></form>
+    <form class="card" data-f="wa"><h3>👥 رابط قروب الواتساب</h3><input name="v" dir="ltr" placeholder="https://chat.whatsapp.com/..."><button class="btn primary block">💾 حفظ الرابط</button></form>
+    <div class="card"><h3>🔐 الأمان</h3><p class="muted">إلغاء «تذكّر هذا الجهاز» لكل الأعضاء، فيُطلب من الجميع الدخول برقمهم السري من جديد.</p><button class="btn danger block" data-revoke-all>🔐 تسجيل خروج كل الأجهزة</button></div>
+    <div data-diag></div>`;
+  bind(el, '[data-f=pause]', f => call('manager_set_program_pause', { p_pin: state.pin, p_paused: f.on.checked, p_message: val(f, 'msg') }), () => { data.invalidate('appStatus'); again(); });
+  bind(el, '[data-f=welcome]', f => call('manager_set_app_text', { ...M(), p_key: 'home_welcome', p_value: val(f, 'v') }), () => data.invalidate('appStatus'));
+  bind(el, '[data-f=invite]', f => call('manager_set_app_text', { ...M(), p_key: 'invite_intro', p_value: val(f, 'v') }), () => data.invalidate('appStatus'));
+  bind(el, '[data-f=wa]', f => call('manager_set_whatsapp_group', { ...M(), p_link: val(f, 'v') }));
+  $('[data-revoke-all]', el).onclick = e => busy(e.currentTarget, async () => {
+    if (!await confirmBox('سيُطلب من كل الأعضاء الدخول من جديد برقمهم السري. متابعة؟', { okText: 'تسجيل الخروج' })) return;
+    const r = await call('manager_revoke_all_devices', M());
+    toast(r.ok ? r.data?.message || 'تم.' : r.message, r.ok);
+  });
+  await developer($('[data-diag]', el), again);
 }
 
 /* ---------------- مركز المطور ---------------- */
@@ -72,7 +132,7 @@ async function developer(el, again) {
   const communityPending = communitiesResult.ok ? communitiesResult.data.filter(x => x.status === 'pending').length : null;
   const serviceCount = servicesResult.ok ? servicesResult.data.length : null;
   el.innerHTML = `
-    <section class="card"><h3>🧰 مركز المطور</h3>
+    <section class="card"><h3>🩺 فحص النظام</h3>
       <p class="muted">لوحة تشخيص وروابط إدارة. لا تُجري هذه الصفحة أي نشر أو تغييرات تلقائية في قاعدة البيانات.</p>
       <div class="list">
         <div class="row-item"><div class="row-main"><b>اتصال الإحصاءات</b><small>فحص صلاحية لوحة التقارير</small></div>${status(stats)}</div>
@@ -81,16 +141,6 @@ async function developer(el, again) {
       </div>
       ${[stats, servicesResult, communitiesResult].some(x => !x.ok) ? '<p class="status bad">بعض وظائف الإدارة غير متاحة. راجع رسالة الخطأ قبل اعتماد أي تغيير.</p>' : ''}
       <button class="btn secondary block" data-dev-refresh>🔄 إعادة الفحص</button>
-    </section>
-    <section class="card"><h3>⚡ اختصارات المطور</h3>
-      <div class="grid2">
-        <a class="btn secondary block" href="#/manager/services">🧩 الخدمات</a>
-        <a class="btn secondary block" href="#/manager/permissions">🛡️ صلاحيات المشرفين</a>
-        <a class="btn secondary block" href="#/manager/communities">🏘️ مراجعة المجتمعات</a>
-        <a class="btn secondary block" href="#/manager/reports">📊 التقارير والنسخ</a>
-        <a class="btn secondary block" href="#/manager/members">👥 الأعضاء</a>
-        <a class="btn secondary block" href="#/manager/rules">⚙️ القواعد</a>
-      </div>
     </section>
     ${!stats.ok ? '<section class="card"><h3>تفاصيل فحص الإحصاءات</h3><p class="status bad">' + esc(stats.message) + '</p></section>' : ''}
     ${!servicesResult.ok ? '<section class="card"><h3>تفاصيل فحص الخدمات</h3><p class="status bad">' + esc(servicesResult.message) + '</p></section>' : ''}
@@ -394,10 +444,16 @@ async function checks(el, again) {
 }
 
 /* ---------------- الخدمات (تفعيل/إيقاف/ترتيب) ---------------- */
+// أقسام داخلية يمكن إيقافها منفردة (داخل «خدمات الحي» و«روابط مفيدة» و«الرسائل»).
+const SUB_SERVICES = ['🔧 أقسام داخلية', [
+  ['services/help', '🤝', 'خدمات الجيران', '', 'all'], ['services/market', '🛍️', 'سوق الحي', '', 'all'], ['services/lost', '🔎', 'المفقودات', '', 'all'],
+  ['services/initiative', '💡', 'المبادرات', '', 'all'], ['services/catalog', '📚', 'دليل الخدمات', '', 'all'], ['links/jobs', '💼', 'الوظائف', '', 'all'],
+  ['links/gov', '🏛️', 'خدمات عامة', '', 'all'], ['messages/whatsapp', '📱', 'واتساب الجيران', '', 'all'], ['prayer', '🕌', 'مواقيت الصلاة', '', 'all'], ['weather', '🌤️', 'الطقس', '', 'all']
+]];
 async function services(el, again) {
   const svc = await data.serviceSettings(true);
   el.innerHTML = `<p class="muted">أوقف أي خدمة أو أعد ترتيبها داخل مجموعتها (الرقم الأصغر يظهر أولًا). الخدمة الموقوفة تختفي من الرئيسية وتظهر رسالتك لمن يفتح رابطها. المطور يرى كل الخدمات دائمًا.</p>` +
-    GROUPS.map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => !['admin', 'dev'].includes(t[4])).map(([id, i, t], idx) => { const s = svc[id] || {}; return `
+    [...GROUPS, SUB_SERVICES].map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => !['admin', 'dev'].includes(t[4])).map(([id, i, t], idx) => { const s = svc[id] || {}; return `
       <form class="row-item col svc-row" data-svc="${id}"><div><b>${i} ${t}</b>${s.enabled === false ? ' <span class="pill">⏸️ موقوفة</span>' : ''}</div>
         <div class="ctl"><label class="switch"><input type="checkbox" name="on" ${s.enabled === false ? '' : 'checked'}> مفعّلة</label>
         <input type="number" name="order" min="0" max="999" value="${esc(s.sort_order ?? idx + 1)}" aria-label="الترتيب">

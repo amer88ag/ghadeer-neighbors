@@ -56,3 +56,6 @@ export function visibleAnnouncements(rows) {
 }
 /** أخبار محلية من مصادر سعودية موثوقة (دالة طرفية، تُحدَّث كل 30 دقيقة). */
 export const localNews = force => cached('localNews', async () => { const r = await edge('ghadeer-local-news'); return r.ok ? (r.data?.items || []) : []; }, force);
+
+/** حالة البرنامج العامة: الإيقاف المؤقت ونص الترحيب ومقدمة الدعوة. */
+export const appStatus = force => cached('appStatus', async () => { const r = await call('get_app_status'); return r.ok && r.data && typeof r.data === 'object' ? r.data : {}; }, force);

@@ -524,3 +524,32 @@ input, select, textarea { font-size: 16px; }
 .ticker-preview { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
 .ticker-preview .tk-label { background: var(--gold); color: #fff; font-size: 12px; font-weight: 800; padding: 8px 10px; }
 .news-ticker .tk-news[style] b { color: inherit; }
+
+/* مجموعات أيقونات الرئيسية */
+#main .page-body[data-page="home"] .home-tiles .tile-group { grid-column: 1 / -1; margin: 6px 2px 0; font-size: 12px; color: var(--muted); font-weight: 800; }
+#main .page-body[data-page="home"] .home-tiles .tile-group:first-child { margin-top: 0; }
+.home-tagline { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+#main .page-body[data-page="home"] .upcoming { grid-template-columns: 1fr 1fr; }
+#main .page-body[data-page="home"] .up-title { grid-column: 1 / -1; font-size: 12px; font-weight: 800; color: var(--muted); }
+#main .page-body[data-page="home"] .up-title small { font-weight: 600; }
+#main .prayer-card { cursor: pointer; }
+
+/* لوحة الإدارة */
+.mgr-hero { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #0d4e34, #176b45); margin-bottom: 12px; }
+.mgr-hero h2 { margin: 0; font-size: 22px; } .mgr-hero small { opacity: .8; } .mgr-hero .pill { background: #ffffff26; color: #fff; border: 0; }
+.kpi-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 6px; text-align: center; text-decoration: none; color: inherit; }
+.kpi b { display: block; font-size: 22px; color: var(--g); line-height: 1.2; } .kpi small { color: var(--muted); font-size: 11px; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; } .quick-actions .btn { flex: 1 1 auto; }
+.mgr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 6px; }
+.mgr-card { position: relative; display: grid; justify-items: center; gap: 4px; text-align: center; padding: 12px 4px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; text-decoration: none; color: inherit; }
+.mgr-card span { font-size: 24px; } .mgr-card b { font-size: 12px; line-height: 1.3; }
+.mgr-card .badge, .kpi .badge { position: absolute; top: 6px; inset-inline-start: 6px; background: #c62828; color: #fff; border-radius: 999px; min-width: 20px; padding: 0 6px; font-size: 11px; font-style: normal; font-weight: 800; }
+.mgr-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; } .mgr-bar select { flex: 1; }
+.mgr-title { margin: 4px 0 10px; font-size: 18px; }
+@media (min-width: 700px) { .kpi-row { grid-template-columns: repeat(6, minmax(0, 1fr)); } .mgr-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* تمييز خفيف للمجموعات بدل العناوين: المجتمع أولًا، واللقاءات الاختيارية أهدأ */
+#main .page-body[data-page="home"] .home-tiles .tile.g0 { border-color: color-mix(in srgb, var(--g) 35%, var(--line)); background: color-mix(in srgb, var(--g-soft) 55%, var(--card)); }
+#main .page-body[data-page="home"] .home-tiles .tile.g2 { opacity: .85; }
+#main .page-body[data-page="home"] .home-tiles .tile.g2 b::after { content: ' (اختياري)'; display: block; font-size: 9px; font-weight: 600; color: var(--muted); }
