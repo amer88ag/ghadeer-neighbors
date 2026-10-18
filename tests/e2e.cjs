@@ -13,6 +13,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await ctx.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ contentType: 'application/javascript', body: mock }));
   await ctx.route('https://api.aladhan.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ data: { timings: { Fajr: '04:50', Sunrise: '06:05', Dhuhr: '12:10', Asr: '15:35', Maghrib: '18:10', Isha: '19:40' }, date: { hijri: { day: '29', month: { ar: 'ربيع الآخر' }, year: '1448' } } } }) }));
   await ctx.route('https://api.open-meteo.com/**', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ current: { temperature_2m: 21.4, relative_humidity_2m: 40, apparent_temperature: 20.9, weather_code: 1, wind_speed_10m: 12 }, daily: { time: ['2026-10-11','2026-10-12','2026-10-13'], weather_code: [1,3,61], precipitation_probability_max: [0,10,60], temperature_2m_max: [26,25,22], temperature_2m_min: [14,13,12] } }) }));
+  const espnUrls = []; ctx.on('request', q => { if (q.url().includes('espn.com')) espnUrls.push(q.url()); });
+  const lastEspn = async () => espnUrls.slice(-3).join(' ');
   const espnTeam = (id, name) => ({ id: String(id), displayName: name, abbreviation: name.slice(0, 3) });
   await ctx.route('https://site.api.espn.com/apis/v2/**', r => r.fulfill({ contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ children: [{ standings: { entries: [
     { team: espnTeam(101, 'النصر'), stats: [{ name: 'rank', value: 1 }, { name: 'gamesPlayed', value: 7 }, { name: 'wins', value: 6 }, { name: 'ties', value: 1 }, { name: 'losses', value: 0 }, { name: 'pointsFor', value: 18 }, { name: 'pointsAgainst', value: 5 }, { name: 'pointDifferential', value: 13 }, { name: 'points', value: 19 }] },
@@ -132,6 +134,9 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('football: team page shows rank, points, results', (await page.textContent('[data-roshn-team]')).includes('المركز') && (await page.textContent('.roshn-stats')).includes('19') && (await page.textContent('[data-roshn-team]')).includes('الاتحاد') && !!(await page.$('.roshn-res.win')));
   await page.click('[data-roshn-tab=fixtures]'); await page.waitForSelector('[data-roshn-fixtures] .roshn-match');
   ok('football: league upcoming fixtures tab', (await page.textContent('[data-roshn-fixtures]')).includes('الهلال'));
+  await page.click('[data-league="uefa.europa"]'); await page.waitForSelector('.roshn-table');
+  ok('football: switch to Europa League', (await page.textContent('[data-league-name]')).includes('الدوري الأوروبي') && (await page.$$('[data-league]')).length === 8 && (await lastEspn()).includes('uefa.europa'));
+  await page.click('[data-league="ksa.1"]'); await page.waitForSelector('.roshn-table');
 
   await page.goto(BASE + '#/services/lost'); await page.waitForSelector('[data-add]');
   ok('lost: only lost kinds listed', (await page.textContent('.page-body')).includes('مفاتيح') && !(await page.textContent('.page-body')).includes('مكتب'));

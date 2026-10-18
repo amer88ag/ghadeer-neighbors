@@ -482,3 +482,7 @@ input, select, textarea { font-size: 16px; }
 .roshn-res { display: inline-block; color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11px; margin-top: 2px; }
 .roshn-side.me span { font-weight: 900; color: var(--g); }
 .roshn-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.league-picker { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+.league-picker::-webkit-scrollbar { display: none; }
+.league-picker .chip { flex: 0 0 auto; border: 1px solid var(--line); background: var(--card); color: var(--txt); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.league-picker .chip.active { background: var(--g); color: #fff; border-color: var(--g); }

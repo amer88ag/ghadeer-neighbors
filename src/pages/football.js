@@ -1,15 +1,24 @@
 import { esc } from '../lib/dom.js';
 
 /*
- * لوحة دوري روشن السعودي: الترتيب والنقاط، مباريات الجولات القادمة، وصفحة لكل فريق
+ * لوحة الدوريات (روشن والدوريات الأوروبية): الترتيب والنقاط، مباريات الجولات القادمة، وصفحة لكل فريق
  * (ترتيبه ونقاطه وإحصاءاته ونتائجه ومبارياته القادمة). المصدر: واجهة ESPN العامة.
  */
 const API = 'https://site.api.espn.com/apis';
-const LEAGUE = 'ksa.1';
-const STANDINGS_URLS = [`${API}/v2/sports/soccer/${LEAGUE}/standings`, `https://site.web.api.espn.com/apis/v2/sports/soccer/${LEAGUE}/standings`];
-const SCOREBOARD = `${API}/site/v2/sports/soccer/${LEAGUE}/scoreboard`;
+// الدوريات المتاحة: رمز ESPN، الاسم، الشعار.
+export const LEAGUES = [
+  ['ksa.1', 'دوري روشن السعودي', '🇸🇦'], ['uefa.champions', 'دوري أبطال أوروبا', '🏆'], ['uefa.europa', 'الدوري الأوروبي', '🇪🇺'],
+  ['eng.1', 'الدوري الإنجليزي', '🏴'], ['esp.1', 'الدوري الإسباني', '🇪🇸'], ['ita.1', 'الدوري الإيطالي', '🇮🇹'],
+  ['ger.1', 'الدوري الألماني', '🇩🇪'], ['fra.1', 'الدوري الفرنسي', '🇫🇷']
+];
+// الموسم الحالي (يبدأ في يوليو): 2026 = موسم 2026-27.
+const SEASON = (() => { const d = new Date(); return d.getUTCMonth() >= 6 ? d.getUTCFullYear() : d.getUTCFullYear() - 1; })();
+let LEAGUE = 'ksa.1';
+const STANDINGS_URLS = () => [`${API}/v2/sports/soccer/${LEAGUE}/standings?season=${SEASON}`, `${API}/v2/sports/soccer/${LEAGUE}/standings`];
+const SCOREBOARD = () => `${API}/site/v2/sports/soccer/${LEAGUE}/scoreboard`;
 const TEAM_SCHEDULE = id => `${API}/site/v2/sports/soccer/${LEAGUE}/teams/${encodeURIComponent(id)}/schedule`;
-const CACHE_KEY = 'ghadeer.roshn.v2';
+const CACHE_KEY = () => 'ghadeer.football.v3.' + LEAGUE;
+const LEAGUE_KEY = 'ghadeer.football.league';
 const HOUR = 60 * 60 * 1000;
 
 // أسماء الأندية بالعربية (المزود يرسلها بالإنجليزية).
@@ -82,11 +91,11 @@ function matchesFrom(data) {
 
 /** مباريات الجولات القادمة: أيام المباريات خلال الأسبوعين القادمين من تقويم الدوري. */
 async function upcomingLeague() {
-  const board = await getJSON(SCOREBOARD);
+  const board = await getJSON(SCOREBOARD());
   const now = Date.now(), until = now + 15 * 24 * HOUR;
   const days = [...new Set((board.leagues?.[0]?.calendar || []).map(d => new Date(typeof d === 'string' ? d : d.startDate || d.value))
     .filter(d => d.getTime() >= now - 24 * HOUR && d.getTime() <= until).map(ymd))].slice(0, 8);
-  const lists = await Promise.all(days.map(d => getJSON(`${SCOREBOARD}?dates=${d}`).then(matchesFrom).catch(() => [])));
+  const lists = await Promise.all(days.map(d => getJSON(`${SCOREBOARD()}?dates=${d}`).then(matchesFrom).catch(() => [])));
   const all = [...matchesFrom(board), ...lists.flat()];
   const seen = new Set();
   return all.filter(m => !seen.has(m.id) && seen.add(m.id) && !m.completed).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -112,13 +121,16 @@ function renderTable(rows) {
       <td>${t.played}</td><td>${t.wins}</td><td>${t.draws}</td><td>${t.losses}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.gd > 0 ? '+' : ''}${t.gd}</td><td><b>${t.points}</b></td></tr>`).join('')}</tbody></table></div>`;
 }
 
-const loadingView = () => '<div class="card roshn-loading"><span class="roshn-ball">⚽</span><b>جارٍ تحميل ترتيب دوري روشن…</b></div>';
-const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch { return null; } };
-const writeCache = v => { try { localStorage.setItem(CACHE_KEY, JSON.stringify(v)); } catch { /* اختياري */ } };
+const leagueName = () => (LEAGUES.find(l => l[0] === LEAGUE) || LEAGUES[0])[1];
+const loadingView = () => `<div class="card roshn-loading"><span class="roshn-ball">⚽</span><b>جارٍ تحميل ${leagueName()}…</b></div>`;
+const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE_KEY()) || 'null'); } catch { return null; } };
+const writeCache = v => { try { localStorage.setItem(CACHE_KEY(), JSON.stringify(v)); } catch { /* اختياري */ } };
 
 export async function render(el) {
-  el.innerHTML = `<section class="roshn-hero"><div class="roshn-brand"><span class="roshn-ball">⚽</span><div><span class="eyebrow">لوحة الرياضة</span><h2>دوري روشن السعودي</h2><p>الترتيب والنقاط ومباريات كل فريق</p></div></div>
+  try { const saved = localStorage.getItem(LEAGUE_KEY); if (LEAGUES.some(l => l[0] === saved)) LEAGUE = saved; } catch { /* اختياري */ }
+  el.innerHTML = `<section class="roshn-hero"><div class="roshn-brand"><span class="roshn-ball">⚽</span><div><span class="eyebrow">لوحة الرياضة</span><h2 data-league-name>${esc(leagueName())}</h2><p>الترتيب والنقاط ومباريات كل فريق</p></div></div>
       <button class="btn roshn-refresh" type="button" data-roshn-refresh>↻ تحديث البيانات</button></section>
+    <nav class="league-picker" aria-label="اختر الدوري">${LEAGUES.map(([c, n, i]) => `<button type="button" class="chip${c === LEAGUE ? ' active' : ''}" data-league="${c}">${i} ${esc(n)}</button>`).join('')}</nav>
     <div class="roshn-meta"><span data-roshn-status>…</span><span>المصدر: ESPN</span></div>
     <div class="segmented roshn-tabs"><button type="button" class="active" data-roshn-tab="table">جدول الترتيب</button><button type="button" data-roshn-tab="fixtures">المباريات القادمة</button><button type="button" data-roshn-tab="team" hidden>الفريق</button></div>
     <section data-roshn-table>${loadingView()}</section><section data-roshn-fixtures hidden></section><section class="roshn-fixtures" data-roshn-team hidden></section>`;
@@ -135,19 +147,31 @@ export async function render(el) {
   el.querySelectorAll('[data-roshn-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.roshnTab)));
   $('[data-roshn-refresh]').addEventListener('click', () => { fixturesLoaded = false; teamCache.clear(); load(true); });
   el.addEventListener('click', e => { const b = e.target.closest('[data-team]'); if (b) showTeam(b.dataset.team); });
+  el.querySelectorAll('[data-league]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.league === LEAGUE) return;
+    LEAGUE = b.dataset.league;
+    try { localStorage.setItem(LEAGUE_KEY, LEAGUE); } catch { /* اختياري */ }
+    el.querySelectorAll('[data-league]').forEach(x => x.classList.toggle('active', x === b));
+    $('[data-league-name]').textContent = leagueName();
+    data = null; fixturesLoaded = false; teamCache.clear();
+    const tb = $('[data-roshn-tab="team"]'); tb.hidden = true; teamEl.innerHTML = ''; fixturesEl.innerHTML = '';
+    setTab('table'); load(false);
+  }));
 
   async function load(force) {
     const btn = $('[data-roshn-refresh]'); btn.disabled = true;
     const cached = readCache();
-    if (!force && cached?.teams?.length && Date.now() - cached.at < 3 * HOUR) { data = cached; draw(); btn.disabled = false; return; }
+    if (!force && cached?.teams?.length && cached.league === LEAGUE && Date.now() - cached.at < 3 * HOUR) { data = cached; draw(); btn.disabled = false; return; }
     tableEl.innerHTML = loadingView();
     try {
-      const teams = standingsFrom(await firstAvailable(STANDINGS_URLS));
+      const lg = LEAGUE;
+      const teams = standingsFrom(await firstAvailable(STANDINGS_URLS()));
+      if (lg !== LEAGUE) return;
       if (!teams.length) throw new Error('لم نجد جدول ترتيب صالحًا لدى مزود البيانات.');
-      data = { teams, at: Date.now() }; writeCache(data); draw();
+      data = { teams, at: Date.now(), league: LEAGUE }; writeCache(data); draw();
       if (!fixturesEl.hidden) loadFixtures();
     } catch (err) {
-      if (cached?.teams?.length) { data = cached; draw(); status.textContent = 'تعذر التحديث؛ تُعرض آخر نسخة محفوظة.'; }
+      if (cached?.teams?.length && cached.league === LEAGUE) { data = cached; draw(); status.textContent = 'تعذر التحديث؛ تُعرض آخر نسخة محفوظة.'; }
       else {
         tableEl.innerHTML = `<div class="card roshn-empty"><h3>تعذر تحميل الترتيب</h3><p>${esc(err.message || 'تحقق من الاتصال.')}</p><button class="btn primary" type="button" data-retry>إعادة المحاولة</button></div>`;
         tableEl.querySelector('[data-retry]').onclick = () => load(true);
@@ -165,7 +189,9 @@ export async function render(el) {
     fixturesLoaded = true;
     fixturesEl.innerHTML = loadingView();
     try {
+      const lg = LEAGUE;
       const list = await upcomingLeague();
+      if (lg !== LEAGUE) return;
       fixturesEl.innerHTML = `<div class="roshn-section-head"><h3>مباريات الجولات القادمة</h3></div>${list.length ? `<div class="roshn-list">${list.map(m => matchCard(m)).join('')}</div>` : '<div class="roshn-empty">لا توجد مباريات معلنة خلال الأسبوعين القادمين.</div>'}`;
     } catch (err) {
       fixturesLoaded = false;
@@ -179,10 +205,12 @@ export async function render(el) {
     setTab('team');
     teamEl.innerHTML = loadingView();
     try {
+      const lg = LEAGUE;
       if (!teamCache.has(id)) {
         const [past, next] = await Promise.all([getJSON(TEAM_SCHEDULE(id)).catch(() => null), getJSON(TEAM_SCHEDULE(id) + '?fixture=true').catch(() => null)]);
         teamCache.set(id, { past, next });
       }
+      if (lg !== LEAGUE) return;
       const { past, next } = teamCache.get(id);
       const results = matchesFrom(past).filter(m => m.completed).sort((a, b) => new Date(b.date) - new Date(a.date));
       const upcoming = matchesFrom(next).filter(m => !m.completed && new Date(m.date).getTime() > Date.now() - 3 * HOUR).sort((a, b) => new Date(a.date) - new Date(b.date));
