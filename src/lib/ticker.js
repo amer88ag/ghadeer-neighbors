@@ -25,7 +25,8 @@ export function newsItems({ announcements = [], coffee = [], outings = [], local
     if (a.is_occasion || THANKS_TITLE.test(a.title || '')) continue;
     const start = new Date(a.scheduled_at || a.created_at).getTime();
     const end = a.expires_at ? new Date(a.expires_at).getTime() : start + 2 * DAY;
-    if (start <= now && now < end) items.push({ kind: 'news', html: `📢 <b>${esc(a.title)}</b>${a.message ? ' — ' + esc(a.message) : ''}` });
+    const color = /^#[0-9a-f]{6}$/i.test(a.ticker_color || '') ? a.ticker_color : '';
+    if (start <= now && now < end) items.push({ kind: 'news', color, html: `📢 <b>${esc(a.title)}</b>${a.message ? ' — ' + esc(a.message) : ''}` });
   }
 
   // 3) الشكر والعرفان: يبدأ تلقائيًا بعد موعد القهوة أو الطلعة ويستمر 24 ساعة.
