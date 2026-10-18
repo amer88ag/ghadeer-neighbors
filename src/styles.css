@@ -466,3 +466,19 @@ button, a, [role="button"], .tile, .bottom-nav {
 
 /* منع التكبير التلقائي في iPhone عند الكتابة */
 input, select, textarea { font-size: 16px; }
+
+/* دوري روشن: صفحة الفريق */
+.roshn-team img, .roshn-team-head img { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; }
+.roshn-team { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; font: inherit; color: var(--g); font-weight: 800; cursor: pointer; text-align: start; }
+.roshn-team-head { display: flex; align-items: center; gap: 10px; }
+.roshn-team-head img { width: 48px; height: 48px; }
+.roshn-team-head h3 { margin: 0; }
+.roshn-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+.roshn-stats > div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 4px; text-align: center; }
+.roshn-stats b { display: block; font-size: 18px; color: var(--g); }
+.roshn-stats small { color: var(--muted); font-size: 11px; }
+.roshn-form i { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; margin-inline-start: 4px; font-style: normal; font-weight: 800; color: #fff; }
+.roshn-form .win, .roshn-res.win { background: #16834a; } .roshn-form .draw, .roshn-res.draw { background: #8a8578; } .roshn-form .loss, .roshn-res.loss { background: #c0392b; }
+.roshn-res { display: inline-block; color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11px; margin-top: 2px; }
+.roshn-side.me span { font-weight: 900; color: var(--g); }
+.roshn-list { display: grid; gap: 8px; margin-bottom: 12px; }
