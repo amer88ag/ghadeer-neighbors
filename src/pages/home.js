@@ -14,7 +14,8 @@ import { arrangeTiles, widgetOn } from '../lib/prefs.js';
 export const GROUPS = [
   ['🤝 مجتمعنا', [
     ['news', '📢', 'أخبار الحي', 'الإعلانات والمناسبات', 'all'],
-    ['messages', '💬', 'الرسائل', 'المجموعة والخاص والواتساب', 'member'],
+    ['messages', '💬', 'الرسائل', 'المجموعة والخاص', 'member'],
+    ['whatsapp', '🟢', 'واتساب', 'راسل شخصًا أو مجموعة', 'member'],
     ['neighbors', '👥', 'الجيران', 'دليل الجيران', 'all'],
     ['check', '❤️', 'تفقد جارك', 'مريض • محتاج • مساعدة', 'member'],
     ['events', '🎉', 'مناسبات الحي', 'أفراح ومواساة ولقاءات', 'all'],
@@ -31,8 +32,9 @@ export const GROUPS = [
   ]],
   ['🕌 يومياتي', [
     ['azkar', '📿', 'الذكر', 'مسبحة وأحاديث الجوار', 'all'],
+    ['links/news', '📰', 'الأخبار', 'الصحف والقنوات الإخبارية', 'all'],
     ['links/sports', '⚽', 'الرياضة', 'الدوريات والمباريات', 'all'],
-    ['links/news', '🔗', 'روابط مفيدة', 'أخبار • وظائف • خدمات عامة', 'all']
+    ['links/jobs', '🔗', 'روابط مفيدة', 'وظائف • خدمات عامة', 'all']
   ]],
   ['👤 حسابي', [
     ['account', '👤', 'حسابي', 'الدخول وبطاقتي', 'all'],
@@ -76,7 +78,7 @@ export async function render(el) {
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-v" data-next-outing>…</span></a>
     </section>
-    <p class="muted center home-foot">${widgetOn('foot') ? `👥 ${activeMembers().length} جار نشط في البرنامج · ` : ''}<a href="#/display">🎨 تخصيص الشاشة</a></p>`;
+    <p class="muted center home-foot">${widgetOn('foot') ? `👥 ${activeMembers().length} جار نشط في البرنامج` : ''}</p>`;
 
   $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
   el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {

@@ -448,7 +448,7 @@ async function checks(el, again) {
 const SUB_SERVICES = ['🔧 أقسام داخلية', [
   ['services/help', '🤝', 'خدمات الجيران', '', 'all'], ['services/market', '🛍️', 'سوق الحي', '', 'all'], ['services/lost', '🔎', 'المفقودات', '', 'all'],
   ['services/initiative', '💡', 'المبادرات', '', 'all'], ['services/catalog', '📚', 'دليل الخدمات', '', 'all'], ['links/jobs', '💼', 'الوظائف', '', 'all'],
-  ['links/gov', '🏛️', 'خدمات عامة', '', 'all'], ['messages/whatsapp', '📱', 'واتساب الجيران', '', 'all'], ['prayer', '🕌', 'مواقيت الصلاة', '', 'all'], ['weather', '🌤️', 'الطقس', '', 'all']
+  ['links/gov', '🏛️', 'خدمات عامة', '', 'all'], ['prayer', '🕌', 'مواقيت الصلاة', '', 'all'], ['weather', '🌤️', 'الطقس', '', 'all']
 ]];
 async function services(el, again) {
   const svc = await data.serviceSettings(true);
