@@ -1,6 +1,6 @@
 /* نقطة الدخول الوحيدة للتطبيق. */
 import { register, start, refresh, currentPage, setGuard } from './lib/router.js';
-import { state, onChange, loadMembers, restoreDevice, showLogin, canManage, requirePin } from './lib/session.js';
+import { state, onChange, loadMembers, loadCachedMembers, restoreDevice, showLogin, canManage, requirePin } from './lib/session.js';
 import { toast, esc } from './lib/dom.js';
 import { invalidate, serviceSettings, appStatus } from './lib/data.js';
 import * as home from './pages/home.js';
@@ -112,16 +112,15 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); })
 
 (async function boot() {
   P.useOwner(null);
+  loadCachedMembers();
   renderChrome();
-  try {
-    await loadMembers();
-    await restoreDevice();
-  } catch (e) {
-    console.error(e);
-    toast(e.message || 'تعذر الاتصال بقاعدة البيانات.', false);
-  }
+  // جلب البيانات الأساسية بالتوازي بدل التتابع، والبدء بعرض الصفحة دون انتظار قائمة الأعضاء.
+  appStatus().catch(() => {}); serviceSettings().catch(() => {});
+  const membersP = loadMembers().catch(e => { console.error(e); return false; });
+  try { await restoreDevice(); } catch (e) { console.error(e); }
   prefsOwner = state.user && !state.manager ? state.user.id : null; P.useOwner(prefsOwner);
   lastUser = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   start();
+  membersP.then(changed => { if (changed && currentPage()) refresh(); });
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

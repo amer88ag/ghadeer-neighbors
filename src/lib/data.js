@@ -3,14 +3,17 @@ import { table, list, call, edge } from './api.js';
 import { state, creds } from './session.js';
 
 const cache = new Map();
-const TTL = 60_000;
+const TTL = 180_000; // 3 دقائق؛ زر التحديث في الشريط العلوي يجلب الجديد فورًا
 
+const inflight = new Map();
 async function cached(key, loader, force) {
   const hit = cache.get(key);
   if (!force && hit && Date.now() - hit.at < TTL) return hit.value;
-  const value = await loader();
-  cache.set(key, { at: Date.now(), value });
-  return value;
+  // طلب واحد فقط لكل مفتاح في الوقت نفسه (تمنع تكرار نفس الطلب من أكثر من مكان).
+  if (!force && inflight.has(key)) return inflight.get(key);
+  const p = (async () => { try { const value = await loader(); cache.set(key, { at: Date.now(), value }); return value; } finally { inflight.delete(key); } })();
+  inflight.set(key, p);
+  return p;
 }
 export const invalidate = (...keys) => keys.length ? keys.forEach(k => cache.delete(k)) : cache.clear();
 
