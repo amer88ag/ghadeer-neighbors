@@ -30,19 +30,27 @@ const storage = {
   del(k) { try { localStorage.removeItem(k); } catch { /* وضع خاص */ } }
 };
 
-export async function loadMembers() {
-  state.members = await publicMembers();
-  emit();
+const MEMBERS_CACHE = 'ghadeer.members.v1';
+/** أسماء الجيران العامة (id, name, active) من الذاكرة المحلية لعرض فوري، ثم تُحدَّث من الخادم. */
+export function loadCachedMembers() {
+  try { const m = JSON.parse(storage.get(MEMBERS_CACHE) || 'null'); if (Array.isArray(m) && m.length) state.members = m; } catch { /* تجاهل */ }
   return state.members;
 }
+export async function loadMembers() {
+  const fresh = await publicMembers();
+  const changed = JSON.stringify(fresh) !== JSON.stringify(state.members);
+  if (fresh.length) { state.members = fresh; storage.set(MEMBERS_CACHE, JSON.stringify(fresh)); }
+  if (changed) emit();
+  return changed;
+}
 
-function setUser(user, pin, { manager = false, supervisor = false } = {}) {
+function setUser(user, pin, { manager = false, supervisor = false, silent = false } = {}) {
   state.user = user;
   state.pin = pin;
   state.manager = manager;
   state.supervisor = supervisor || manager;
   state.termsOk = manager;
-  emit();
+  if (!silent) emit();
 }
 
 /** يستعيد هوية العضو من رمز الجهاز المحفوظ (بدون الرقم السري). */
@@ -56,16 +64,20 @@ export async function restoreDevice() {
 }
 
 async function rememberDevice() {
+  const who = state.user?.id;
   const r = await call('issue_member_device_token', { ...creds(), p_device_label: (navigator.userAgent || 'device').slice(0, 110) });
-  if (r.ok && r.data?.token) storage.set(DEVICE_TOKEN_KEY, r.data.token);
+  // يُحفظ الرمز فقط إن بقي العضو نفسه داخلًا (لم يرفض الشروط أو يخرج أثناء الطلب).
+  if (r.ok && r.data?.token && state.user?.id === who) storage.set(DEVICE_TOKEN_KEY, r.data.token);
+  else if (r.ok && r.data?.token) call('member_revoke_device_token', { p_token: r.data.token });
 }
 
 async function memberLogin(id, pin, remember) {
   const r = await call('member_login', { p_member_id: id, p_pin: pin });
   if (!r.ok || r.data?.success !== true) return { ok: false, message: r.message || 'الرقم السري غير صحيح.' };
   const role = r.data.role || 'member';
-  setUser({ id, name: r.data.name || memberName(id), role }, pin, { supervisor: ['supervisor', 'super_admin'].includes(role) });
-  if (remember && !storage.get(DEVICE_TOKEN_KEY)) await rememberDevice();
+  // تحديث الواجهة مرة واحدة بعد اكتمال الدخول، وحفظ الجهاز في الخلفية بالتوازي مع فحص الشروط.
+  setUser({ id, name: r.data.name || memberName(id), role }, pin, { supervisor: ['supervisor', 'super_admin'].includes(role), silent: true });
+  if (remember && !storage.get(DEVICE_TOKEN_KEY)) rememberDevice().catch(() => {});
   await ensureTerms();
   // إذا رفض العضو الشروط تُلغى الجلسة داخل ensureTerms.
   return state.user ? { ok: true } : { ok: false, message: 'لم يكتمل الدخول دون الموافقة على الشروط.' };
