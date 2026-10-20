@@ -2,6 +2,7 @@ import { esc, fmtDate, fmtTime, todayISO, toast, busy, empty, money, val } from 
 import { state, memberName, requirePin, creds } from '../lib/session.js';
 import { call } from '../lib/api.js';
 import * as data from '../lib/data.js';
+import { canDelete, deleteBtn, deleteGathering } from '../lib/gatherings.js';
 
 const STATUS = { voting: '🗳️ تصويت', awaiting_approval: '⏳ بانتظار الاعتماد', scheduled: '✅ مدرجة', rejected: '⛔ مرفوضة' };
 const RATINGS = [['place', 'المكان', 'place_rating'], ['food', 'الأكل', 'food_rating'], ['time', 'الوقت', 'time_rating'], ['cost', 'التكلفة', 'cost_rating'], ['organization', 'التنظيم', 'organization_rating'], ['cleanliness', 'النظافة', 'cleanliness_rating']];
@@ -18,6 +19,7 @@ function planCard(p) {
     ${p.status !== 'scheduled' && p.status !== 'rejected' ? `<div class="actions">
       <button class="small-btn${p.my_vote === 'attending' ? ' on' : ''}" data-vote="attending" data-plan="${p.id}">${p.my_vote === 'attending' ? '✅ مسجّل: سأطلع' : '🙋 سأطلع'}</button>
       <button class="small-btn ghost${p.my_vote === 'not_attending' ? ' on' : ''}" data-vote="not_attending" data-plan="${p.id}">${p.my_vote === 'not_attending' ? '🚫 معتذر' : 'لن أطلع'}</button></div>` : ''}
+    ${canDelete('plan', p) ? `<div class="actions end">${deleteBtn('plan', p.id)}</div>` : ''}
     ${isOrganizer ? `<form class="inline-form" data-expense="${p.id}"><input name="amount" type="number" min="0" step="0.01" placeholder="مبلغ دفعته" required><input name="note" placeholder="ملاحظة (اختياري)"><button class="small-btn">💰 إضافة مصروف</button></form>` : ''}
     ${p.status === 'scheduled' && state.user && !state.manager ? `<details><summary>⭐ تقييم الطلعة (${p.rating_count || 0} تقييم — متوسط ${esc(p.rating_average || '0')})</summary>
       <form data-rate="${p.id}"><div class="rate-grid">${RATINGS.map(([k, label, key]) => `<label>${label}<select name="${k}">${[5, 4, 3, 2, 1].map(n => `<option value="${n}"${Number(r[key] || 5) === n ? ' selected' : ''}>${'⭐'.repeat(n)}</option>`).join('')}</select></label>`).join('')}</div>
@@ -55,7 +57,7 @@ export async function render(el, [tab = 'plans']) {
       const who = p?.organizers?.length ? p.organizers.map(o => o.member_name).join('، ') : [memberName(x.member1_id), memberName(x.member2_id)].filter(n => n !== '—').join(' + ');
       return `<div class="row-item${x.outing_date < today ? ' past' : ''}"><div class="row-main"><b>${esc(x.outing_type || p?.outing_type || 'طلعة')} — ${esc(x.outing_place || p?.outing_place || 'المكان لاحقًا')}</b>
         <span class="muted">${fmtDate(x.outing_date)} — ${fmtTime(x.outing_time)}</span><small>المنظمون: ${esc(who || '—')}${p ? ' · ' + (p.attending_count || 0) + ' مشارك · للفرد ' + money(p.per_person_cost) : ''}</small></div>
-        ${x.outing_date >= today ? `<div class="row-side"><button class="small-btn" data-att="1" data-id="${x.id}">حاضر</button><button class="small-btn ghost" data-att="0" data-id="${x.id}">أعتذر</button></div>` : ''}</div>`;
+        ${x.outing_date >= today || canDelete('outing', x) ? `<div class="row-side">${x.outing_date >= today ? `<button class="small-btn" data-att="1" data-id="${x.id}">حاضر</button><button class="small-btn ghost" data-att="0" data-id="${x.id}">أعتذر</button>` : ''}${canDelete('outing', x) ? deleteBtn('outing', x.id) : ''}</div>` : ''}</div>`;
     }).join('')}</div>` : empty('لا توجد طلعات معتمدة.')}</div>`;
     el.querySelectorAll('[data-att]').forEach(b => b.onclick = () => busy(b, async () => {
       if (!(await requirePin())) return;
@@ -63,12 +65,14 @@ export async function render(el, [tab = 'plans']) {
       const r = await call('set_outing_attendance', { ...creds(), p_outing_id: Number(b.dataset.id), p_attendance: att });
       toast(r.ok ? (att ? 'تم تسجيل حضورك.' : 'تم تسجيل اعتذارك.') : r.message, r.ok);
     }));
+    bindDelete(el, () => { data.invalidate('outings', 'plans'); render(el, ['schedule']); });
     return;
   }
 
   const plans = (await data.outingPlans()).filter(p => p.status !== 'rejected');
   el.innerHTML = tabs + (plans.length ? plans.map(planCard).join('') : `<div class="card">${empty('لا توجد طلعات مطروحة حاليًا.')}<a class="btn primary block" href="#/outings/new">➕ اقترح طلعة</a></div>`);
   const reload = () => { data.invalidate('plans'); render(el, ['plans']); };
+  bindDelete(el, () => { data.invalidate('plans', 'outings'); render(el, ['plans']); });
 
   el.querySelectorAll('[data-vote]').forEach(b => b.onclick = () => busy(b, async () => {
     if (!(await requirePin())) return;
@@ -89,4 +93,10 @@ export async function render(el, [tab = 'plans']) {
     if (!r.ok) return toast(r.message, false);
     toast('شكرًا، تم حفظ تقييمك.'); reload();
   }); });
+}
+
+function bindDelete(el, after) {
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => busy(b, async () => {
+    if (await deleteGathering(b.dataset.del, b.dataset.id)) after();
+  }));
 }

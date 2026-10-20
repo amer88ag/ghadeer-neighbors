@@ -1,6 +1,7 @@
 import { esc, fmtDate, fmtTime, toast, busy, empty, money, val, options, openModal } from '../lib/dom.js';
 import { state, canManage, activeMembers, memberName } from '../lib/session.js';
 import { call, list } from '../lib/api.js';
+import { canDelete, deleteBtn, deleteGathering } from '../lib/gatherings.js';
 
 /** يبني وسائط الصلاحية: المدير برقمه، والمشرف بعضويته ورقمه. */
 const actor = (managerFn, supervisorFn) => state.manager
@@ -15,7 +16,7 @@ export async function render(el) {
     ${rows.length ? rows.map(e => `<article class="card"><div class="row-head"><b>🎉 ${esc(e.title)}</b><span class="pill">${e.status === 'ملغاة' ? '⛔ ملغاة' : esc(e.event_type || 'مناسبة')}</span></div>
       <div class="muted">📅 ${fmtDate(e.event_date)} ${e.event_time ? '— ⏰ ' + fmtTime(e.event_time) : ''} ${e.place ? '— 📍 ' + esc(e.place) : ''}</div>
       ${e.purpose ? `<p>${esc(e.purpose)}</p>` : ''}
-      <div class="actions"><button class="small-btn" data-details="${e.id}">👥 التفاصيل والمشاركون</button>${canManage() ? `<span class="muted">الميزانية ${money(e.total_budget)}</span>` : ''}</div></article>`).join('')
+      <div class="actions"><button class="small-btn" data-details="${e.id}">👥 التفاصيل والمشاركون</button>${canManage() ? `<span class="muted">الميزانية ${money(e.total_budget)}</span>` : ''}${canDelete('event', e) ? deleteBtn('event', e.id) : ''}</div></article>`).join('')
       : (r.ok ? `<div class="card">${empty('لا توجد مناسبات حاليًا.')}</div>` : '')}
     ${canManage() ? `<details class="card"><summary><b>➕ إضافة مناسبة</b></summary><form data-create>
       <label>اسم المناسبة</label><input name="title" required>
@@ -28,6 +29,7 @@ export async function render(el) {
       <button class="btn primary block">إنشاء المناسبة</button></form></details>` : ''}`;
 
   el.querySelectorAll('[data-details]').forEach(b => b.onclick = () => details(Number(b.dataset.details)));
+  el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => busy(b, async () => { if (await deleteGathering('event', b.dataset.id)) render(el); }));
 
   const f = el.querySelector('[data-create]');
   if (f) f.onsubmit = e => { e.preventDefault(); busy(f.querySelector('button'), async () => {
