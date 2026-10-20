@@ -73,9 +73,10 @@ export async function publicMembers() {
 }
 
 /** دالة طرفية عامة للقراءة فقط (مثل الأخبار المحلية). */
-export async function edge(name) {
+export async function edge(name, params) {
   try {
-    const r = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { headers: { apikey: SUPABASE_KEY } });
+    const q = params ? '?' + new URLSearchParams(params) : '';
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/${name}${q}`, { headers: { apikey: SUPABASE_KEY } });
     if (!r.ok) return { ok: false, data: null, message: 'HTTP ' + r.status };
     return { ok: true, data: await r.json(), message: '' };
   } catch (e) {
