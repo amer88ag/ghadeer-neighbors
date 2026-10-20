@@ -389,6 +389,12 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary'); await page.waitForSelector('.mgr-hero');
 
+  await page.goto(BASE + '#/stats'); await page.waitForSelector('#stats-members');
+  ok('stats: who logged in and registered', (await page.textContent('#stats-members')).includes('عامر') && (await page.textContent('#stats-members')).includes('لم يدخل بعد') && (await page.textContent('#stats-members')).includes('وافق على الشروط'));
+  ok('stats: icon usage bars with labels', (await page.$$('#stats-usage .ubar')).length === 3 && (await page.textContent('#stats-usage')).includes('أخبار الحي') && (await page.textContent('#stats-usage')).includes('الرياضة'));
+  await page.selectOption('[data-mfilter]', 'never');
+  ok('stats: filter members who never logged in', (await page.$$('[data-mrow]:not([hidden])')).length === 1);
+  ok('usage: page opens are tracked', (await calls()).includes('track_page'));
   // 13d) New community + statistics
   await page.goto(BASE + '#/stats'); await page.waitForSelector('.stat-box');
   ok('stats: developer sees full statistics', (await page.$$('.stat-box')).length >= 30 && (await page.textContent('.page-body')).includes('23'));
