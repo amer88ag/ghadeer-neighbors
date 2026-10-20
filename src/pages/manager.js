@@ -4,7 +4,9 @@ import { state, canManage, activeMembers, memberName, loadMembers, logout, showM
 import { call, list, table } from '../lib/api.js';
 import * as data from '../lib/data.js';
 import { PIN_PATTERN } from '../config.js';
-import { GROUPS } from './home.js';
+import { GROUPS, arrange as arrangeTiles0 } from './home.js';
+import { adminView as offersAdmin } from './offers.js';
+import { compose, clean as cleanLayout, newId } from '../lib/layout.js';
 import { refresh } from '../lib/router.js';
 
 // أقسام لوحة الإدارة مجمّعة حسب الغرض. access: manager = المطور فقط، any = المطور والمشرف المفوض.
@@ -14,13 +16,13 @@ const SECTIONS = [
     ['communities', '🏘️', 'المجتمعات الجديدة', 'any'], ['checks', '❤️', 'التفقد', 'manager']
   ]],
   ['📢 التواصل والنشر', [
-    ['ticker', '📢', 'شريط الأخبار', 'any'], ['occasions', '🎉', 'المناسبات والتهاني', 'any'], ['messages', '💬', 'الرسائل والتنبيهات', 'manager']
+    ['ticker', '📢', 'شريط الأخبار', 'any'], ['offers', '🏷️', 'مراجعة العروض', 'any'], ['occasions', '🎉', 'المناسبات والتهاني', 'any'], ['messages', '💬', 'الرسائل والتنبيهات', 'manager']
   ]],
   ['☕ اللقاءات (اختيارية)', [
     ['schedules', '📅', 'جداول القهوة والطلعات', 'any'], ['plans', '🗳️', 'الطلعات المقترحة', 'any'], ['rules', '⚙️', 'قواعد الجداول', 'any']
   ]],
   ['🧩 النظام والتحكم', [
-    ['settings', '🧰', 'إعدادات المطور', 'manager'], ['services', '🧩', 'الأيقونات والخدمات', 'manager'], ['content', '🗂️', 'إدارة المحتوى', 'manager'], ['reports', '💾', 'التقارير والنسخ', 'manager']
+    ['layout', '🗂️', 'تنظيم الواجهة', 'manager'], ['settings', '🧰', 'إعدادات المطور', 'manager'], ['services', '🧩', 'الأيقونات والخدمات', 'manager'], ['content', '🗂️', 'إدارة المحتوى', 'manager'], ['reports', '💾', 'التقارير والنسخ', 'manager']
   ]]
 ];
 const TABS = SECTIONS.flatMap(([, items]) => items.map(([k, i, l, acc]) => [k, i + ' ' + l, acc]));
@@ -64,7 +66,7 @@ export async function render(el, [tab]) {
     <h2 class="mgr-title">${cur[1]}</h2><div data-tab></div>`;
   $('[data-jump]', el).onchange = e => { location.hash = '#/manager/' + e.target.value; };
   const box = $('[data-tab]', el);
-  await ({ settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ layout, offers, settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- لوحة التحكم الرئيسية ---------------- */
@@ -96,6 +98,57 @@ async function dashboard(el) {
     </div>
     <div class="quick-actions"><a class="btn primary" href="#/manager/ticker">📢 رسالة للشريط</a><a class="btn secondary" href="#/manager/joinRequests">📨 الطلبات</a>${state.manager ? '<a class="btn secondary" href="#/manager/members">➕ عضو جديد</a><a class="btn secondary" href="#/stats">📊 الإحصاءات</a>' : ''}</div>
     ${SECTIONS.map(([g, items]) => { const v = items.filter(t => state.manager || t[3] === 'any'); return v.length ? `<h3 class="tile-group">${g}</h3><nav class="mgr-grid">${v.map(([k, i, l]) => `<a class="mgr-card" href="#/manager/${k}"><span>${i}</span><b>${l}</b>${badge[k] ? `<em class="badge">${badge[k]}</em>` : ''}</a>`).join('')}</nav>` : ''; }).join('')}`;
+}
+
+/* ---------------- مراجعة العروض ---------------- */
+async function offers(el, again) { return offersAdmin(el, again, state.manager ? { p_member_id: 0, p_pin: state.pin } : S()); }
+
+/* ---------------- تنظيم الواجهة (للجميع) ---------------- */
+const ROUTE_CHOICES = () => GROUPS.flatMap(([, items]) => items).filter(t => !['admin', 'dev'].includes(t[4])).map(t => [t[0], t[1] + ' ' + t[2]]);
+async function layout(el, again) {
+  const [svc, st] = await Promise.all([data.serviceSettings(true), data.appStatus(true)]);
+  const L = cleanLayout(st.home_layout);
+  const meta = new Map(); GROUPS.forEach(([, items]) => arrangeTiles0(items, svc).filter(t => !['admin', 'dev'].includes(t[4])).forEach(t => meta.set(t[0], t)));
+  const { top, byId } = compose(meta, L);
+  const save = async (next, msg) => { const r = await call('manager_set_home_layout', { ...M(), p_layout: next }); toast(r.ok ? msg || 'تم الحفظ لكل الأعضاء.' : r.message, r.ok); if (r.ok) { data.invalidate('appStatus'); again(); } };
+  const ids = top.map(t => t.id);
+  const folderOf = id => L.folders.find(f => f.items.includes(id))?.id || '';
+  const movable = [...byId.values()].filter(t => t.kind !== 'folder');
+  el.innerHTML = `
+    <p class="muted">التغييرات هنا تظهر في رئيسية كل الأعضاء. يستطيع كل عضو بعدها تخصيص شاشته من «إعداد الشاشة».</p>
+    <section class="card"><h3>↕️ ترتيب الرئيسية</h3><div class="list" data-order>${top.map((t, i) => `<div class="row-item tile-row" data-id="${t.id}"><div class="row-main"><b>${esc(t.icon)} ${esc(t.title)}</b>${t.kind === 'folder' ? `<small>مجلد · ${t.items.length} أيقونة</small>` : t.kind !== 'builtin' ? '<small>أيقونة مخصصة</small>' : ''}</div>
+      <div class="row-side"><button class="icon-btn" data-mv="-1" ${i ? '' : 'disabled'} aria-label="أعلى">▲</button><button class="icon-btn" data-mv="1" ${i < top.length - 1 ? '' : 'disabled'} aria-label="أسفل">▼</button></div></div>`).join('')}</div>
+      <button class="btn secondary block" data-reset-order>↺ الترتيب الافتراضي</button></section>
+    <section class="card"><h3>📁 المجلدات (أيقونات داخل أيقونة)</h3>
+      ${L.folders.length ? `<div class="list">${L.folders.map(f => `<div class="row-item"><div class="row-main"><b>${esc(f.icon || '📁')} ${esc(f.title)}</b><small>${f.items.map(i => esc(byId.get(i)?.title || i)).join('، ') || 'فارغ'}</small></div><button class="small-btn danger" data-del-folder="${f.id}">حذف المجلد</button></div>`).join('')}</div>` : '<p class="muted">لا توجد مجلدات.</p>'}
+      <form data-f="folder" class="input-row"><input name="icon" maxlength="4" value="📁" style="max-width:4em" aria-label="رمز"><input name="title" maxlength="30" placeholder="اسم المجلد" required><button class="btn primary">➕ مجلد</button></form>
+      ${L.folders.length ? `<h4>نقل أيقونة إلى مجلد أو إخراجها للرئيسية</h4><div class="list">${movable.map(t => `<div class="row-item"><div class="row-main"><b>${esc(t.icon)} ${esc(t.title)}</b></div>
+        <select data-move="${t.id}" aria-label="المكان"><option value="">🏠 الرئيسية</option>${L.folders.map(f => `<option value="${f.id}"${folderOf(t.id) === f.id ? ' selected' : ''}>${esc(f.icon || '📁')} ${esc(f.title)}</option>`).join('')}</select></div>`).join('')}</div>` : ''}</section>
+    <section class="card"><h3>✨ استحداث أيقونة جديدة</h3>
+      <form data-f="custom"><div class="input-row"><input name="icon" maxlength="4" value="⭐" style="max-width:4em" aria-label="رمز"><input name="title" maxlength="30" placeholder="اسم الأيقونة" required></div>
+        <input name="desc" maxlength="60" placeholder="وصف قصير (اختياري)">
+        <label>نوعها</label><select name="kind"><option value="link">🔗 رابط موقع خارجي</option><option value="page">📄 صفحة نصية (إعلان، تعليمات، معلومات)</option><option value="route">↪️ اختصار لقسم في البرنامج</option></select>
+        <div data-k="link"><input name="url" dir="ltr" placeholder="https://"></div>
+        <div data-k="page" hidden><textarea name="content" rows="5" maxlength="3000" placeholder="نص الصفحة"></textarea><input name="purl" dir="ltr" placeholder="رابط إضافي (اختياري) https://"></div>
+        <div data-k="route" hidden><select name="route">${ROUTE_CHOICES().map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('')}</select></div>
+        <button class="btn primary block">✨ إضافة الأيقونة للرئيسية</button></form>
+      ${L.custom.length ? `<h4>الأيقونات المخصصة</h4><div class="list">${L.custom.map(c => `<div class="row-item"><div class="row-main"><b>${esc(c.icon)} ${esc(c.title)}</b><small>${c.kind === 'link' ? esc(c.url) : c.kind === 'route' ? 'اختصار: ' + esc(c.route) : 'صفحة نصية'}</small></div><button class="small-btn danger" data-del-custom="${c.id}">حذف</button></div>`).join('')}</div>` : ''}</section>`;
+  el.querySelectorAll('[data-order] [data-mv]').forEach(b => b.onclick = () => { const id = b.closest('[data-id]').dataset.id, i = ids.indexOf(id), j = i + Number(b.dataset.mv); const o = [...ids]; [o[i], o[j]] = [o[j], o[i]]; save({ ...L, order: o }); });
+  $('[data-reset-order]', el).onclick = () => save({ ...L, order: [] }, 'عاد الترتيب الافتراضي.');
+  bind(el, '[data-f=folder]', f => { save({ ...L, folders: [...L.folders, { id: newId('f'), icon: val(f, 'icon') || '📁', title: val(f, 'title'), items: [] }] }, 'تم إنشاء المجلد. انقل إليه الأيقونات من القائمة.'); return null; });
+  el.querySelectorAll('[data-del-folder]').forEach(b => b.onclick = async () => { if (!await confirmBox('حذف المجلد؟ تعود أيقوناته إلى الرئيسية.', { okText: 'حذف' })) return; save({ ...L, folders: L.folders.filter(f => f.id !== b.dataset.delFolder) }); });
+  el.querySelectorAll('[data-move]').forEach(sel => sel.onchange = () => { const id = sel.dataset.move; save({ ...L, folders: L.folders.map(f => ({ ...f, items: f.id === sel.value ? [...f.items.filter(x => x !== id), id] : f.items.filter(x => x !== id) })) }); });
+  const cf = $('[data-f=custom]', el);
+  cf.kind.onchange = () => cf.querySelectorAll('[data-k]').forEach(d => { d.hidden = d.dataset.k !== cf.kind.value; });
+  bind(el, '[data-f=custom]', f => {
+    const kind = f.kind.value, url = (kind === 'page' ? f.purl.value : f.url.value).trim();
+    if (kind === 'link' && !/^https:\/\//.test(url)) return { ok: false, message: 'الرابط يجب أن يبدأ بـ https://' };
+    if (kind === 'page' && url && !/^https:\/\//.test(url)) return { ok: false, message: 'الرابط الإضافي يجب أن يبدأ بـ https://' };
+    if (kind === 'page' && !f.content.value.trim()) return { ok: false, message: 'اكتب نص الصفحة' };
+    const c = { id: newId('c'), icon: val(f, 'icon') || '⭐', title: val(f, 'title'), desc: val(f, 'desc'), kind, url: url || undefined, content: kind === 'page' ? f.content.value.trim() : undefined, route: kind === 'route' ? f.route.value : undefined };
+    save({ ...L, custom: [...L.custom, c] }, 'تمت إضافة الأيقونة للرئيسية.'); return null;
+  });
+  el.querySelectorAll('[data-del-custom]').forEach(b => b.onclick = async () => { if (!await confirmBox('حذف هذه الأيقونة من الرئيسية؟', { okText: 'حذف' })) return; const id = b.dataset.delCustom; save({ ...L, custom: L.custom.filter(c => c.id !== id), order: L.order.filter(x => x !== id), folders: L.folders.map(f => ({ ...f, items: f.items.filter(x => x !== id) })) }); });
 }
 
 /* ---------------- إعدادات المطور ---------------- */

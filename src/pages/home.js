@@ -6,6 +6,7 @@ import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/
 import { LOCATION } from '../config.js';
 import { newsItems, fillTicker } from '../lib/ticker.js';
 import { arrangeTiles, widgetOn } from '../lib/prefs.js';
+import { compose, tileHtml } from '../lib/layout.js';
 
 /*
  * أيقونات الرئيسية مصنفة. access: all = متاح للجميع، member = يحتاج دخول عضو للمشاركة، admin = للمدير والمشرفين فقط.
@@ -27,6 +28,7 @@ export const GROUPS = [
     ['services/lost', '🔎', 'المفقودات', 'مفقود أو معثور عليه', 'all'],
     ['services/initiative', '💡', 'المبادرات', 'أفكار لخدمة الحي', 'all'],
     ['services/catalog', '📚', 'دليل الخدمات', 'صيانة • نقل • تعليم', 'all'],
+    ['offers', '🏷️', 'عروض اليوم', 'عروض الأسواق والمحلات', 'all'],
     ['housing', '🏠', 'سكن الحي', 'عروض وطلبات الإيجار', 'all'],
     ['community', '🏘️', 'مجتمع جديد', 'أنشئ مجتمعك الخاص', 'member']
   ]],
@@ -54,7 +56,7 @@ export const TILES = GROUPS.flatMap(([, items]) => items);
 const OPEN = new Set(['account', 'terms', 'about', 'install', 'invite', 'display']);
 
 /** ترتيب الأيقونات حسب إعدادات المطور وإخفاء الموقوفة عن غير المدير. */
-function arrange(items, svc) {
+export function arrange(items, svc) {
   return items
     .filter(t => (t[4] !== 'admin' || canManage()) && (t[4] !== 'dev' || state.manager))
     .filter(t => state.manager || svc[t[0]]?.enabled !== false)
@@ -66,8 +68,10 @@ export async function render(el) {
   const svc = await data.serviceSettings();
   const groupOf = new Map(); const meta = new Map();
   GROUPS.forEach(([g, items], gi) => arrange(items, svc).forEach(t => { groupOf.set(t[0], [g, gi]); meta.set(t[0], t); }));
-  const tiles = arrangeTiles([...meta.keys()]).map(id => meta.get(id));
-  if (!tiles.some(t => t[0] === 'display') && meta.has('display')) tiles.push(meta.get('display'));
+  const { top } = compose(meta, (await data.appStatus().catch(() => ({}))).home_layout);
+  const byTop = new Map(top.map(t => [t.kind === 'folder' ? 'folder/' + t.id : t.id, t]));
+  const tiles = arrangeTiles([...byTop.keys()]).map(id => byTop.get(id));
+  if (!tiles.some(t => t.id === 'display') && byTop.has('display')) tiles.push(byTop.get('display'));
   el.innerHTML = `
     <div class="ticker"${widgetOn('dhikr') ? '' : ' hidden'} aria-label="الذكر والأحاديث"><div class="ticker-track" data-ticker></div></div>
     <div class="ticker news-ticker"${widgetOn('news') ? '' : ' hidden'} aria-label="أخبار الحي"><span class="tk-label">أخبار الحي</span><div class="ticker-track" data-news-ticker></div></div>
@@ -77,7 +81,7 @@ export async function render(el) {
       <button type="button" class="weather-badge"${widgetOn('weather') ? '' : ' hidden'} data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button>
     </section>
     <section class="card prayer-card"${widgetOn('prayer') ? '' : ' hidden'} data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
-    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${tiles.map(([id, i, t, d]) => { const [g, gi] = groupOf.get(id); return `<a class="tile g${gi}${svc[id]?.enabled === false ? ' off' : ''}" href="#/${id}" data-tile="${id}" title="${esc(g + ' — ' + d)}"><span class="tile-icon">${i}</span><b>${esc(t)}</b>${svc[id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`; }).join('')}</nav>
+    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${tiles.map(t => { if (t.kind !== 'builtin') return tileHtml(t, 'g0 custom'); const [g, gi] = groupOf.get(t.id); return `<a class="tile g${gi}${svc[t.id]?.enabled === false ? ' off' : ''}" href="#/${t.id}" data-tile="${t.id}" title="${esc(g + ' — ' + t.desc)}"><span class="tile-icon">${t.icon}</span><b>${esc(t.title)}</b>${svc[t.id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`; }).join('')}</nav>
     <section class="upcoming"${widgetOn('upcoming') ? '' : ' hidden'} aria-label="لقاءات الجيران القادمة"><span class="up-title">☕ لقاءات الجيران القادمة <small>(اختيارية)</small></span>
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-v" data-next-outing>…</span></a>
@@ -88,7 +92,7 @@ export async function render(el) {
   el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
     if (state.user && state.termsOk || state.manager) return;
     const id = tile.dataset.tile || '';
-    if (OPEN.has(id)) return;
+    if (OPEN.has(id) || id.startsWith('folder/') || tile.target === '_blank' || tile.classList.contains('custom')) return;
     event.preventDefault();
     showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
   }));
