@@ -297,6 +297,10 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const aw = await lastCall('manager_set_app_text');
   ok('settings: developer edits home welcome', aw && aw.args.p_key === 'home_welcome' && aw.args.p_value === 'حيّ يجمعنا');
   await page.selectOption('[data-jump]', 'members'); await page.waitForFunction(() => location.hash === '#/manager/members');
+  await page.waitForSelector('[data-f=reset]');
+  await page.fill('[data-f=reset] [name=pin]', '٤٥٦٧'); await page.click('[data-f=reset] button'); await page.waitForTimeout(300);
+  const rp = await lastCall('manager_reset_member_pin_from_request');
+  ok('pin reset: Arabic digits accepted and converted', rp && rp.args.p_new_pin === '4567' && rp.args.p_request_id === 1);
   ok('manager: jump menu navigates between sections', true);
   ok('manager: nav visible', !(await page.$eval('[data-nav=manager]', e => e.hidden)));
   for (const t of ['settings', 'joinRequests', 'ticker', 'schedules', 'plans', 'occasions', 'messages', 'members', 'permissions', 'rules', 'checks', 'reports']) {
