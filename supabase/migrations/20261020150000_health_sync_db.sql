@@ -156,3 +156,7 @@ grant execute on function public.health_request_sync(text), public.health_sync_s
 
 select cron.schedule('ghadeer-health-process', '* * * * *', 'select public.health_process_sync()');
 select cron.schedule('ghadeer-health-refresh', '17 3 * * 5', 'select public.health_refresh_stale()');
+
+-- تثبيت search_path لدوال التصنيف (تنبيه المستشار الأمني).
+alter function public._health_kind(jsonb, text) set search_path = pg_catalog, pg_temp;
+alter function public._health_sector(jsonb, text, text) set search_path = pg_catalog, pg_temp;
