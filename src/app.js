@@ -29,6 +29,9 @@ import * as stats from './pages/stats.js';
 import * as invite from './pages/invite.js';
 import * as whatsapp from './pages/whatsapp.js';
 import * as display from './pages/display.js';
+import * as folder from './pages/folder.js';
+import * as custom from './pages/custom.js';
+import * as offers from './pages/offers.js';
 import * as P from './lib/prefs.js';
 
 const PAGES = [
@@ -38,14 +41,14 @@ const PAGES = [
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
   ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms], ['install', 'النشر والتثبيت', '📲', install],
-  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp], ['display', 'إعداد الشاشة', '🎨', display]
+  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp], ['display', 'إعداد الشاشة', '🎨', display], ['folder', 'مجلد', '📁', folder], ['custom', 'صفحة', '⭐', custom], ['offers', 'عروض اليوم', '🏷️', offers]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 
 // صفحات متاحة للزائر: الواجهة فقط والتعريف والشروط والدخول. كل ما عداها يتطلب دخول عضو وموافقته على الشروط.
-const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager', 'invite', 'display']);
+const PUBLIC = new Set(['home', 'account', 'terms', 'about', 'install', 'manager', 'invite', 'display', 'folder', 'custom']);
 // صفحات لا يمكن إيقافها حتى لا يُحجب الدخول أو الإدارة أو الشروط.
-const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats', 'invite', 'display']);
+const ALWAYS_ON = new Set(['home', 'account', 'manager', 'terms', 'about', 'install', 'stats', 'invite', 'display', 'folder', 'custom']);
 export const isPublicRoute = id => PUBLIC.has(String(id).split('/')[0]);
 
 setGuard(async (id, params) => {

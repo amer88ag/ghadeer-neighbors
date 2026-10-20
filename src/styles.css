@@ -587,3 +587,11 @@ input, select, textarea { font-size: 16px; }
 .utrack i { display: block; height: 100%; background: var(--g); border-radius: 99px; }
 .ubar small { color: var(--muted); min-width: 4.5em; }
 #stats-members select { margin: 8px 0; }
+
+/* عروض اليوم */
+.offer-list { display: grid; gap: 8px; }
+.offer { margin: 0; } .offer h3 { margin: 6px 0 4px; font-size: 16px; }
+.offer-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.offer-off { background: #c62828; color: #fff; border-radius: 8px; padding: 2px 8px; font-weight: 800; font-size: 13px; }
+.offer-price b { color: var(--g); font-size: 18px; } .offer-price s { color: var(--muted); }
+.custom-content { line-height: 1.9; margin: 8px 0 12px; }
