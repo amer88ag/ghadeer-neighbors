@@ -146,6 +146,19 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
   ok('member icons count', (await checkAllTiles('member')) === 24);
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-edit-home]');
+  await page.click('[data-edit-home]'); await page.waitForSelector('.home-tiles.editing .tile-ctl');
+  const before = await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile));
+  await page.dispatchEvent('[data-tile=coffee] [data-hide]', 'click'); await page.waitForTimeout(300);
+  ok('edit mode: delete icon from my screen', !(await page.$('[data-tile=coffee]')) && !!(await page.$('.home-tiles.editing')));
+  const second = before[1]; await page.dispatchEvent(`[data-tile="${second}"] [data-mv="-1"]`, 'click'); await page.waitForTimeout(300);
+  ok('edit mode: move icon', (await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile)))[0] === second);
+  await page.click('[data-restore-hidden]'); await page.click('[data-unhide=coffee]'); await page.waitForTimeout(300);
+  ok('edit mode: restore deleted icon', !!(await page.$('[data-tile=coffee]')));
+  await page.click('[data-reset-layout]'); await page.waitForTimeout(300);
+  ok('edit mode: default order restored', (await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile)))[0] === before[0]);
+  await page.click('[data-edit-done]'); await page.waitForTimeout(200);
+  ok('edit mode: done exits and icons open again', !(await page.$('.home-tiles.editing')) && !(await page.$('.tile-ctl')));
   await page.goto(BASE + '#/offers'); await page.waitForSelector('.offer');
   ok('offers: published offer with discount, price, share and source', (await page.textContent('.offer')).includes('مخبز الحي') && (await page.textContent('.offer-off')).includes('20') && !!(await page.$('.offer a.wa')) && (await page.$$('.links .link-item')).length === 8);
   await page.click('.offer [data-fav]'); await page.goto(BASE + '#/offers/fav'); await page.waitForSelector('.offer');

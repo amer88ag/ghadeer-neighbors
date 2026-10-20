@@ -595,3 +595,21 @@ input, select, textarea { font-size: 16px; }
 .offer-off { background: #c62828; color: #fff; border-radius: 8px; padding: 2px 8px; font-weight: 800; font-size: 13px; }
 .offer-price b { color: var(--g); font-size: 18px; } .offer-price s { color: var(--muted); }
 .custom-content { line-height: 1.9; margin: 8px 0 12px; }
+
+/* تعديل الشاشة من الرئيسية */
+.corner-tools { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.edit-fab { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 18px; cursor: pointer; box-shadow: 0 3px 10px #0000001a; }
+.edit-fab.on { background: var(--g); color: #fff; border-color: var(--g); font-weight: 900; }
+.edit-bar { background: var(--g-soft); border: 1px dashed var(--g); border-radius: 14px; padding: 8px 10px; display: grid; gap: 4px; }
+.edit-bar small { color: var(--muted); }
+.edit-bar .small-btn.primary { background: var(--g); color: #fff; border-color: var(--g); }
+.hidden-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.hidden-list .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+.home-tiles.editing .tile { animation: tile-wiggle .25s ease-in-out infinite alternate; position: relative; }
+.home-tiles.editing .tile:nth-child(2n) { animation-delay: .12s; }
+@keyframes tile-wiggle { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+.tile-ctl { position: absolute; inset: auto 2px 2px 2px; display: flex; justify-content: space-between; gap: 2px; }
+.tile-ctl button { flex: 1; min-width: 0; height: 22px; padding: 0; border: 0; border-radius: 7px; background: var(--g); color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; }
+.tile-ctl button[data-hide] { background: #c62828; }
+.home-tiles.editing .tile { padding-bottom: 28px !important; }
+@media (prefers-reduced-motion: reduce) { .home-tiles.editing .tile { animation: none; } }
