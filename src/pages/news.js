@@ -15,8 +15,9 @@ export async function render(el, [tab = 'all']) {
   const rows = data.visibleAnnouncements(ann);
   const news = (local || []).filter(n => n && n.title && n.link && n.source);
   const school = news.filter(n => isSchoolNews(n.title));
-  const tabs = [['all', 'الكل'], ['school', '📚 الدراسة والإجازات'], ['notices', '🔔 الإعلانات'], ['occasions', '🎉 المناسبات'], ['local', '📰 أخبار المنطقة']];
-  const annList = tab === 'occasions' ? rows.filter(a => a.is_occasion) : tab === 'notices' ? rows.filter(a => !a.is_occasion) : rows;
+  const tabs = [['all', 'الكل'], ['school', '📚 الدراسة والإجازات'], ['notices', '🔔 الإعلانات'], ['local', '📰 أخبار المنطقة']];
+  // تهاني المناسبات الدينية والوطنية تظهر ضمن الكل والإعلانات (مناسبات الجيران لها أيقونتها المستقلة).
+  const annList = rows;
   const annHtml = annList.length ? `<div class="list">${annList.map(a => `<article class="row-item col">
       <div class="row-head"><b>${a.is_occasion ? (a.occasion_type === 'وطنية' ? '🇸🇦 ' : '🕌 ') : '🔔 '}${esc(a.title)}</b>${a.is_occasion ? `<span class="pill">${esc(a.occasion_type || 'مناسبة')}</span>` : ''}</div>
       <p>${esc(a.message || '')}</p><small class="muted">${esc(a.sender_name || 'إدارة الحي')} · ${fmtDateTime(a.scheduled_at || a.created_at)}</small></article>`).join('')}</div>` : empty('لا توجد أخبار أو إعلانات منشورة حاليًا.');
@@ -25,7 +26,7 @@ export async function render(el, [tab = 'all']) {
   let body;
   if (tab === 'school') body = `<div class="card">${schoolHtml}</div>`;
   else if (tab === 'local') body = `<div class="card">${localHtml}</div>`;
-  else if (tab === 'all') body = `${school.length ? `<div class="card"><h3>📚 الدراسة والإجازات</h3>${schoolHtml}</div>` : ''}<div class="card"><h3>🔔 إعلانات الحي</h3>${annHtml}</div>`;
+  else if (tab === 'all') body = `${school.length ? `<div class="card"><h3>📚 الدراسة والإجازات</h3>${schoolHtml}</div>` : ''}<div class="card"><h3>🔔 الإعلانات والتهاني</h3>${annHtml}</div>`;
   else body = `<div class="card">${annHtml}</div>`;
   el.innerHTML = `<div class="segmented scroll">${tabs.map(([k, t]) => `<a href="#/news${k === 'all' ? '' : '/' + k}" class="${tab === k ? 'active' : ''}">${t}</a>`).join('')}</div>
     ${body}<p class="muted center"><small>أخبار الدراسة والمنطقة من مصادر سعودية موثوقة (واس، عكاظ، الرياض…) وتُحدّث كل نصف ساعة.</small></p>`;
