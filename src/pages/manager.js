@@ -506,13 +506,15 @@ const SUB_SERVICES = ['🔧 أقسام داخلية', [
 ]];
 async function services(el, again) {
   const svc = await data.serviceSettings(true);
-  el.innerHTML = `<p class="muted">أوقف أي خدمة أو أعد ترتيبها داخل مجموعتها (الرقم الأصغر يظهر أولًا). الخدمة الموقوفة تختفي من الرئيسية وتظهر رسالتك لمن يفتح رابطها. المطور يرى كل الخدمات دائمًا.</p>` +
+  el.innerHTML = `<p class="muted">أوقف أي خدمة أو أعد ترتيبها داخل مجموعتها (الرقم الأصغر يظهر أولًا). الخدمة الموقوفة تختفي من الرئيسية وتظهر رسالتك لمن يفتح رابطها. المطور يرى كل الخدمات دائمًا. <b>التفعيل والإيقاف يُحفظان فور الضغط على المفتاح</b>، وزر «حفظ» للترتيب والرسالة.</p>` +
     [...GROUPS, SUB_SERVICES].map(([g, items]) => `<div class="card"><h3>${g}</h3><div class="list">${items.filter(t => !['admin', 'dev'].includes(t[4])).map(([id, i, t], idx) => { const s = svc[id] || {}; return `
       <form class="row-item col svc-row" data-svc="${id}"><div><b>${i} ${t}</b>${s.enabled === false ? ' <span class="pill">⏸️ موقوفة</span>' : ''}</div>
         <div class="ctl"><label class="switch"><input type="checkbox" name="on" ${s.enabled === false ? '' : 'checked'}> مفعّلة</label>
         <input type="number" name="order" min="0" max="999" value="${esc(s.sort_order ?? idx + 1)}" aria-label="الترتيب">
         <input name="note" placeholder="رسالة عند الإيقاف (اختياري)" value="${esc(s.note || '')}"><button class="small-btn">حفظ</button></div></form>`; }).join('')}</div></div>`).join('');
   bind(el, '[data-svc]', f => call('manager_set_service_setting', { ...M(), p_key: f.dataset.svc, p_enabled: f.on.checked, p_sort_order: Number(f.order.value) || 0, p_note: val(f, 'note') }), () => { data.invalidate('svc'); again(); });
+  // تفعيل/إيقاف الخدمة يُحفظ فورًا عند الضغط على المفتاح دون الحاجة لزر «حفظ».
+  el.querySelectorAll('[data-svc] [name=on]').forEach(c => c.addEventListener('change', () => { const f = c.form; f.requestSubmit ? f.requestSubmit() : f.querySelector('button').click(); }));
 }
 
 /* ---------------- المحتوى (إغلاق/إعادة/إلغاء) ---------------- */
