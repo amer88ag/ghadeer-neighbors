@@ -51,7 +51,10 @@ function bind(el, sel, handler, after) {
 
 const memberOpts = sel => options(activeMembers(), m => m.name, sel);
 
-export async function render(el, [tab]) {
+export async function render(el, [route]) {
+  // يدعم #/manager/schedules?outing=ID لفتح نموذج تعديل طلعة محددة مباشرة.
+  const [tab, query = ''] = String(route ?? '').split('?');
+  const focus = Object.fromEntries(new URLSearchParams(query));
   if (!canManage() || !state.pin) {
     el.innerHTML = `<div class="card"><p>لوحة الإدارة للمطور والمشرفين المفوضين.</p><button class="btn primary block" data-mgr>🛠️ دخول المطور</button><button class="btn secondary block" data-sup>🔐 دخول المشرف</button></div>`;
     $('[data-mgr]', el).onclick = async () => { if (await showManagerLogin()) refresh(); };
@@ -67,7 +70,7 @@ export async function render(el, [tab]) {
     <h2 class="mgr-title">${cur[1]}</h2><div data-tab></div>`;
   $('[data-jump]', el).onchange = e => { location.hash = '#/manager/' + e.target.value; };
   const box = $('[data-tab]', el);
-  await ({ layout, offers, health, settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ layout, offers, health, settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again, focus);
 }
 
 /* ---------------- لوحة التحكم الرئيسية ---------------- */
@@ -251,7 +254,7 @@ async function ticker(el, again) {
 }
 
 /* ---------------- الجداول ---------------- */
-async function schedules(el, again) {
+async function schedules(el, again, focus = {}) {
   const [coffee, outings, ruleSettings] = await Promise.all([data.coffee(true), data.outings(true), data.settings(true)]);
   const cLabel = x => `${fmtDate(x.coffee_date)} — ${memberName(x.member_id)}`;
   const oLabel = x => `${fmtDate(x.outing_date)} — ${x.outing_type || memberName(x.member1_id) + ' + ' + memberName(x.member2_id)}`;
@@ -319,7 +322,14 @@ async function schedules(el, again) {
     }
   }
   ce.rid.onchange = () => fillCoffee(ce); fillCoffee(ce);
-  oe.rid.onchange = () => fillOuting(oe); fillOuting(oe);
+  oe.rid.onchange = () => fillOuting(oe);
+  if (focus.outing && outings.some(x => String(x.id) === String(focus.outing))) {
+    oe.rid.value = String(focus.outing);
+    const box = oe.closest('details');
+    box.open = true;
+    setTimeout(() => box.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+  }
+  fillOuting(oe);
   oe.date.addEventListener('input', updateOutingWarning);
   oe.date.addEventListener('change', updateOutingWarning);
 
