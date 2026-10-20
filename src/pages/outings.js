@@ -1,5 +1,5 @@
 import { esc, fmtDate, fmtTime, todayISO, toast, busy, empty, money, val } from '../lib/dom.js';
-import { state, memberName, requirePin, creds } from '../lib/session.js';
+import { state, memberName, requirePin, creds, canManage } from '../lib/session.js';
 import { call } from '../lib/api.js';
 import * as data from '../lib/data.js';
 
@@ -50,12 +50,14 @@ export async function render(el, [tab = 'plans']) {
     const [rows, plans] = await Promise.all([data.outings(), data.outingPlans()]);
     const planMap = new Map(plans.map(p => [Number(p.id), p]));
     const today = todayISO();
+    // المدير والمشرف يرون زر تعديل ينقلهم لنموذج التعديل في لوحة الإدارة على الطلعة نفسها.
+    const admin = canManage();
     el.innerHTML = tabs + `<div class="card">${rows.length ? `<div class="list">${rows.map(x => {
       const p = x.plan_id ? planMap.get(Number(x.plan_id)) : null;
       const who = p?.organizers?.length ? p.organizers.map(o => o.member_name).join('، ') : [memberName(x.member1_id), memberName(x.member2_id)].filter(n => n !== '—').join(' + ');
       return `<div class="row-item${x.outing_date < today ? ' past' : ''}"><div class="row-main"><b>${esc(x.outing_type || p?.outing_type || 'طلعة')} — ${esc(x.outing_place || p?.outing_place || 'المكان لاحقًا')}</b>
         <span class="muted">${fmtDate(x.outing_date)} — ${fmtTime(x.outing_time)}</span><small>المنظمون: ${esc(who || '—')}${p ? ' · ' + (p.attending_count || 0) + ' مشارك · للفرد ' + money(p.per_person_cost) : ''}</small></div>
-        ${x.outing_date >= today ? `<div class="row-side"><button class="small-btn" data-att="1" data-id="${x.id}">حاضر</button><button class="small-btn ghost" data-att="0" data-id="${x.id}">أعتذر</button></div>` : ''}</div>`;
+        ${x.outing_date >= today || admin ? `<div class="row-side">${x.outing_date >= today ? `<button class="small-btn" data-att="1" data-id="${x.id}">حاضر</button><button class="small-btn ghost" data-att="0" data-id="${x.id}">أعتذر</button>` : ''}${admin ? `<a class="small-btn" data-edit-outing href="#/manager/schedules?outing=${encodeURIComponent(x.id)}">✏️ تعديل</a>` : ''}</div>` : ''}</div>`;
     }).join('')}</div>` : empty('لا توجد طلعات معتمدة.')}</div>`;
     el.querySelectorAll('[data-att]').forEach(b => b.onclick = () => busy(b, async () => {
       if (!(await requirePin())) return;

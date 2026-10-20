@@ -286,6 +286,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-vote=attending]'); await page.waitForTimeout(400);
   ok('outings: vote recorded', !!(await lastCall('vote_outing_plan')));
   ok('outings: organizer sees expense form', !!(await page.$('[data-expense]')));
+  await page.goto(BASE + '#/outings/schedule'); await page.waitForSelector('[data-att]');
+  ok('outings schedule: regular member sees no edit button', !(await page.$('[data-edit-outing]')));
 
   // 6) New plan
   await page.goto(BASE + '#/outings/new');
@@ -415,6 +417,10 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
   ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
+  await page.goto(BASE + '#/outings/schedule'); await page.waitForSelector('[data-edit-outing]');
+  await page.click('[data-edit-outing]'); await page.waitForSelector('[data-f=outing-edit]', { state: 'attached' }); await page.waitForTimeout(200);
+  ok('outings schedule: edit button opens the selected outing in admin', page.url().includes('#/manager/schedules?outing=21')
+    && await page.$eval('[data-f=outing-edit]', f => f.rid.value === '21' && f.closest('details').open && f.m1.value === '2' && f.m2.value === '3'));
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
