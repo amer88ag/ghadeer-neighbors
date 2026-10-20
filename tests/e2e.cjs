@@ -164,6 +164,16 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/news/school'); await page.waitForSelector('.segmented');
   await page.waitForFunction(() => document.querySelector('.card a.row-item'));
   ok('news page: school & holidays tab shows trusted local news', (await page.textContent('.card')).includes('تعليق الدراسة الحضورية') && (await page.textContent('.card')).includes('واس'));
+  ok('school: suspension news highlighted in red alert', !!(await page.$('.school-alert.on')) && (await page.textContent('.school-alert')).includes('تعليق الدراسة الحضورية'));
+  ok('school: full 1448 calendar with hijri, return dates and next holiday', (await page.$$('.school-row')).length === 11 && (await page.textContent('.list .school-row:nth-child(4)')).includes('إجازة الخريف') && (await page.textContent('.school-row:nth-child(4)')).includes('العودة') && (await page.textContent('.school-row:nth-child(4)')).includes('هـ') && !!(await page.$('.school-now')));
+  await page.screenshot({ path: SHOTS + '/6-school.png', fullPage: true });
+  ok('school: status logic (current, next, countdown, ticker)', await page.evaluate(async () => {
+    const m = await import('./src/lib/school.js');
+    const a = m.schoolStatus('2026-10-20'), b = m.schoolStatus('2026-11-22'), c = m.schoolStatus('2027-06-01');
+    return a.next.from === '2026-10-25' && a.inDays === 5 && !a.current && b.current.title.includes('الخريف') && c.next.kind === 'end'
+      && m.tickerLine('2026-10-20').includes('بعد 5 أيام') && m.tickerLine('2026-11-22').includes('العودة') && m.tickerLine('2026-09-01') === ''
+      && m.calendarHtml('2026-10-20').includes('العودة الأحد، ٢٩ نوفمبر ٢٠٢٦') === false && /العودة الاثنين، ٣٠ نوفمبر/.test(m.calendarHtml('2026-10-20')) && m.isSuspension('تعليق الدراسة الحضورية في عسير') && !m.isSuspension('إجازة الخريف');
+  }));
   await page.goto(BASE + '#/news'); await page.waitForSelector('.segmented');
   ok('news page: occasions tab removed (events have their own icon)', !(await page.$('a[href="#/news/occasions"]')));
   ok('news page: all tab shows school section above announcements', (await page.textContent('main, body')).includes('📚 الدراسة والإجازات'));
