@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 24 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 25 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -111,7 +111,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 24);
+  ok('guest icons count', (await checkAllTiles('guest')) === 25);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
@@ -145,7 +145,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 24);
+  ok('member icons count', (await checkAllTiles('member')) === 25);
   await page.goto(BASE + '#/home'); await page.waitForSelector('[data-edit-home]');
   await page.click('[data-edit-home]'); await page.waitForSelector('.home-tiles.editing .tile-ctl');
   const before = await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile));
@@ -167,6 +167,37 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.fill('[data-offer] [name=ttl]', 'تخفيض على العسل'); await page.fill('[data-offer] [name=store]', 'متجر الحي'); await page.click('[data-offer] button'); await page.waitForTimeout(400);
   const of = await lastCall('offer_submit');
   ok('offers: member submits offer for review', of && of.args.p_title === 'تخفيض على العسل' && of.args.p_category === 'local' && of.args.p_member_id === 1);
+  // ---------- الدليل الصحي ----------
+  await page.evaluate(() => { window.__healthPoll = 50; try { localStorage.removeItem('ghadeer.health.area'); } catch {} });
+  await page.goto(BASE + '#/health'); await page.waitForSelector('.health-card');
+  ok('health: Abha results with gov/private, price, source and official links', (await page.$$('.health-card')).length === 3 && (await page.textContent('.health-list')).includes('كشف') && (await page.textContent('.health-list')).includes('سعر الكشف غير متوفر') && (await page.textContent('.health-list')).includes('OpenStreetMap') && (await page.$$('.links .link-item')).length === 5);
+  ok('health: health offers shown with terms', (await page.textContent('[data-offers]')).includes('تنظيف الأسنان') && (await page.textContent('[data-offers]')).includes('الشروط'));
+  await page.click('[data-sector=government]'); await page.waitForTimeout(300);
+  ok('health: filter government only', (await page.$$('.health-card')).length === 1 && (await page.textContent('.health-card')).includes('مستشفى عسير'));
+  await page.click('[data-sector=private]'); await page.waitForTimeout(300);
+  ok('health: filter private only', (await page.$$('.health-card')).length === 2);
+  await page.click('[data-sector=""]'); await page.fill('[data-q]', 'الأطفال'); await page.click('[data-go]'); await page.waitForTimeout(300);
+  ok('health: search by specialty finds doctor', (await page.$$('.health-card')).length === 1 && (await page.textContent('.health-card')).includes('سارة أحمد'));
+  await page.fill('[data-q]', 'مستشفى'); await page.click('[data-go]'); await page.waitForTimeout(300);
+  ok('health: search hospital by name', (await page.$$('.health-card')).length === 1);
+  await page.fill('[data-q]', ''); await page.selectOption('[data-area]', 'خميس مشيط'); await page.waitForTimeout(400);
+  ok('health: second city', (await page.$$('.health-card')).length === 1 && (await page.textContent('.health-card')).includes('خميس'));
+  await page.selectOption('[data-area]', 'جدة'); await page.waitForSelector('[data-status] .status.bad');
+  ok('health: source failure handled, page still works', (await page.evaluate(() => window.__healthReq || [])).includes('جدة') && (await page.textContent('[data-status]')).includes('تعذر') && !!(await page.$('.links .link-item')));
+  await page.selectOption('[data-area]', 'أبها'); await page.waitForSelector('.health-card');
+  await ctx.grantPermissions(['geolocation']); await page.context().setGeolocation({ latitude: 18.235, longitude: 42.525 });
+  await page.click('[data-near]'); await page.waitForFunction(() => document.querySelector('.health-card small')?.textContent.includes('كم'));
+  const hs = await lastCall('health_search');
+  ok('health: near me sorts by distance (location only after tap)', hs.args.p_lat != null && (await page.textContent('.health-card b')) === 'صيدلية الحي');
+  await page.goto(BASE + '#/health/f/102'); await page.waitForSelector('h2');
+  const fpage = await page.textContent('.page-body');
+  ok('health: facility page shows price, unavailable price, doctor, offer, booking, verification date', fpage.includes('كشف أطفال') && fpage.includes('غير متوفر') && fpage.includes('سارة أحمد') && fpage.includes('تنظيف الأسنان') && fpage.includes('الحجز الرسمي') && fpage.includes('تاريخ التحقق'));
+  await page.click('a[href="#/health/add/price-102"]'); await page.waitForSelector('[data-hform] [name=service_name]');
+  await page.fill('[name=service_name]', 'كشف باطنية'); await page.fill('[name=price]', '200'); await page.fill('[data-hform] [name=link]', 'https://example.com/price'); await page.click('[data-hform] button.primary'); await page.waitForTimeout(400);
+  const hsub = await lastCall('health_submit');
+  ok('health: member submits price for review', hsub && hsub.args.p_type === 'price' && hsub.args.p_data.facility_id === '102' && hsub.args.p_data.price === '200' && hsub.args.p_member_id === 1);
+  await page.goto(BASE + '#/health/sources'); await page.waitForSelector('.row-item');
+  ok('health: sources page states connected vs needs permission', (await page.textContent('.page-body')).includes('مربوط فعليًا') && (await page.textContent('.page-body')).includes('يحتاج تصريحًا'));
   await page.goto(BASE + '#/display'); await page.waitForSelector('[data-tiles-list]');
   await page.click('[data-tiles-btn=lg]'); await page.waitForSelector('[data-tiles-btn=lg].active');
   await page.click('[data-tiles-list] [data-id=coffee] [data-eye]'); await page.waitForSelector('[data-tiles-list] [data-id=coffee].inactive');
@@ -332,6 +363,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-st=published]'); await page.waitForTimeout(300);
   const rv = await lastCall('staff_review_offer');
   ok('offers: developer reviews and publishes', rv && rv.args.p_offer_id === 8 && rv.args.p_status === 'published');
+  await page.goto(BASE + '#/manager/health'); await page.waitForSelector('[data-hs]');
+  await page.click('[data-hsync] button'); await page.waitForTimeout(300);
+  ok('health: developer triggers city sync', (await lastCall('staff_health_sync'))?.args.p_city === 'أبها');
+  ok('health: developer sees pending items and sync log', (await page.textContent('.page-body')).includes('كشف باطنية') && (await page.textContent('.page-body')).includes('HTTP 429'));
+  await page.click('[data-hs=published]'); await page.waitForTimeout(300);
+  const hrv = await lastCall('staff_health_review');
+  ok('health: developer approves contribution', hrv && hrv.args.p_type === 'price' && hrv.args.p_id === 77 && hrv.args.p_status === 'published' && hrv.args.p_member_id === 0);
   await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
   await page.click('.mgr-card[href="#/manager/settings"]'); await page.waitForSelector('[data-f=pause]');
   ok('settings: maintenance, texts, WhatsApp, security, diagnostics', !!(await page.$('[data-f=welcome]')) && !!(await page.$('[data-f=invite]')) && !!(await page.$('[data-f=wa]')) && !!(await page.$('[data-revoke-all]')) && (await page.textContent('[data-tab]')).includes('فحص النظام'));
@@ -358,7 +396,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_message');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 26);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 27);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -391,7 +429,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
   ok('supervisor: dashboard shows only permitted sections', !(await page.$('.mgr-card[href="#/manager/settings"]')) && !!(await page.$('.mgr-card[href="#/manager/ticker"]')));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 25);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 26);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);

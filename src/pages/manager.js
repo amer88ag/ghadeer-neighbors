@@ -6,6 +6,7 @@ import * as data from '../lib/data.js';
 import { PIN_PATTERN } from '../config.js';
 import { GROUPS, arrange as arrangeTiles0 } from './home.js';
 import { adminView as offersAdmin } from './offers.js';
+import { adminView as healthAdmin } from './health.js';
 import { compose, clean as cleanLayout, newId } from '../lib/layout.js';
 import { refresh } from '../lib/router.js';
 
@@ -16,7 +17,7 @@ const SECTIONS = [
     ['communities', '🏘️', 'المجتمعات الجديدة', 'any'], ['checks', '❤️', 'التفقد', 'manager']
   ]],
   ['📢 التواصل والنشر', [
-    ['ticker', '📢', 'شريط الأخبار', 'any'], ['offers', '🏷️', 'مراجعة العروض', 'any'], ['occasions', '🎉', 'المناسبات والتهاني', 'any'], ['messages', '💬', 'الرسائل والتنبيهات', 'manager']
+    ['ticker', '📢', 'شريط الأخبار', 'any'], ['offers', '🏷️', 'مراجعة العروض', 'any'], ['health', '🩺', 'الدليل الصحي', 'any'], ['occasions', '🎉', 'المناسبات والتهاني', 'any'], ['messages', '💬', 'الرسائل والتنبيهات', 'manager']
   ]],
   ['☕ اللقاءات (اختيارية)', [
     ['schedules', '📅', 'جداول القهوة والطلعات', 'any'], ['plans', '🗳️', 'الطلعات المقترحة', 'any'], ['rules', '⚙️', 'قواعد الجداول', 'any']
@@ -66,7 +67,7 @@ export async function render(el, [tab]) {
     <h2 class="mgr-title">${cur[1]}</h2><div data-tab></div>`;
   $('[data-jump]', el).onchange = e => { location.hash = '#/manager/' + e.target.value; };
   const box = $('[data-tab]', el);
-  await ({ layout, offers, settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
+  await ({ layout, offers, health, settings, services, schedules, plans, occasions, messages, members, joinRequests, ticker, permissions, rules, content, communities, checks, reports })[tab](box, again);
 }
 
 /* ---------------- لوحة التحكم الرئيسية ---------------- */
@@ -101,6 +102,7 @@ async function dashboard(el) {
 }
 
 /* ---------------- مراجعة العروض ---------------- */
+async function health(el, again) { return healthAdmin(el, again, state.manager ? { p_member_id: 0, p_pin: state.pin } : S()); }
 async function offers(el, again) { return offersAdmin(el, again, state.manager ? { p_member_id: 0, p_pin: state.pin } : S()); }
 
 /* ---------------- تنظيم الواجهة (للجميع) ---------------- */

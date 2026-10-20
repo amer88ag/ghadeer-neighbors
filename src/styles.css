@@ -613,3 +613,23 @@ input, select, textarea { font-size: 16px; }
 .tile-ctl button[data-hide] { background: #c62828; }
 .home-tiles.editing .tile { padding-bottom: 28px !important; }
 @media (prefers-reduced-motion: reduce) { .home-tiles.editing .tile { animation: none; } }
+
+/* ---------- الدليل الصحي ---------- */
+.health-top { display: grid; gap: 8px; margin-bottom: 8px; }
+.health-top select { flex: 1; }
+.chips.scroll { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+.chips .chip.on { background: var(--g); color: #fff; border-color: var(--g); }
+.filters summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.health-list { display: grid; gap: 8px; }
+.health-card { margin: 0; display: grid; gap: 6px; }
+.hc-main { display: flex; gap: 10px; align-items: center; color: inherit; text-decoration: none; }
+.hc-main b { display: block; font-size: 16px; } .hc-main small { display: block; }
+.hc-icon { font-size: 28px; line-height: 1; }
+.hc-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill.government { background: #e3f2fd; color: #0d47a1; } .pill.private { background: #f3e5f5; color: #6a1b9a; }
+.pill.price { background: #e8f5e9; color: #1b5e20; font-weight: 800; } .pill.offer-pill { background: #ffebee; color: #b71c1c; }
+.price-ok { color: var(--g); font-weight: 800; white-space: nowrap; }
+.tiny { font-size: 11px; margin: 0; }
+.health-note { margin-top: 12px; }
+[data-theme="dark"] .pill.government { background: #0d2a4a; color: #90caf9; } [data-theme="dark"] .pill.private { background: #2e1538; color: #ce93d8; }
+[data-theme="dark"] .pill.price { background: #12301a; color: #a5d6a7; } [data-theme="dark"] .pill.offer-pill { background: #3a1212; color: #ef9a9a; }
