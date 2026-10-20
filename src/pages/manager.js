@@ -1,5 +1,5 @@
 /* لوحة الإدارة: المدير بكل الصلاحيات، والمشرف المفوض بما تسمح به دوال المشرف. */
-import { esc, toast, busy, empty, val, options, fmtDate, fmtTime, fmtDateTime, confirmBox, promptBox, todayISO, $ } from '../lib/dom.js';
+import { esc, toast, busy, empty, val, options, fmtDate, fmtTime, fmtDateTime, confirmBox, promptBox, todayISO, normalizeDigits, $ } from '../lib/dom.js';
 import { state, canManage, activeMembers, memberName, loadMembers, logout, showManagerLogin, showLogin } from '../lib/session.js';
 import { call, list, table } from '../lib/api.js';
 import * as data from '../lib/data.js';
@@ -26,6 +26,8 @@ const SECTIONS = [
 const TABS = SECTIONS.flatMap(([, items]) => items.map(([k, i, l, acc]) => [k, i + ' ' + l, acc]));
 
 const M = () => ({ p_manager_pin: state.pin });
+// يقبل الأرقام العربية (٠١٢٣) والفارسية ويحوّلها إلى أرقام إنجليزية قبل التحقق والإرسال.
+const pinOf = v => normalizeDigits(String(v ?? '')).replace(/\s+/g, '');
 const S = () => ({ p_member_id: state.user?.id, p_pin: state.pin });
 
 /** يربط نموذجًا بمعالج: يمنع الإرسال المزدوج ويعرض النتيجة ويعيد الرسم عند النجاح. */
@@ -376,14 +378,14 @@ async function members(el, again) {
     <details class="card"><summary><b>🛠️ تغيير رقم المطور</b></summary><form data-f="mgrpin"><input name="old" type="password" inputmode="numeric" placeholder="الرقم الحالي" required><input name="next" type="password" inputmode="numeric" placeholder="الرقم الجديد" required><button class="btn secondary block">تغيير</button></form></details>`;
   const reload = async () => { await loadMembers(); again(); };
   $('[data-q]', el)?.addEventListener('input', e => { const q = e.target.value.trim(); el.querySelectorAll('[data-list] .row-item').forEach(r => { r.hidden = q && !r.textContent.includes(q); }); });
-  bind(el, '[data-f=reset]', f => PIN_PATTERN.test(f.pin.value) ? call('manager_reset_member_pin_from_request', { ...M(), p_request_id: Number(f.dataset.id), p_new_pin: f.pin.value }) : { ok: false, message: 'الرقم من 4 إلى 12 رقمًا.' }, again);
-  bind(el, '[data-f=add]', f => { const pin = val(f, 'pin'); if (pin && !PIN_PATTERN.test(pin)) return { ok: false, message: 'الرقم السري من 4 إلى 12 رقمًا.' }; return call('manager_add_member', { ...M(), p_name: val(f, 'name'), p_phone: val(f, 'phone'), p_notes: val(f, 'notes'), p_member_pin: pin || null }); }, reload);
-  bind(el, '[data-f=mgrpin]', async f => { const r = await call('manager_set_manager_pin', { p_current_pin: f.old.value, p_new_pin: f.next.value }); if (r.ok) setTimeout(logout, 600); return r; });
+  bind(el, '[data-f=reset]', f => { const pin = pinOf(f.pin.value); return PIN_PATTERN.test(pin) ? call('manager_reset_member_pin_from_request', { ...M(), p_request_id: Number(f.dataset.id), p_new_pin: pin }) : { ok: false, message: 'الرقم السري من 4 إلى 12 رقمًا (أرقام فقط).' }; }, again);
+  bind(el, '[data-f=add]', f => { const pin = pinOf(val(f, 'pin')); if (pin && !PIN_PATTERN.test(pin)) return { ok: false, message: 'الرقم السري من 4 إلى 12 رقمًا.' }; return call('manager_add_member', { ...M(), p_name: val(f, 'name'), p_phone: val(f, 'phone'), p_notes: val(f, 'notes'), p_member_pin: pin || null }); }, reload);
+  bind(el, '[data-f=mgrpin]', async f => { const r = await call('manager_set_manager_pin', { p_current_pin: pinOf(f.old.value), p_new_pin: pinOf(f.next.value) }); if (r.ok) setTimeout(logout, 600); return r; });
   el.querySelectorAll('[data-act]').forEach(b => b.onclick = () => busy(b, async () => {
     const id = Number(b.dataset.id), name = rows.find(m => Number(m.id) === id)?.name || memberName(id);
     let r;
     if (b.dataset.act === 'rename') { const v = await promptBox({ title: 'تعديل الاسم', label: 'الاسم الجديد', value: name }); if (!v || v.trim() === name) return; r = await call('manager_update_member_name', { ...M(), p_member_id: id, p_name: v.trim() }); }
-    else if (b.dataset.act === 'pin') { const v = await promptBox({ title: 'رقم سري جديد لـ ' + name, label: '4 إلى 12 رقمًا', type: 'password', inputmode: 'numeric' }); if (v === null) return; if (!PIN_PATTERN.test(v)) return toast('الرقم من 4 إلى 12 رقمًا.', false); r = await call('manager_set_member_pin', { ...M(), p_member_id: id, p_new_pin: v }); }
+    else if (b.dataset.act === 'pin') { const v = await promptBox({ title: 'رقم سري جديد لـ ' + name, label: '4 إلى 12 رقمًا', type: 'password', inputmode: 'numeric' }); if (v === null) return; const np = pinOf(v); if (!PIN_PATTERN.test(np)) return toast('الرقم السري من 4 إلى 12 رقمًا (أرقام فقط).', false); r = await call('manager_set_member_pin', { ...M(), p_member_id: id, p_new_pin: np }); }
     else if (b.dataset.act === 'suspend') { if (!(await confirmBox(`إيقاف العضو «${name}»؟ لن يستطيع الدخول، وتُلغى صلاحياته وأجهزته المحفوظة. يمكنك إعادته لاحقًا.`, { okText: 'إيقاف' }))) return; r = await call('manager_set_member_active', { ...M(), p_member_id: id, p_active: false }); }
     else { r = await call('manager_set_member_active', { ...M(), p_member_id: id, p_active: true }); }
     if (!r.ok) return toast(r.message, false);
