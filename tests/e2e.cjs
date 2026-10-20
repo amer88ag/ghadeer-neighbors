@@ -385,9 +385,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager'); await page.click('[data-mgr]'); await page.fill('.modal [name=pin]', '9999'); await page.click('.modal .btn.primary');
   await page.waitForSelector('.mgr-hero');
   await page.goto(BASE + '#/manager/services'); await page.waitForSelector('[data-svc="services/lost"]');
-  await page.$eval('[data-svc="services/lost"] [name=on]', e => e.checked = false);
   await page.fill('[data-svc="services/lost"] [name=note]', 'قريبًا');
-  await page.click('[data-svc="services/lost"] button'); await page.waitForTimeout(400);
+  await page.uncheck('[data-svc="services/lost"] [name=on]'); await page.waitForTimeout(400);
   const ss = await lastCall('manager_set_service_setting');
   ok('dev: service paused', ss && ss.args.p_key === 'services/lost' && ss.args.p_enabled === false);
   await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services/lost"]');
