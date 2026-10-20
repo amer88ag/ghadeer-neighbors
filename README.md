@@ -43,6 +43,5 @@ cd dist && python3 -m http.server 8765
 ## النشر
 
 - **Vercel**: `vercel.json` يبني `dist/`. نشر Production موقوف عمدًا عبر `ignoreCommand` (المعاينات Preview تعمل). لإعادة تفعيل الإنتاج احذف سطر `ignoreCommand`.
-- **Cloudflare Workers**: `wrangler.toml` + `worker.js` يخدمان `dist/`.
 
 تفاصيل التدقيق وما تغيّر: `docs/AUDIT.md`. خطوات قاعدة البيانات: `docs/DATABASE.md`.
