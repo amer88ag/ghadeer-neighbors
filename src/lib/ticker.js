@@ -4,6 +4,9 @@ import { esc } from './dom.js';
 const DAY = 864e5;
 const THANKS_TITLE = /رسالة شكر/;
 
+/** أخبار الدراسة والإجازات (تعليق الدراسة، الإجازات، التقويم الدراسي...). */
+export const isSchoolNews = t => /دراس|إجاز|اجاز|الطلاب|طلاب|مدارس|المدرس|التعليم|تعليم|عطلة/.test(String(t || ''));
+
 export const DUA = 'اللهم احفظ خادم الحرمين الشريفين وولي عهده الأمين، ووفقهما لما تحب وترضى، واحفظ رجال قواتنا المسلحة وانصرهم، وأدم على بلادنا الأمن والأمان.';
 
 /**
@@ -42,13 +45,16 @@ export function newsItems({ announcements = [], coffee = [], outings = [], local
     }
   }
 
-  // 4) الدعاء لولاة الأمر ورجال القوات المسلحة.
+  // 4) أخبار الدراسة والإجازات أولًا لأهميتها للأسر (بعد تهاني اليوم وإعلانات الإدارة).
+  const trusted = local.filter(x => x && x.source && x.link && x.title);
+  const localItem = (n, ic) => ({ kind: 'local', html: `<a href="${esc(n.link)}" target="_blank" rel="noopener">${ic} ${esc(n.title)}</a> <small>(${esc(n.source)})</small>` });
+  for (const n of trusted.filter(x => isSchoolNews(x.title)).slice(0, 5)) items.push(localItem(n, '📚'));
+
+  // 5) الدعاء لولاة الأمر ورجال القوات المسلحة.
   items.push({ kind: 'dua', html: `🇸🇦 ${esc(DUA)}` });
 
-  // 5) أخبار محلية من مصادر موثوقة.
-  for (const n of local.filter(x => x.source && x.link).slice(0, 10)) {
-    items.push({ kind: 'local', html: `<a href="${esc(n.link)}" target="_blank" rel="noopener">📰 ${esc(n.title)}</a> <small>(${esc(n.source)})</small>` });
-  }
+  // 6) بقية الأخبار المحلية من مصادر موثوقة.
+  for (const n of trusted.filter(x => !isSchoolNews(x.title)).slice(0, 8)) items.push(localItem(n, '📰'));
   return items;
 }
 
