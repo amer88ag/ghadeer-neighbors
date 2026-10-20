@@ -2,6 +2,7 @@
 import { register, start, refresh, currentPage, setGuard } from './lib/router.js';
 import { state, onChange, loadMembers, loadCachedMembers, restoreDevice, showLogin, canManage, requirePin } from './lib/session.js';
 import { toast, esc } from './lib/dom.js';
+import { call } from './lib/api.js';
 import { invalidate, serviceSettings, appStatus } from './lib/data.js';
 import * as home from './pages/home.js';
 import { showJoinRequest, showGuestWelcome } from './lib/join.js';
@@ -108,6 +109,17 @@ document.getElementById('refreshBtn').addEventListener('click', async e => {
 ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
+// إحصاء استخدام الأيقونات: يُسجَّل فتح كل صفحة (أعداد مجمعة يوميًا).
+let lastTrack = '';
+function track() {
+  const [id = 'home', p] = location.hash.replace(/^#\/?/, '').split('/');
+  const key = (id || 'home') + (p && /^[a-z]+$/.test(p) && !['manager', 'invite', 'community'].includes(id) ? '/' + p : '');
+  if (key === lastTrack) return;
+  lastTrack = key;
+  call('track_page', { p_page: key, p_member_id: state.user && !state.manager ? state.user.id : null }).catch(() => {});
+}
+window.addEventListener('hashchange', track);
+
 window.addEventListener('unhandledrejection', e => { console.error(e.reason); });
 
 (async function boot() {
@@ -121,6 +133,7 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); })
   prefsOwner = state.user && !state.manager ? state.user.id : null; P.useOwner(prefsOwner);
   lastUser = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   start();
+  track();
   membersP.then(changed => { if (changed && currentPage()) refresh(); });
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

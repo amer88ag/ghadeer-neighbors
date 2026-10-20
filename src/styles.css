@@ -578,3 +578,12 @@ input, select, textarea { font-size: 16px; }
 
 .link-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .link-tiles .tile small { display: block; }
+
+/* إحصاء استخدام الأيقونات */
+.usage-bars { display: grid; gap: 6px; }
+.ubar { display: grid; grid-template-columns: 9.5em 1fr auto auto; gap: 6px; align-items: center; font-size: 12px; }
+.ubar .ulabel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.utrack { height: 10px; background: var(--g-soft); border-radius: 99px; overflow: hidden; }
+.utrack i { display: block; height: 100%; background: var(--g); border-radius: 99px; }
+.ubar small { color: var(--muted); min-width: 4.5em; }
+#stats-members select { margin: 8px 0; }
