@@ -164,6 +164,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--g); outline
 .link-btn.tiny { font-size: 11px; color: var(--muted); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .actions.small { margin-top: 6px; justify-content: space-between; }
+.actions.end { justify-content: flex-end; margin-top: 6px; }
+.small-btn.danger-text { color: var(--red); }
 .file-btn { cursor: pointer; }
 .segmented { display: flex; gap: 6px; margin-bottom: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 4px; }
 .segmented.scroll { overflow-x: auto; scrollbar-width: none; }
