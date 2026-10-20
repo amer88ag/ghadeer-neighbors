@@ -80,6 +80,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('news ticker: future and expired hidden', !newsT.includes('مستقبلي') && !newsT.includes('إعلان منتهي'));
   ok('news ticker: dua for leaders and armed forces', newsT.includes('خادم الحرمين الشريفين') && newsT.includes('قواتنا المسلحة'));
   ok('news ticker: local news from trusted source', newsT.includes('تعليق الدراسة الحضورية') && newsT.includes('واس'));
+  ok('news ticker: school news comes before the dua', await page.evaluate(() => { const t = document.querySelector('[data-news-ticker] .tk-run').textContent; return t.indexOf('تعليق الدراسة') < t.indexOf('خادم الحرمين'); }));
   ok('news ticker: below dhikr ticker', await page.evaluate(() => document.querySelector('[data-ticker]').closest('.ticker').nextElementSibling.classList.contains('news-ticker')));
   ok('news ticker: thanks start after the appointment, last 24h, in red', await page.evaluate(async () => {
     const m = await import('./src/lib/ticker.js');
@@ -159,6 +160,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('edit mode: default order restored', (await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile)))[0] === before[0]);
   await page.click('[data-edit-done]'); await page.waitForTimeout(200);
   ok('edit mode: done exits and icons open again', !(await page.$('.home-tiles.editing')) && !(await page.$('.tile-ctl')));
+  await page.goto(BASE + '#/news/school'); await page.waitForSelector('.segmented');
+  await page.waitForFunction(() => document.querySelector('.card a.row-item'));
+  ok('news page: school & holidays tab shows trusted local news', (await page.textContent('.card')).includes('تعليق الدراسة الحضورية') && (await page.textContent('.card')).includes('واس'));
+  await page.goto(BASE + '#/news'); await page.waitForSelector('.segmented');
+  ok('news page: all tab shows school section above announcements', (await page.textContent('main, body')).includes('📚 الدراسة والإجازات'));
   await page.goto(BASE + '#/offers'); await page.waitForSelector('.offer');
   ok('offers: published offer with discount, price, share and source', (await page.textContent('.offer')).includes('مخبز الحي') && (await page.textContent('.offer-off')).includes('20') && !!(await page.$('.offer a.wa')) && (await page.$$('.links .link-item')).length === 8);
   await page.click('.offer [data-fav]'); await page.goto(BASE + '#/offers/fav'); await page.waitForSelector('.offer');
