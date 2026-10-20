@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 19 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 23 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -111,7 +111,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 19);
+  ok('guest icons count', (await checkAllTiles('guest')) === 23);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
@@ -145,7 +145,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 19);
+  ok('member icons count', (await checkAllTiles('member')) === 23);
   await page.goto(BASE + '#/display'); await page.waitForSelector('[data-tiles-list]');
   await page.click('[data-tiles-btn=lg]'); await page.waitForSelector('[data-tiles-btn=lg].active');
   await page.click('[data-tiles-list] [data-id=coffee] [data-eye]'); await page.waitForSelector('[data-tiles-list] [data-id=coffee].inactive');
@@ -316,7 +316,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_message');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 21);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 25);
   await page.goto(BASE + '#/manager/schedules'); await page.waitForSelector('[data-f=coffee-new]'); await page.$$eval('details', ds => ds.forEach(d => d.open = true));
   await page.fill('[data-f=coffee-new] [name=date]', '2026-12-01'); await page.click('[data-f=coffee-new] .btn');
   await page.waitForTimeout(400);
@@ -349,7 +349,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
   ok('supervisor: dashboard shows only permitted sections', !(await page.$('.mgr-card[href="#/manager/settings"]')) && !!(await page.$('.mgr-card[href="#/manager/ticker"]')));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 20);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 24);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
@@ -361,8 +361,8 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.click('[data-svc="services/lost"] button'); await page.waitForTimeout(400);
   const ss = await lastCall('manager_set_service_setting');
   ok('dev: service paused', ss && ss.args.p_key === 'services/lost' && ss.args.p_enabled === false);
-  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services"]');
-  ok('dev: pausing a sub-section keeps the merged services tile', !(await page.$eval('[data-tile="services"]', e => e.classList.contains('off'))));
+  await page.goto(BASE + '#/home'); await page.waitForSelector('[data-tile="services/lost"]');
+  ok('dev: developer still sees paused tile (dimmed)', await page.$eval('[data-tile="services/lost"]', e => e.classList.contains('off')));
   await page.goto(BASE + '#/manager/members'); await page.waitForSelector('[data-act=restore]');
   ok('dev: suspended members listed with restore', (await page.textContent('[data-tab]')).includes('عضو موقوف'));
   await page.click('[data-act=suspend][data-id="3"]'); await page.click('.modal [data-ok]'); await page.waitForTimeout(400);
@@ -380,7 +380,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   // guest sees paused service as hidden + blocked
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
   await page.goto(BASE + '#/home'); await page.waitForSelector('.tile');
-  ok('guest: merged services tile still visible', !!(await page.$('[data-tile="services"]')));
+  ok('guest: paused tile hidden', !(await page.$('[data-tile="services/lost"]')));
   await page.click('#who [data-login]'); await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
   await page.waitForSelector('#who .chip:not(.light)');
   await page.goto(BASE + '#/services/lost'); await page.waitForTimeout(400);

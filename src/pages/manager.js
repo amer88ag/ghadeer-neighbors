@@ -448,8 +448,7 @@ async function checks(el, again) {
 /* ---------------- الخدمات (تفعيل/إيقاف/ترتيب) ---------------- */
 // أقسام داخلية يمكن إيقافها منفردة (داخل «خدمات الحي» و«روابط مفيدة» و«الرسائل»).
 const SUB_SERVICES = ['🔧 أقسام داخلية', [
-  ['services/help', '🤝', 'خدمات الجيران', '', 'all'], ['services/market', '🛍️', 'سوق الحي', '', 'all'], ['services/lost', '🔎', 'المفقودات', '', 'all'],
-  ['services/initiative', '💡', 'المبادرات', '', 'all'], ['services/catalog', '📚', 'دليل الخدمات', '', 'all'], ['links/jobs', '💼', 'الوظائف', '', 'all'],
+  ['links/jobs', '💼', 'الوظائف', '', 'all'],
   ['links/gov', '🏛️', 'خدمات عامة', '', 'all'], ['prayer', '🕌', 'مواقيت الصلاة', '', 'all'], ['weather', '🌤️', 'الطقس', '', 'all']
 ]];
 async function services(el, again) {
