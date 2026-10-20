@@ -1,4 +1,5 @@
-import { esc, empty, fmtDateTime } from '../lib/dom.js';
+import { esc, empty, fmtDateTime, todayISO } from '../lib/dom.js';
+import { calendarHtml, isSuspension } from '../lib/school.js';
 import * as data from '../lib/data.js';
 import { isSchoolNews } from '../lib/ticker.js';
 
@@ -24,7 +25,14 @@ export async function render(el, [tab = 'all']) {
   const schoolHtml = school.length ? `<div class="list">${school.map(localRow).join('')}</div>` : empty('لا توجد أخبار دراسة أو إجازات خلال الأيام الثلاثة الماضية.');
   const localHtml = news.length ? `<div class="list">${news.map(localRow).join('')}</div>` : empty('تعذر جلب أخبار المنطقة الآن.');
   let body;
-  if (tab === 'school') body = `<div class="card">${schoolHtml}</div>`;
+  if (tab === 'school') {
+    const stop = school.filter(n => isSuspension(n.title));
+    body = `<div class="card school-alert${stop.length ? ' on' : ''}"><h3>⛔ تعليق الدراسة</h3>${stop.length
+      ? `<div class="list">${stop.map(localRow).join('')}</div>`
+      : '<p class="muted">لا يوجد إعلان عن تعليق الدراسة في عسير خلال الأيام الثلاثة الماضية. الدراسة حضورية كالمعتاد.</p>'}</div>
+      ${calendarHtml(todayISO())}
+      <div class="card"><h3>📰 أخبار الدراسة والإجازات</h3>${schoolHtml}</div>`;
+  }
   else if (tab === 'local') body = `<div class="card">${localHtml}</div>`;
   else if (tab === 'all') body = `${school.length ? `<div class="card"><h3>📚 الدراسة والإجازات</h3>${schoolHtml}</div>` : ''}<div class="card"><h3>🔔 الإعلانات والتهاني</h3>${annHtml}</div>`;
   else body = `<div class="card">${annHtml}</div>`;

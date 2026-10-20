@@ -633,3 +633,10 @@ input, select, textarea { font-size: 16px; }
 .health-note { margin-top: 12px; }
 [data-theme="dark"] .pill.government { background: #0d2a4a; color: #90caf9; } [data-theme="dark"] .pill.private { background: #2e1538; color: #ce93d8; }
 [data-theme="dark"] .pill.price { background: #12301a; color: #a5d6a7; } [data-theme="dark"] .pill.offer-pill { background: #3a1212; color: #ef9a9a; }
+
+/* إجازات المدارس */
+.school-now { background: linear-gradient(135deg, var(--g), var(--g2)); color: #fff; border-radius: 18px; padding: 14px 16px; margin-bottom: 12px; display: grid; gap: 4px; }
+.school-now small { opacity: .85; } .school-now b { font-size: 18px; } .school-now em { font-style: normal; font-size: 22px; font-weight: 900; }
+.school-date { display: block; line-height: 1.7; } .school-row.done { opacity: .5; } .school-row.now { border-inline-start: 4px solid var(--g); padding-inline-start: 8px; }
+.pill.muted-pill { background: var(--line); color: var(--muted); }
+.school-alert.on { border: 2px solid var(--red); background: var(--red-soft); } .school-alert.on h3 { color: var(--red); }

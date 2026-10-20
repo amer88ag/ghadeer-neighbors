@@ -1,5 +1,6 @@
 /* شريط أخبار الحي: إعلانات الإدارة، الشكر بعد القهوة والطلعة، تهاني المناسبات، الدعاء، والأخبار المحلية. */
-import { esc } from './dom.js';
+import { esc, todayISO } from './dom.js';
+import { tickerLine } from './school.js';
 
 const DAY = 864e5;
 const THANKS_TITLE = /رسالة شكر/;
@@ -49,6 +50,10 @@ export function newsItems({ announcements = [], coffee = [], outings = [], local
   const trusted = local.filter(x => x && x.source && x.link && x.title);
   const localItem = (n, ic) => ({ kind: 'local', html: `<a href="${esc(n.link)}" target="_blank" rel="noopener">${ic} ${esc(n.title)}</a> <small>(${esc(n.source)})</small>` });
   for (const n of trusted.filter(x => isSchoolNews(x.title)).slice(0, 5)) items.push(localItem(n, '📚'));
+
+  // الإجازة الجارية أو القادمة خلال أسبوع.
+  const holiday = tickerLine(todayISO());
+  if (holiday) items.push({ kind: 'local', html: holiday });
 
   // 5) الدعاء لولاة الأمر ورجال القوات المسلحة.
   items.push({ kind: 'dua', html: `🇸🇦 ${esc(DUA)}` });
