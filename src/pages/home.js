@@ -1,11 +1,11 @@
 import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
-import { state, memberName, activeMembers, canManage } from '../lib/session.js';
+import { state, memberName, activeMembers, canManage, creds } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
 import { LOCATION } from '../config.js';
 import { newsItems, fillTicker } from '../lib/ticker.js';
-import { arrangeTiles, widgetOn } from '../lib/prefs.js';
+import { arrangeTiles, widgetOn, prefs, save as savePrefs } from '../lib/prefs.js';
 import { compose, tileHtml } from '../lib/layout.js';
 
 /*
@@ -78,10 +78,14 @@ export async function render(el) {
     <section class="home-top">
       <div class="home-hello"><h2>${state.user ? 'أهلًا ' + esc(state.user.name) : 'مرحبًا بكم في جيران حي الغدير'}</h2><p class="home-tagline" data-welcome>${esc(DEFAULT_WELCOME)}</p>
         ${state.user ? '' : '<button class="btn primary small-btn" data-join>🌟 انضم إلى الجيران</button>'}</div>
-      <button type="button" class="weather-badge"${widgetOn('weather') ? '' : ' hidden'} data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button>
+      <div class="corner-tools"><button type="button" class="edit-fab${editing ? ' on' : ''}" data-edit-home aria-label="تعديل الشاشة" title="تعديل الشاشة: تحريك وحذف واستعادة الأيقونات">${editing ? '✓' : '✏️'}</button>
+      <button type="button" class="weather-badge"${widgetOn('weather') ? '' : ' hidden'} data-weather aria-label="الطقس الآن، اضغط للتفاصيل"><span data-weather-temp>…°</span></button></div>
     </section>
+    <div class="edit-bar" data-edit-bar${editing ? '' : ' hidden'}><b>✏️ تعديل الشاشة</b><small>→ ← للتحريك، ✕ للحذف من شاشتك</small>
+      <div class="actions small"><button class="small-btn" data-restore-hidden>↺ استعادة المحذوفة (${prefs().hidden.length})</button><button class="small-btn ghost" data-reset-layout>الترتيب الافتراضي</button><button class="small-btn primary" data-edit-done>✓ تم</button></div>
+      <div class="hidden-list" data-hidden-list hidden></div></div>
     <section class="card prayer-card"${widgetOn('prayer') ? '' : ' hidden'} data-prayer><p class="muted">جارٍ تحميل المواقيت…</p></section>
-    <nav class="tiles home-tiles" aria-label="خدمات البرنامج">${tiles.map(t => { if (t.kind !== 'builtin') return tileHtml(t, 'g0 custom'); const [g, gi] = groupOf.get(t.id); return `<a class="tile g${gi}${svc[t.id]?.enabled === false ? ' off' : ''}" href="#/${t.id}" data-tile="${t.id}" title="${esc(g + ' — ' + t.desc)}"><span class="tile-icon">${t.icon}</span><b>${esc(t.title)}</b>${svc[t.id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`; }).join('')}</nav>
+    <nav class="tiles home-tiles${editing ? ' editing' : ''}" aria-label="خدمات البرنامج">${tiles.map(t => { if (t.kind !== 'builtin') return tileHtml(t, 'g0 custom'); const [g, gi] = groupOf.get(t.id); return `<a class="tile g${gi}${svc[t.id]?.enabled === false ? ' off' : ''}" href="#/${t.id}" data-tile="${t.id}" title="${esc(g + ' — ' + t.desc)}"><span class="tile-icon">${t.icon}</span><b>${esc(t.title)}</b>${svc[t.id]?.enabled === false ? '<em class="off-tag">موقوفة</em>' : ''}</a>`; }).join('')}</nav>
     <section class="upcoming"${widgetOn('upcoming') ? '' : ' hidden'} aria-label="لقاءات الجيران القادمة"><span class="up-title">☕ لقاءات الجيران القادمة <small>(اختيارية)</small></span>
       <a href="#/coffee" class="up-row"><span class="up-ic">☕</span><span class="up-v" data-next-coffee>…</span></a>
       <a href="#/outings" class="up-row"><span class="up-ic">🚐</span><span class="up-v" data-next-outing>…</span></a>
@@ -89,6 +93,7 @@ export async function render(el) {
     <p class="muted center home-foot">${widgetOn('foot') ? `👥 ${activeMembers().length} جار نشط في البرنامج` : ''}</p>`;
 
   $('[data-join]', el)?.addEventListener('click', () => showJoinRequest());
+  setupEdit(el, tiles.map(t => t.kind === 'folder' ? 'folder/' + t.id : t.id), [...meta.values(), ...top.filter(t => t.kind !== 'builtin')]);
   el.querySelectorAll('.tiles a.tile').forEach(tile => tile.addEventListener('click', event => {
     if (state.user && state.termsOk || state.manager) return;
     const id = tile.dataset.tile || '';
@@ -123,4 +128,42 @@ export async function render(el) {
   const short = d => new Date(d + 'T00:00:00').toLocaleDateString('ar-SA', { weekday: 'short', day: 'numeric', month: 'short' });
   $('[data-next-coffee]', el).innerHTML = c ? `<b>${esc(memberName(c.member_id))}</b> · ${short(c.coffee_date)}${c.coffee_time ? ' · ' + fmtTime(c.coffee_time) : ''}` : 'لا يوجد موعد قهوة قادم';
   $('[data-next-outing]', el).innerHTML = o ? `<b>${esc(o.outing_type || [memberName(o.member1_id), memberName(o.member2_id)].join(' + '))}</b> · ${short(o.outing_date)}${o.outing_time ? ' · ' + fmtTime(o.outing_time) : ''}` : 'لا توجد طلعة قادمة';
+}
+
+/* ---------- تعديل الشاشة مباشرة من الرئيسية (زر ✏️ في الزاوية) ---------- */
+let editing = false;
+function setupEdit(el, ids, all) {
+  const sync = () => (state.user && state.pin && !state.manager ? creds() : null);
+  const rerender = () => render(el);
+  const label = id => { const t = all.find(x => (Array.isArray(x) ? x[0] : (x.kind === 'folder' ? 'folder/' + x.id : x.id)) === id); return t ? (Array.isArray(t) ? t[1] + ' ' + t[2] : (t.icon || '') + ' ' + t.title) : id; };
+  $('[data-edit-home]', el).onclick = () => { editing = !editing; rerender(); };
+  if (!editing) return;
+  const nav = $('.home-tiles', el);
+  nav.querySelectorAll('[data-tile]').forEach(tile => {
+    const id = tile.dataset.tile;
+    tile.insertAdjacentHTML('beforeend', `<span class="tile-ctl"><button type="button" data-mv="-1" aria-label="تقديم">→</button>${id === 'display' ? '' : '<button type="button" data-hide aria-label="حذف من شاشتي">✕</button>'}<button type="button" data-mv="1" aria-label="تأخير">←</button></span>`);
+  });
+  // في وضع التعديل لا تفتح الأيقونات.
+  nav.addEventListener('click', async e => {
+    const tile = e.target.closest('[data-tile]'); if (!tile) return;
+    e.preventDefault(); e.stopPropagation();
+    const id = tile.dataset.tile, b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.mv) {
+      const o = [...ids], i = o.indexOf(id), j = i + Number(b.dataset.mv);
+      if (j < 0 || j >= o.length) return;
+      [o[i], o[j]] = [o[j], o[i]];
+      await savePrefs({ order: o }, sync());
+    } else if ('hide' in b.dataset) {
+      await savePrefs({ hidden: [...prefs().hidden, id], order: ids.filter(x => x !== id) }, sync());
+    }
+    rerender();
+  }, true);
+  $('[data-edit-done]', el).onclick = () => { editing = false; rerender(); };
+  $('[data-reset-layout]', el).onclick = async () => { await savePrefs({ order: [], hidden: [] }, sync()); rerender(); };
+  $('[data-restore-hidden]', el).onclick = () => {
+    const box = $('[data-hidden-list]', el), h = prefs().hidden;
+    box.hidden = !box.hidden;
+    box.innerHTML = h.length ? h.map(id => `<button type="button" class="chip" data-unhide="${esc(id)}">↺ ${esc(label(id))}</button>`).join('') : '<small class="muted">لا توجد أيقونات محذوفة.</small>';
+    box.querySelectorAll('[data-unhide]').forEach(c => c.onclick = async () => { await savePrefs({ hidden: prefs().hidden.filter(x => x !== c.dataset.unhide) }, sync()); rerender(); });
+  };
 }
