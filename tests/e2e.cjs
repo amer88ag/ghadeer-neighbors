@@ -324,23 +324,24 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const c8 = await lastCall('create_neighbor_help');
   ok('services: catalog item posts help request', c8 && c8.args.p_title === title && title.length > 0, title);
 
-  // 9) Reload → device restore → pin re-prompt
-  await page.goto(BASE + '#/coffee'); await page.reload(); await page.waitForSelector('[data-gate]');
+  // 9) Reload → remembered device: full access without re-entering the PIN
+  await page.goto(BASE + '#/coffee'); await page.reload(); await page.waitForSelector('[data-apology="11"]');
   ok('restore: identity restored after reload', (await page.textContent('#who')).includes('عامر'));
-  ok('restore: services stay locked until pin + terms confirmed', !(await page.$('[data-apology]')));
-  await page.click('[data-gate]'); await page.waitForSelector('.modal [name=pin]');
-  ok('restore: pin re-prompt shows known name', (await page.textContent('.modal')).includes('الدخول باسم'));
-  await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary');
-  await page.waitForSelector('[data-apology="11"]');
+  ok('restore: services open without asking for pin again', !(await page.$('[data-gate]')) && !(await page.$('.modal [name=pin]')));
   await page.click('[data-apology="11"]'); await page.click('.modal [data-ok]');
   await page.waitForTimeout(800);
-  const restoredCalls = (await page.evaluate(() => window.__calls.filter(c => c.name === 'member_apologize_coffee').length));
-  ok('restore: action continues after pin', restoredCalls >= 1);
+  const restoredCall = await lastCall('member_apologize_coffee');
+  ok('restore: actions use the device token, not a stored pin', restoredCall && restoredCall.args.p_pin === 'dt:tok-1' && !(await page.evaluate(() => JSON.stringify(localStorage))).includes('1234'));
   await page.goto(BASE + '#/home'); await page.reload(); await page.waitForSelector('[data-tile=coffee]'); await page.waitForFunction(() => document.querySelector('#who')?.textContent.includes('عامر'));
-  await page.click('[data-tile=coffee]'); await page.waitForSelector('.modal');
-  ok('restore: remembered member tapping an icon gets pin confirm, not the guest welcome', !(await page.$('.modal [data-guest-join]')) && !!(await page.$('.modal [name=pin]')));
-  await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary'); await page.waitForSelector('.page-body[data-page=coffee]');
-  ok('restore: icon opens after pin confirm', (await page.evaluate(() => location.hash)).startsWith('#/coffee'));
+  await page.click('[data-tile=coffee]'); await page.waitForSelector('.page-body[data-page=coffee]');
+  ok('restore: icons open directly, no guest welcome or pin prompt', !(await page.$('.modal')) && (await page.evaluate(() => location.hash)).startsWith('#/coffee'));
+  // رمز ملغى (خروج من جهاز آخر أو تغيير الرقم السري): يعود العضو زائرًا ويُطلب الدخول من جديد.
+  await page.evaluate(() => { localStorage.setItem('__tokRevoked', '1'); }); await page.reload(); await page.waitForSelector('[data-gate]');
+  ok('restore: revoked device token falls back to login', !(await page.textContent('#who')).includes('عامر') && !(await page.evaluate(() => JSON.stringify(localStorage))).includes('tok-1'));
+  await page.evaluate(() => { localStorage.removeItem('__tokRevoked'); });
+  await page.click('[data-gate]'); await page.waitForSelector('.modal [name=member]');
+  await page.selectOption('.modal [name=member]', '1'); await page.fill('.modal [name=pin]', '1234'); await page.check('.modal [name=remember]'); await page.click('.modal .btn.primary');
+  await page.waitForSelector('[data-apology]'); await page.waitForTimeout(300);
 
   // 10) Logout
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
