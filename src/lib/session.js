@@ -59,7 +59,13 @@ export async function restoreDevice() {
   if (!token) return false;
   const r = await call('member_login_by_device_token', { p_token: token });
   if (!r.ok || !r.data?.success) { storage.del(DEVICE_TOKEN_KEY); return false; }
-  setUser({ id: Number(r.data.member_id), name: r.data.name || memberName(r.data.member_id), role: 'member' }, null);
+  // الجهاز المحفوظ يعمل كدخول كامل دون إعادة الرقم السري: رمز الجهاز (dt:…) يُقبل في التحقق بدل الرقم السري،
+  // ولا يُقبل لتغيير الرقم السري أو إصدار رمز جديد. يُلغى بتسجيل الخروج أو تغيير الرقم السري.
+  const id = Number(r.data.member_id), pin = 'dt:' + token;
+  const l = await call('member_login', { p_member_id: id, p_pin: pin });
+  const role = l.ok && l.data?.success ? l.data.role || 'member' : 'member';
+  setUser({ id, name: r.data.name || memberName(id), role }, l.ok && l.data?.success ? pin : null, { supervisor: ['supervisor', 'super_admin'].includes(role), silent: true });
+  if (state.pin) await ensureTerms(); else emit();
   return true;
 }
 
@@ -96,7 +102,7 @@ export function showLogin({ reason = '' } = {}) {
       ${known ? `<p>الدخول باسم <b>${esc(known.name)}</b></p><input type="hidden" name="member" value="${esc(known.id)}">`
               : `<label>اسمك</label><select name="member" required><option value="">اختر اسمك</option>${options(state.members.filter(m => m.active !== false), m => m.name)}</select>`}
       <label>الرقم السري</label><input name="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" required>
-      <label class="check"><input type="checkbox" name="remember" ${known ? 'checked' : ''}> تذكّر هذا الجهاز (لا يُحفظ الرقم السري)</label>
+      <label class="check"><input type="checkbox" name="remember" ${known ? 'checked' : ''}> تذكّر هذا الجهاز (لن يُطلب الرقم السري مرة أخرى على هذا الجهاز)</label>
       <div class="status" data-status></div>
       <div class="actions"><button class="btn primary">دخول</button><button type="button" class="btn secondary" data-close>إلغاء</button></div>
       <div class="actions small"><button type="button" class="link-btn" data-forgot>نسيت الرقم السري؟</button><button type="button" class="link-btn" data-manager>دخول المطور</button></div>

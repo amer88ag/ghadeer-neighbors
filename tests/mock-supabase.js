@@ -15,12 +15,14 @@
   const convs = [];
   const msgs = [];
   const calls = window.__calls = [];
-  const auth = a => pins[a.p_member_id] && pins[a.p_member_id] === a.p_pin;
+  // رمز الجهاز المحفوظ (dt:tok-<id>) يُقبل بدل الرقم السري، إلا إذا أُلغي.
+  const pinOk = (id, pin) => (pins[id] && pins[id] === pin) || (pin === 'dt:tok-' + id && !localStorage.getItem('__tokRevoked'));
+  const auth = a => pinOk(a.p_member_id, a.p_pin);
   const mgr = a => a.p_manager_pin === '9999';
   const deny = { success: false, message: 'بيانات الدخول غير صحيحة' };
   const handlers = {
     get_public_members: () => members,
-    member_login: a => pins[a.p_member_id] === a.p_pin ? { success: true, member_id: a.p_member_id, name: members.find(m => m.id === a.p_member_id).name, role: a.p_member_id === 2 ? 'supervisor' : 'member' } : { success: false, message: 'الرمز السري غير صحيح' },
+    member_login: a => pinOk(a.p_member_id, a.p_pin) ? { success: true, member_id: a.p_member_id, name: members.find(m => m.id === a.p_member_id).name, role: a.p_member_id === 2 ? 'supervisor' : 'member' } : { success: false, message: 'الرمز السري غير صحيح' },
     manager_pin_login: a => ({ success: a.p_pin === '9999', message: a.p_pin === '9999' ? '' : 'الرقم السري غير صحيح.' }),
     get_program_acceptance: a => ({ exists: a.p_member_id !== 3 }),
     member_terms_status: a => auth(a) ? { success: true, accepted: a.p_member_id !== 3 || window.__accepted3 === true } : deny,
@@ -79,8 +81,8 @@
     community_join_by_code: a => auth(a) ? { success: true, message: 'تم إرسال طلب الانضمام' } : deny,
     manager_set_content_open: a => mgr(a) ? { success: true } : { success: false },
     accept_program_terms: a => { if (!(auth(a) && a.p_member_name && a.p_version === 'terms-1.0')) return deny; if (a.p_member_id === 3) window.__accepted3 = true; return { success: true }; },
-    issue_member_device_token: a => auth(a) ? { success: true, token: 'tok-' + a.p_member_id } : deny,
-    member_login_by_device_token: a => a.p_token?.startsWith('tok-') ? { success: true, member_id: Number(a.p_token.slice(4)), name: members.find(m => m.id === Number(a.p_token.slice(4))).name } : { success: false },
+    issue_member_device_token: a => auth(a) && !String(a.p_pin).startsWith('dt:') ? { success: true, token: 'tok-' + a.p_member_id } : deny,
+    member_login_by_device_token: a => a.p_token?.startsWith('tok-') && !localStorage.getItem('__tokRevoked') ? { success: true, member_id: Number(a.p_token.slice(4)), name: members.find(m => m.id === Number(a.p_token.slice(4))).name } : { success: false },
     get_schedule_settings: () => ({ coffee_interval_days: 14, coffee_order_mode: 'alphabetical' }),
     neighbor_get_my_settings: a => auth(a) ? { success: true, residency_type: 'tenant', in_app: true, whatsapp: true, phone: false } : deny,
     member_revoke_device_token: () => ({ success: true }),
