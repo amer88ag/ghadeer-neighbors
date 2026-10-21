@@ -640,3 +640,37 @@ input, select, textarea { font-size: 16px; }
 .school-date { display: block; line-height: 1.7; } .school-row.done { opacity: .5; } .school-row.now { border-inline-start: 4px solid var(--g); padding-inline-start: 8px; }
 .pill.muted-pill { background: var(--line); color: var(--muted); }
 .school-alert.on { border: 2px solid var(--red); background: var(--red-soft); } .school-alert.on h3 { color: var(--red); }
+
+
+/* منظّم حياتي — تصميم مضاف دون تغيير الأنماط الحالية */
+.life-hero { background: linear-gradient(135deg, var(--card, #fff), var(--surface, #f3f7f3)); }
+.life-hero h2 { margin: .35rem 0 1rem; }
+.life-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-top: 1rem; }
+.life-stat { display: grid; gap: .25rem; padding: .8rem .5rem; border: 1px solid var(--border, #e2e8e2); border-radius: 14px; text-align: center; background: var(--surface, #fff); }
+.life-stat b { font-size: 1.25rem; color: var(--primary, #176b45); overflow-wrap: anywhere; }
+.life-stat small { color: var(--muted, #68756c); font-size: .76rem; }
+.life-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; margin: 1rem 0; }
+.life-tabs button { border: 1px solid var(--border, #dfe6df); border-radius: 12px; padding: .75rem .35rem; background: var(--card, #fff); color: inherit; font: inherit; cursor: pointer; }
+.life-tabs button.active { color: var(--primary, #176b45); border-color: var(--primary, #176b45); background: var(--surface, #edf5ee); font-weight: 700; }
+.life-panel h3 { margin-top: 0; }
+.life-form { display: grid; gap: .8rem; margin: 1rem 0 1.25rem; }
+.life-form label { display: grid; gap: .35rem; font-size: .9rem; font-weight: 600; }
+.life-form input { width: 100%; min-width: 0; padding: .75rem .8rem; border: 1px solid var(--border, #dfe6df); border-radius: 10px; background: var(--card, #fff); color: inherit; font: inherit; box-sizing: border-box; }
+.life-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
+.life-list { display: grid; gap: .55rem; }
+.life-item { display: flex; align-items: center; gap: .65rem; min-width: 0; padding: .75rem; border: 1px solid var(--border, #e4e9e4); border-radius: 13px; background: var(--card, #fff); }
+.life-item.done { opacity: .7; }
+.life-item.done .life-check b { text-decoration: line-through; }
+.life-check { display: flex; align-items: center; gap: .65rem; flex: 1; min-width: 0; cursor: pointer; }
+.life-check input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--primary, #176b45); }
+.life-check span, .life-item-text { display: grid; gap: .25rem; min-width: 0; overflow-wrap: anywhere; }
+.life-item small { display: block; color: var(--muted, #68756c); font-size: .8rem; margin-top: .2rem; }
+.life-item-icon { font-size: 1.35rem; flex: 0 0 auto; }
+.life-item strong { white-space: nowrap; font-size: .85rem; }
+.life-item .icon-btn { flex: 0 0 auto; }
+@media (max-width: 380px) {
+  .life-stats { gap: .35rem; }
+  .life-stat { padding: .65rem .25rem; }
+  .life-stat b { font-size: 1.05rem; }
+  .life-tabs button { font-size: .85rem; }
+}
