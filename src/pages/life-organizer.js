@@ -44,8 +44,8 @@ export async function render(el) {
       <section class="card life-hero">
         <p class="muted">مساحتك الشخصية · لا تُنشر بياناتك في قروب الحي</p>
         <h2>رتّب يومك، خطوة بخطوة</h2>
-        <div class="stats-grid">
-          <div class="stat"><b>${pending}</b><small>مهام متبقية</small></div>
+        <div class="life-stats">
+          <div class="life-stat"><b>${pending}</b><small>مهام متبقية</small></div>
           <div class="stat"><b>${data.appointments.length}</b><small>مواعيد مسجلة</small></div>
           <div class="stat"><b>${money(totalExpenses)}</b><small>مصروفات مسجلة (ر.س)</small></div>
         </div>
