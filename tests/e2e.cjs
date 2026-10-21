@@ -336,6 +336,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.waitForTimeout(800);
   const restoredCalls = (await page.evaluate(() => window.__calls.filter(c => c.name === 'member_apologize_coffee').length));
   ok('restore: action continues after pin', restoredCalls >= 1);
+  await page.goto(BASE + '#/home'); await page.reload(); await page.waitForSelector('[data-tile=coffee]'); await page.waitForFunction(() => document.querySelector('#who')?.textContent.includes('عامر'));
+  await page.click('[data-tile=coffee]'); await page.waitForSelector('.modal');
+  ok('restore: remembered member tapping an icon gets pin confirm, not the guest welcome', !(await page.$('.modal [data-guest-join]')) && !!(await page.$('.modal [name=pin]')));
+  await page.fill('.modal [name=pin]', '1234'); await page.click('.modal .btn.primary'); await page.waitForSelector('.page-body[data-page=coffee]');
+  ok('restore: icon opens after pin confirm', (await page.evaluate(() => location.hash)).startsWith('#/coffee'));
 
   // 10) Logout
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);

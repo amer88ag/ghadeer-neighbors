@@ -1,5 +1,5 @@
 import { esc, fmtTime, todayISO, $ } from '../lib/dom.js';
-import { state, memberName, activeMembers, canManage, creds } from '../lib/session.js';
+import { state, memberName, activeMembers, canManage, creds, requirePin } from '../lib/session.js';
 import * as data from '../lib/data.js';
 import { showJoinRequest, showGuestWelcome } from '../lib/join.js';
 import { prayerTimes, renderPrayer, renderWeather, DHIKR, HADITH } from '../lib/widgets.js';
@@ -101,6 +101,8 @@ export async function render(el) {
     const id = tile.dataset.tile || '';
     if (OPEN.has(id) || id.startsWith('folder/') || tile.target === '_blank' || tile.classList.contains('custom')) return;
     event.preventDefault();
+    // عضو معروف على هذا الجهاز (دخول محفوظ) لا تظهر له رسالة الزائر؛ يؤكد دخوله برقمه السري ثم تُفتح الخدمة.
+    if (state.user) { const href = tile.getAttribute('href'); requirePin().then(ok => { if (ok && href) location.hash = href; }); return; }
     showGuestWelcome(tile.querySelector('b')?.textContent || 'خدمات الحي');
   }));
 
