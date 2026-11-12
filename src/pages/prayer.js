@@ -27,6 +27,6 @@ export async function render(el) {
   });
   load();
   window.removeEventListener('ghadeer:location-updated', window._ghadeerPrayerLocationHandler);
-  window._ghadeerPrayerLocationHandler = () => load();
+  window._ghadeerPrayerLocationHandler = () => { if (el.isConnected) load(); };
   window.addEventListener('ghadeer:location-updated', window._ghadeerPrayerLocationHandler);
 }
