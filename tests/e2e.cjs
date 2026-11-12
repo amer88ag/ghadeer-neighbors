@@ -127,7 +127,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('guest: terms page open', true);
 
   // 2) Every page as guest
-  for (const p of ['coffee', 'coffee/all', 'outings', 'outings/schedule', 'outings/new', 'events', 'neighbors', 'neighbors/me', 'messages', 'messages/private', 'messages/suggest', 'check', 'services', 'services/catalog', 'housing', 'housing/links', 'links', 'links/sports', 'links/jobs', 'account', 'manager', 'unknown-page']) {
+  for (const p of ['coffee', 'coffee/all', 'outings', 'outings/schedule', 'outings/new', 'events', 'neighbors', 'neighbors/me', 'messages', 'messages/private', 'messages/suggest', 'check', 'services', 'services/catalog', 'housing', 'housing/links', 'links', 'links/sports', 'account', 'manager', 'unknown-page']) {
     await page.goto(BASE + '#/' + p); await page.waitForTimeout(250);
     const bad = await page.$('.page-body .status.bad');
     ok('guest page renders: ' + p, !bad && !(await page.$('.page-body .skeleton')), bad ? await bad.textContent() : '');
@@ -245,11 +245,13 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const gw = await page.evaluate(() => window.__lastWa || '');
   ok('whatsapp: group message opens WhatsApp chooser with text', gw.startsWith('https://wa.me/?text=') && decodeURIComponent(gw).includes('برنامج جيران حي الغدير'));
   await page.goto(BASE + '#/links'); await page.waitForSelector('.link-tiles');
-  ok('links: useful links shows icon sections (no news, no football)', (await page.$$('.link-tiles [data-links]')).length === 6 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
+  ok('links: useful links shows icon sections (no news, no football)', (await page.$('.link-tiles [data-links]')).length === 4 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
   await page.click('[data-links=emergency]'); await page.waitForSelector('.link-item');
   ok('links: section opens its links (emergency calls)', (await page.$$('a.link-item[href^="tel:"]')).length >= 5);
-  await page.goto(BASE + '#/links/gov'); await page.waitForSelector('.link-item');
-  ok('links: government services list', (await page.$$('.link-item')).length >= 10);
+  await page.goto(BASE + '#/saudiservices'); await page.waitForSelector('#saudiServicesCategories');
+  ok('services: government and public services consolidated in one portal', (await page.$('#saudiServicesCategories [data-category]')).length >= 10 && (await page.textContent('#saudiServicesResults')).includes('الشركة السعودية للكهرباء'));
+  await page.goto(BASE + '#/links'); await page.waitForSelector('.link-tiles');
+  ok('links: no duplicated government or jobs categories', !(await page.$('[data-links=gov]')) && !(await page.$('[data-links=jobs]')));
   await page.goto(BASE + '#/home'); await page.waitForSelector('.home-tiles');
   ok('home: news + WhatsApp tiles, display settings appears once', !!(await page.$('[data-tile="links/news"]')) && !!(await page.$('[data-tile=whatsapp]')) && (await page.$$('a[href="#/display"]')).length === 1);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('.roshn-table');
