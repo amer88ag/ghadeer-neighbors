@@ -31,6 +31,6 @@ export async function render(el) {
   };
   await load();
   window.removeEventListener('ghadeer:location-updated', window._ghadeerWeatherLocationHandler);
-  window._ghadeerWeatherLocationHandler = () => load();
+  window._ghadeerWeatherLocationHandler = () => { if (el.isConnected) load(); };
   window.addEventListener('ghadeer:location-updated', window._ghadeerWeatherLocationHandler);
 }
