@@ -1,5 +1,5 @@
 import { esc } from '../lib/dom.js';
-import { NEWS, JOBS, GOV, SPORTS, REAL_ESTATE, MOSQUES, EMERGENCY, linkList } from '../lib/links.js';
+import { NEWS, SPORTS, REAL_ESTATE, MOSQUES, EMERGENCY, linkList } from '../lib/links.js';
 import { render as renderFootball } from './football.js';
 
 /*
@@ -7,8 +7,6 @@ import { render as renderFootball } from './football.js';
  * «الأخبار» و«الرياضة» أيقونتان مستقلتان في الرئيسية (#/links/news و #/links/sports).
  */
 export const SECTIONS = [
-  ['gov', '🏛️', 'الخدمات الحكومية', 'أبشر، نفاذ، بلدي، ناجز…', GOV],
-  ['jobs', '💼', 'الوظائف', 'بوابات توظيف رسمية', JOBS],
   ['emergency', '🚨', 'أرقام الطوارئ', 'اتصال مباشر', EMERGENCY],
   ['mosques', '🕌', 'المساجد القريبة', 'على الخريطة', MOSQUES],
   ['realestate', '🏠', 'العقار', 'منصات عقارية موثوقة', REAL_ESTATE],
