@@ -82,7 +82,7 @@ export async function renderWeather(el) {
     el.innerHTML = '<span data-weather-temp>—°</span>';
   } finally {
     clearTimeout(el._weatherTimer);
-    el._weatherTimer = setTimeout(() => { if (el.isConnected) renderWeather(el); }, 15 * 60 * 1000);
+    el._weatherTimer = setTimeout(() => { if (el.isConnected) renderWeather(el); }, 5 * 60 * 1000);
   }
 }
 
