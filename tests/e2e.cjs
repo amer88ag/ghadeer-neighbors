@@ -245,11 +245,11 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const gw = await page.evaluate(() => window.__lastWa || '');
   ok('whatsapp: group message opens WhatsApp chooser with text', gw.startsWith('https://wa.me/?text=') && decodeURIComponent(gw).includes('برنامج جيران حي الغدير'));
   await page.goto(BASE + '#/links'); await page.waitForSelector('.link-tiles');
-  ok('links: useful links shows icon sections (no news, no football)', (await page.$('.link-tiles [data-links]')).length === 4 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
+  ok('links: useful links shows icon sections (no news, no football)', (await page.$$('.link-tiles [data-links]')).length === 4 && !(await page.$('a[href="#/links/sports"]')) && !(await page.$('a[href="#/links/news"]')));
   await page.click('[data-links=emergency]'); await page.waitForSelector('.link-item');
   ok('links: section opens its links (emergency calls)', (await page.$$('a.link-item[href^="tel:"]')).length >= 5);
   await page.goto(BASE + '#/saudiservices'); await page.waitForSelector('#saudiServicesCategories');
-  ok('services: government and public services consolidated in one portal', (await page.$('#saudiServicesCategories [data-category]')).length >= 10 && (await page.textContent('#saudiServicesResults')).includes('الشركة السعودية للكهرباء'));
+  ok('services: government and public services consolidated in one portal', (await page.$$('#saudiServicesCategories [data-category]')).length >= 10 && (await page.textContent('#saudiServicesResults')).includes('الشركة السعودية للكهرباء'));
   await page.goto(BASE + '#/links'); await page.waitForSelector('.link-tiles');
   ok('links: no duplicated government or jobs categories', !(await page.$('[data-links=gov]')) && !(await page.$('[data-links=jobs]')));
   await page.goto(BASE + '#/home'); await page.waitForSelector('.home-tiles');
