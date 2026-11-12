@@ -71,7 +71,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('mobile: page zoom disabled', viewportMeta.includes('maximum-scale=1') && viewportMeta.includes('user-scalable=no'));
   ok('mobile: touch gesture zoom prevention styles present', await page.evaluate(() => getComputedStyle(document.documentElement).touchAction === 'pan-x pan-y' && getComputedStyle(document.querySelector('button')).touchAction === 'manipulation'));
   await page.waitForFunction(() => !document.querySelector('[data-next-coffee]')?.textContent.includes('…'));
-  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 26 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
+  ok('home: all icons render for guest (no admin tile)', (await page.$$('.tile')).length === 27 && !(await page.$('[data-tile=manager]')) && !(await page.$('[data-tile=stats]')));
   ok('home: compact upcoming strip', (await page.textContent('[data-next-coffee]')).includes('عامر') && (await page.$$('.up-row')).length === 2);
   await page.waitForFunction(() => document.querySelector('[data-news-ticker] .tk-local'));
   const newsT = await page.textContent('[data-news-ticker]');
@@ -112,7 +112,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('home: no direct members table read', !(await calls()).includes('table:members'));
   await page.screenshot({ path: SHOTS + '/1-home-guest.png', fullPage: true });
 
-  ok('guest icons count', (await checkAllTiles('guest')) === 26);
+  ok('guest icons count', (await checkAllTiles('guest')) === 27);
   await page.goto(BASE + '#/links/sports'); await page.waitForSelector('[data-gate]');
   ok('guest: football dashboard gated until login', !(await page.$('.roshn-table')));
 
@@ -146,7 +146,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   ok('login: device token stored, pin not stored', ls.includes('tok-1') && !ls.includes('1234'), ls);
   ok('login: manager nav hidden for member', await page.$eval('[data-nav=manager]', e => e.hidden));
 
-  ok('member icons count', (await checkAllTiles('member')) === 26);
+  ok('member icons count', (await checkAllTiles('member')) === 27);
   await page.goto(BASE + '#/home'); await page.waitForSelector('[data-edit-home]');
   await page.click('[data-edit-home]'); await page.waitForSelector('.home-tiles.editing .tile-ctl');
   const before = await page.$$eval('.home-tiles [data-tile]', t => t.map(x => x.dataset.tile));
@@ -422,7 +422,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   const tk = await lastCall('staff_post_ticker_message');
   ok('ticker admin: developer posts with chosen period', tk && tk.args.p_member_id === 0 && tk.args.p_title === 'اجتماع الجيران' && Math.round((new Date(tk.args.p_ends_at) - new Date(tk.args.p_starts_at)) / 864e5) === 7 && tk.args.p_color === '#c62828');
 
-  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 28);
+  ok('manager icons count (incl. admin)', (await checkAllTiles('manager')) === 29);
   await page.goto(BASE + '#/outings/schedule'); await page.waitForSelector('[data-edit-outing]');
   await page.click('[data-edit-outing]'); await page.waitForSelector('[data-f=outing-edit]', { state: 'attached' }); await page.waitForTimeout(200);
   ok('outings schedule: edit button opens the selected outing in admin', page.url().includes('#/manager/schedules?outing=21')
@@ -459,7 +459,7 @@ const ok = (name, cond, extra = '') => { results.push([cond ? 'PASS' : 'FAIL', n
   await page.goto(BASE + '#/manager'); await page.waitForSelector('.mgr-hero');
   ok('supervisor: dashboard shows only permitted sections', !(await page.$('.mgr-card[href="#/manager/settings"]')) && !!(await page.$('.mgr-card[href="#/manager/ticker"]')));
 
-  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 27);
+  ok('supervisor icons count (incl. admin)', (await checkAllTiles('supervisor')) === 28);
 
   // 13c) Developer controls (re-login as manager)
   await page.goto(BASE + '#/account'); await page.click('[data-logout]'); await page.waitForTimeout(300);
