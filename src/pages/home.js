@@ -125,7 +125,10 @@ export async function render(el) {
   };
   updateHomeLocation();
   el._locationUpdate = () => updateHomeLocation();
-  window.addEventListener('ghadeer:location-updated', el._locationUpdate);
+  window.onGhadeerLocationUpdated = el._locationUpdate;
+  window.removeEventListener('ghadeer:location-updated', window._ghadeerLocationHandler);
+  window._ghadeerLocationHandler = window.onGhadeerLocationUpdated;
+  window.addEventListener('ghadeer:location-updated', window._ghadeerLocationHandler);
   prayerEl.addEventListener('click', e => { if (!e.target.closest('a,button')) location.hash = '#/prayer'; });
   data.appStatus().then(st => { const w = $('[data-welcome]', el); if (w && st.home_welcome) w.textContent = st.home_welcome; }).catch(() => {});
   const weatherBtn = $('[data-weather]', el);
