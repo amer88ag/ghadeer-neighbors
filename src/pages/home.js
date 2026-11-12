@@ -115,8 +115,17 @@ export async function render(el) {
   drawNews();
 
   const prayerEl = $('[data-prayer]', el);
-  prayerTimes().then(p => renderPrayer(prayerEl, p, p.locationLabel || LOCATION.label, { compact: true }))
-    .catch(() => { prayerEl.innerHTML = '<p class="muted">🕌 تعذر جلب المواقيت الآن.</p>'; });
+  const updateHomeLocation = async () => {
+    try {
+      const p = await prayerTimes();
+      if (prayerEl.isConnected) renderPrayer(prayerEl, p, p.locationLabel || LOCATION.label, { compact: true });
+      const weather = $('[data-weather]', el);
+      if (weather?.isConnected) renderWeather(weather);
+    } catch { /* الاحتفاظ بالبيانات الحالية عند تعذر الاتصال */ }
+  };
+  updateHomeLocation();
+  el._locationUpdate = () => updateHomeLocation();
+  window.addEventListener('ghadeer:location-updated', el._locationUpdate);
   prayerEl.addEventListener('click', e => { if (!e.target.closest('a,button')) location.hash = '#/prayer'; });
   data.appStatus().then(st => { const w = $('[data-welcome]', el); if (w && st.home_welcome) w.textContent = st.home_welcome; }).catch(() => {});
   const weatherBtn = $('[data-weather]', el);
