@@ -115,7 +115,7 @@ export async function render(el) {
   drawNews();
 
   const prayerEl = $('[data-prayer]', el);
-  prayerTimes().then(p => renderPrayer(prayerEl, p, LOCATION.label, { compact: true }))
+  prayerTimes().then(p => renderPrayer(prayerEl, p, p.locationLabel || LOCATION.label, { compact: true }))
     .catch(() => { prayerEl.innerHTML = '<p class="muted">🕌 تعذر جلب المواقيت الآن.</p>'; });
   prayerEl.addEventListener('click', e => { if (!e.target.closest('a,button')) location.hash = '#/prayer'; });
   data.appStatus().then(st => { const w = $('[data-welcome]', el); if (w && st.home_welcome) w.textContent = st.home_welcome; }).catch(() => {});
