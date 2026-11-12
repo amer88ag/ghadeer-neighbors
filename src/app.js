@@ -44,7 +44,7 @@ const PAGES = [
   ['links', 'روابط مفيدة', '🔗', links], ['account', 'حسابي', '👤', account], ['manager', 'لوحة الإدارة', '🛠️', manager],
   ['news', 'أخبار الحي', '📢', news], ['prayer', 'مواقيت الصلاة', '🕌', prayer], ['weather', 'الطقس', '🌤️', weather],
   ['azkar', 'الذكر', '📿', azkar], ['about', 'عن البرنامج', '©️', about], ['terms', 'الشروط والأحكام', '📜', terms], ['install', 'النشر والتثبيت', '📲', install],
-  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp], ['display', 'إعداد الشاشة', '🎨', display], ['folder', 'مجلد', '📁', folder], ['custom', 'صفحة', '⭐', custom], ['offers', 'عروض اليوم', '🏷️', offers], ['health', 'الدليل الصحي', '🩺', health], ['saudiservices', 'خدمات السعودية', '🇸🇦', saudiservices]
+  ['community', 'مجتمع جديد', '🏘️', community], ['stats', 'الإحصاءات', '📊', stats], ['invite', 'دعوة الجيران', '💌', invite], ['whatsapp', 'واتساب الجيران', '📱', whatsapp], ['display', 'إعداد الشاشة', '🎨', display], ['folder', 'مجلد', '📁', folder], ['custom', 'صفحة', '⭐', custom], ['offers', 'عروض اليوم', '🏷️', offers], ['health', 'الدليل الصحي', '🩺', health], ['saudiservices', 'خدمات عامة', '🇸🇦', saudiservices]
 ];
 PAGES.forEach(([id, title, icon, mod]) => register({ id, title, icon, render: mod.render }));
 
