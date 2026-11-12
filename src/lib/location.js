@@ -3,6 +3,7 @@ import { LOCATION } from '../config.js';
 
 const STORAGE_KEY = 'ghadeer_weather_prayer_location_v1';
 const FIRST_REQUEST_KEY = 'ghadeer_location_first_request_done_v1';
+const GRANTED_KEY = 'ghadeer_location_permission_granted_v1';
 const REFRESH_MS = 5 * 60 * 1000;
 let timer = null;
 let started = false;
@@ -19,7 +20,10 @@ export function getPreferredLocation() {
 }
 
 function saveLocation(coords) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(coords)); } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(coords));
+    localStorage.setItem(GRANTED_KEY, '1');
+  } catch {}
   window.dispatchEvent(new CustomEvent('ghadeer:location-updated', { detail: coords }));
   return coords;
 }
@@ -50,16 +54,11 @@ async function firstLocationRequest() {
 
 async function refreshIfAllowed() {
   if (document.visibilityState === 'hidden') return;
-  try {
-    if (navigator.permissions?.query) {
-      const permission = await navigator.permissions.query({ name: 'geolocation' });
-      if (permission.state !== 'granted') return;
-    } else {
-      // في المتصفحات التي لا تدعم Permissions API لا نعيد طلب الإذن تلقائيًا.
-      return;
-    }
-    await readPosition();
-  } catch { /* الاحتفاظ بآخر موقع ناجح أو موقع أبها */ }
+  let granted = false;
+  try { granted = localStorage.getItem(GRANTED_KEY) === '1'; } catch {}
+  if (!granted) return;
+  try { await readPosition(); }
+  catch { /* الاحتفاظ بآخر موقع ناجح أو موقع أبها */ }
 }
 
 function schedule() {
