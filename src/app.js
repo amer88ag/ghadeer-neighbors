@@ -34,6 +34,7 @@ import * as custom from './pages/custom.js';
 import * as offers from './pages/offers.js';
 import * as health from './pages/health.js';
 import * as P from './lib/prefs.js';
+import { initializeLocationUpdates } from './lib/location.js';
 
 const PAGES = [
   ['home', 'الرئيسية', '🏠', home], ['coffee', 'جدول القهوة', '☕', coffee], ['outings', 'الطلعات', '🚐', outings],
@@ -137,6 +138,7 @@ window.addEventListener('unhandledrejection', e => { console.error(e.reason); })
   prefsOwner = state.user && !state.manager ? state.user.id : null; P.useOwner(prefsOwner);
   lastUser = state.user ? state.user.id + ':' + state.manager + ':' + state.termsOk : '';
   start();
+  initializeLocationUpdates();
   track();
   membersP.then(changed => { if (changed && currentPage()) refresh(); });
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

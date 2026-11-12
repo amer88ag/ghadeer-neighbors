@@ -1,5 +1,6 @@
 /* أدوات الرئيسية: مواقيت الصلاة، الطقس، الذكر، لوحة الأحاديث. */
 import { LOCATION, TIMEZONE, IQAMA } from '../config.js';
+import { getPreferredLocation } from './location.js';
 import { esc } from './dom.js';
 
 const PRAYERS = [['Fajr', 'الفجر'], ['Sunrise', 'الشروق'], ['Dhuhr', 'الظهر'], ['Asr', 'العصر'], ['Maghrib', 'المغرب'], ['Isha', 'العشاء']];
@@ -28,11 +29,11 @@ const dur = m => (Math.floor(m / 60) ? Math.floor(m / 60) + ' س ' : '') + (m % 
 
 /** المواقيت حسب تقويم أم القرى لإحداثيات الحي (أو موقع المستخدم). */
 export async function prayerTimes(coords) {
-  const c = coords || LOCATION;
+  const c = coords || getPreferredLocation();
   const j = await fetchJSON(`https://api.aladhan.com/v1/timings/${dateKey()}?latitude=${c.lat}&longitude=${c.lon}&method=4&timezonestring=${encodeURIComponent(TIMEZONE)}`);
   const t = j?.data?.timings;
   if (!t) throw new Error('no timings');
-  return { timings: t, hijri: j.data?.date?.hijri };
+  return { timings: t, hijri: j.data?.date?.hijri, location: c, locationLabel: c.label || (coords ? 'موقعي الحالي' : LOCATION.label) };
 }
 
 /** حالة الصلاة الآن: بين الأذان والإقامة، أو الصلاة القادمة. */
@@ -61,8 +62,9 @@ export function renderPrayer(el, { timings, hijri }, label, { compact = false } 
 
 const WEATHER_CODES = { 0: ['☀️', 'صحو'], 1: ['🌤️', 'غائم جزئيًا'], 2: ['⛅', 'غائم جزئيًا'], 3: ['☁️', 'غائم'], 45: ['🌫️', 'ضباب'], 48: ['🌫️', 'ضباب'], 51: ['🌦️', 'رذاذ'], 53: ['🌦️', 'رذاذ'], 55: ['🌦️', 'رذاذ'], 61: ['🌧️', 'مطر خفيف'], 63: ['🌧️', 'مطر'], 65: ['🌧️', 'مطر غزير'], 80: ['🌦️', 'زخات'], 81: ['🌧️', 'زخات'], 82: ['⛈️', 'زخات قوية'], 95: ['⛈️', 'عواصف رعدية'], 96: ['⛈️', 'عواصف وبرد'], 99: ['⛈️', 'عواصف وبرد'] };
 
-export async function weatherForecast() {
-  return fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=6&timezone=${encodeURIComponent(TIMEZONE)}`);
+export async function weatherForecast(coords) {
+  const c = coords || getPreferredLocation();
+  return fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=6&timezone=${encodeURIComponent(TIMEZONE)}`);
 }
 export const weatherLabel = code => WEATHER_CODES[code] || ['🌡️', 'الطقس'];
 
@@ -70,13 +72,17 @@ export const weatherLabel = code => WEATHER_CODES[code] || ['🌡️', 'الطق
 export const tempTone = t => t <= 5 ? 'temp-freezing' : t <= 15 ? 'temp-cold' : t <= 25 ? 'temp-mild' : t <= 34 ? 'temp-warm' : 'temp-hot';
 export async function renderWeather(el) {
   try {
-    const j = await fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LOCATION.lat}&longitude=${LOCATION.lon}&current=temperature_2m,weather_code&timezone=${encodeURIComponent(TIMEZONE)}`);
+    const c = getPreferredLocation();
+    const j = await fetchJSON(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weather_code&timezone=${encodeURIComponent(TIMEZONE)}`);
     const temp = Math.round(j.current.temperature_2m);
     el.className = el.className.replace(/\btemp-\w+/g, '').trim() + ' ' + tempTone(temp);
     el.innerHTML = `<span data-weather-temp>${temp}°</span>`;
     el.setAttribute('aria-label', `درجة الحرارة الآن ${temp}، اضغط لعرض تفاصيل الطقس`);
   } catch {
     el.innerHTML = '<span data-weather-temp>—°</span>';
+  } finally {
+    clearTimeout(el._weatherTimer);
+    el._weatherTimer = setTimeout(() => { if (el.isConnected) renderWeather(el); }, 5 * 60 * 1000);
   }
 }
 
